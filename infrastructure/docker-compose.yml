@@ -1,54 +1,22 @@
-version: "3.8"
-
 services:
   postgres:
-    image: ankane/pgvector:v0.6.0
-    container_name: ai-engine-postgres
+    image: pgvector/pgvector:pg16
+    container_name: ai-lab-postgres
+    restart: always
     ports:
       - "5432:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ai-engine
+      POSTGRES_DB: ai_smartconstruct
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  ollama:
-    image: ollama/ollama
-    container_name: ai-engine-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    environment:
-      OLLAMA_HOST: 0.0.0.0:11434
-
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: ai-engine-pgadmin
-    ports:
-      - "5050:80"
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      - postgres
-
 volumes:
   postgres_data:
-  ollama_data:
-  pgadmin_data:
