@@ -1,22 +1,14 @@
 services:
-  postgres:
-    image: pgvector/pgvector:pg16
-    container_name: ai-lab-postgres
+  # 纯粹的向量检索引擎
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: ai-lab-qdrant
     restart: always
     ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: ai_smartconstruct
+      - "6333:6333"   # REST API 端口
+      - "6334:6334"   # gRPC 端口 (极速通信)
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./postgres-init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - qdrant_data:/qdrant/storage
 
 volumes:
-  postgres_data:
+  qdrant_data:
