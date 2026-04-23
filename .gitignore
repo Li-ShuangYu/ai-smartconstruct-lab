@@ -1,0 +1,56 @@
+# ========================
+# 1. 通用环境与密钥 (严禁泄露)
+# ========================
+.env
+.env.*
+*.pem
+*.key
+
+# ========================
+# 2. 前端 (Vue/Node)
+# ========================
+node_modules/
+dist/
+dist-ssr/
+*.local
+.npm/
+
+# ========================
+# 3. 后端 (Java/Spring Boot)
+# ========================
+target/
+*.class
+*.jar
+*.war
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ========================
+# 4. AI 引擎 (Python/FastAPI)
+# ========================
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.pytest_cache/
+.coverage
+
+# ========================
+# 5. IDE 与操作系统文件
+# ========================
+.idea/
+.vscode/
+*.swp
+*.DS_Store
+Thumbs.db
+
+# ========================
+# 6. 数据卷与日志
+# ========================
+*.log
+infrastructure/postgres_data/
+infrastructure/mysql_data/
+infrastructure/qdrant_data/
