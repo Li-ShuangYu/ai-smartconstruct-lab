@@ -1,15 +1,25 @@
+/* 1. 核心背景层：添加双色径向渐变晕染 */
 .page-container {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  /* 基础底色设为极浅的蓝白色 */
+  background-color: #FAFBFF; 
+  /* 左上方浅蓝色光晕，右下方淡紫色光晕 */
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(220, 235, 255, 0.8) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(240, 230, 255, 0.8) 0%, transparent 50%);
+  min-height: 100vh; /* 确保背景高度足以铺满视口 */
+  padding: 24px; /* 假设需要内边距防止内容贴边 */
 }
 
+/* 2. 边框弱化：配合浅色晕染背景，减弱分割线的生硬感 */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   padding-bottom: 24px;
-  border-bottom: 1px solid var(--color-border, #E5E7EB);
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5); /* 改为半透明边框 */
 }
 
 .header-left h2 {
@@ -25,6 +35,7 @@
   margin: 0;
 }
 
+/* 按钮样式保持不变，若需更契合可适当增加微弱阴影 */
 .primary-btn {
   background-color: #4F46E5;
   color: white;
@@ -35,32 +46,36 @@
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2); /* 新增：按钮微阴影 */
 }
 
 .primary-btn:hover { background-color: #4338CA; }
 
 .secondary-btn {
-  background-color: white;
+  background-color: rgba(255, 255, 255, 0.8); /* 适配晕染，略微透明 */
   color: #374151;
-  border: 1px solid #D1D5DB;
+  border: 1px solid rgba(209, 213, 219, 0.8);
   padding: 10px 20px;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   margin-right: 12px;
+  backdrop-filter: blur(4px);
 }
 
+/* 3. 空白状态及卡片：强化毛玻璃效果 */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 400px;
-  background-color: rgba(255, 255, 255, 0.6); /* 半透明以透出底部晕染 */
-  border: 1px dashed #D1D5DB;
+  background-color: rgba(255, 255, 255, 0.4); /* 降低不透明度，更多透出底色 */
+  border: 1px dashed rgba(209, 213, 219, 0.6);
   border-radius: 12px;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px); /* Safari 兼容 */
 }
 
 .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.8; }
@@ -70,7 +85,7 @@
 .content-tabs {
   display: flex;
   gap: 24px;
-  border-bottom: 1px solid #E5E7EB;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
 }
 
 .tab {
@@ -94,8 +109,21 @@
   grid-template-columns: repeat(2, 1fr);
   gap: 24px;
 }
+
+/* 4. 关键修改：将纯白卡片改为半透明毛玻璃，透出环境光晕 */
 .chart-card {
-  background: white; border: 1px solid #E5E7EB; border-radius: 8px; padding: 20px;
+  background: rgba(255, 255, 255, 0.6); /* 从纯白改为60%白 */
+  backdrop-filter: blur(16px); /* 添加背景模糊 */
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8); /* 亮白色细边框增强玻璃质感 */
+  border-radius: 12px; /* 圆角稍微放大使其更现代 */
+  padding: 20px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02); /* 极弱的弥散阴影托起卡片 */
 }
+
 .chart-card h4 { margin: 0 0 16px 0; font-size: 15px; }
-.chart-placeholder { height: 240px; background: #F3F4F6; border-radius: 4px; }
+.chart-placeholder { 
+  height: 240px; 
+  background: rgba(243, 244, 246, 0.5); /* 占位符也改为半透明 */
+  border-radius: 8px; 
+}
