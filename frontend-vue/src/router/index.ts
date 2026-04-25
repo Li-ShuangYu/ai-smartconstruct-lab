@@ -1,9 +1,9 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 // 导入我们之前写的教师模块路由
 import teacherRoutes from './modules/teacher'
 
 // 聚合所有路由
-const routes: Array<RouteRecordRaw> = [
+const routes = [
   // 根路径访问时，直接跳转到教师工作台（为了目前演示方便）
   {
     path: '/',

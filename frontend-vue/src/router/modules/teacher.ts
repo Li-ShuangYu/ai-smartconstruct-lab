@@ -1,6 +1,4 @@
-import { RouteRecordRaw } from 'vue-router'
-
-const teacherRoutes: Array<RouteRecordRaw> = [
+const teacherRoutes = [
   // 1. 常规带侧边栏的工作台路由组
   {
     path: '/teacher',
