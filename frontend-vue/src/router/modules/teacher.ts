@@ -1,6 +1,7 @@
-import type { RouteRecordRaw } from 'vue-router'
+import { RouteRecordRaw } from 'vue-router'
 
 const teacherRoutes: Array<RouteRecordRaw> = [
+  // 1. 常规带侧边栏的工作台路由组
   {
     path: '/teacher',
     name: 'TeacherRoot',
@@ -18,26 +19,16 @@ const teacherRoutes: Array<RouteRecordRaw> = [
         name: 'TrainingManage',
         component: () => import('@/views/teacher/TrainingManage.vue'),
         meta: { title: '实训编排与管理' }
-      },
-      {
-        path: 'training/create',
-        name: 'TrainingCreate',
-        component: () => import('@/views/teacher/TrainingCreate.vue'),
-        meta: { title: '创建实训编排' } // 这个是下一步要死磕的页面
-      },
-      {
-        path: 'assignment',
-        name: 'AssignmentManage',
-        component: () => import('@/views/teacher/AssignmentManage.vue'),
-        meta: { title: '作业与题库' }
-      },
-      {
-        path: 'evaluation',
-        name: 'EvaluationManage',
-        component: () => import('@/views/teacher/EvaluationManage.vue'),
-        meta: { title: '多维学情评价' }
       }
+      // ...保留原来的 assignment 和 evaluation
     ]
+  },
+  // 2. 【关键分离】：沉浸式编排页面，独立路由，不继承侧边栏布局
+  {
+    path: '/teacher/training/create',
+    name: 'TrainingCreate',
+    component: () => import('@/views/teacher/TrainingCreate.vue'),
+    meta: { title: '创建实训编排 (沉浸舱)' }
   }
 ]
 
