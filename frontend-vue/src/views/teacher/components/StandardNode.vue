@@ -1,100 +1,190 @@
 <template>
-  <div class="elegant-node" :class="{ 'is-selected': selected }">
-    <Handle type="target" :position="Position.Left" class="handle-port left-port" />
-    
-    <div class="node-content">
-      <div class="icon-wrapper">{{ data.icon || '✨' }}</div>
-      <div class="text-wrapper">
-        <span class="title">{{ data.label }}</span>
-        <span class="subtitle">{{ data.type === 'start' ? '流程起点' : '执行节点' }}</span>
+  <div class="integrated-node" :class="{ selected: selected }">
+    <Handle type="target" :position="Position.Left" class="custom-handle target-handle" />
+    <header class="node-header">
+      <div class="header-left">
+        <span class="icon">{{ data.icon }}</span>
+        <h3 class="title">{{ data.label }}</h3>
       </div>
-    </div>
+      <div class="header-actions">
+        <button class="action-icon" title="运行测试">▶</button>
+        <button class="action-icon" title="更多">⋮</button>
+      </div>
+    </header>
 
-    <Handle type="source" :position="Position.Right" class="handle-port right-port" />
+    <main class="node-body">
+      <div class="form-item">
+        <label>选择模型模型</label>
+        <select v-model="data.modelSelect" class="node-select nodrag">
+          <option value="qwen-max">Qwen-Max</option>
+          <option value="qwen-turbo">Qwen-Turbo</option>
+          <option value="gpt-4">GPT-4</option>
+        </select>
+      </div>
+
+      <div class="form-item">
+        <label>系统提示词 (System Prompt)</label>
+        <textarea 
+          v-model="data.systemPrompt" 
+          class="node-textarea nodrag" 
+          placeholder="请输入指令..."
+          rows="3"
+        ></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-item">
+          <label>温度设置 (Temperature)</label>
+          <input type="number" v-model="data.temperature" class="node-input nodrag" step="0.1" min="0" max="1" />
+        </div>
+      </div>
+    </main>
+    
+    <Handle type="source" :position="Position.Right" class="custom-handle source-handle" />
   </div>
 </template>
-
 <script setup lang="ts">
 import { Handle, Position } from '@vue-flow/core'
-
 defineProps({
-  data: { type: Object, required: true },
-  selected: { type: Boolean, default: false }
+  data: {
+    type: Object,
+    required: true
+  },
+  selected: {
+    type: Boolean,
+    default: false
+  }
 })
 </script>
 
+
 <style scoped>
-.elegant-node {
-  min-width: 180px;
-  background: rgba(255, 255, 255, 0.85); /* 半透明质感 */
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(229, 231, 235, 0.5); /* 极弱的边框 */
-  border-radius: 24px; /* 优雅的大圆角 */
-  padding: 8px 16px 8px 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+/* 还原大尺寸配置节点外观 */
+.integrated-node {
+  width: 320px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.03);
+  transition: all 0.2s;
+  font-size: 15px; /* 全局15px基准 */
 }
 
-.elegant-node:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.12);
+.integrated-node.selected {
+  border-color: #818CF8;
+  box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.15), 0 10px 25px rgba(0,0,0,0.08);
 }
 
-.elegant-node.is-selected {
-  border: 1px solid #4F46E5;
-  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+.node-header {
+  padding: 16px;
+  border-bottom: 1px solid #F1F5F9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #F8FAFC;
+  border-radius: 12px 12px 0 0;
 }
 
-.node-content {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.icon-wrapper {
-  width: 36px;
-  height: 36px;
-  background: #EEF2FF;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.icon {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  padding: 6px;
+  border-radius: 8px;
   font-size: 18px;
-}
-
-.text-wrapper {
-  display: flex;
-  flex-direction: column;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1F2937;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
 }
 
-.subtitle {
-  font-size: 11px;
-  color: #9CA3AF;
-  margin-top: 2px;
+.header-actions .action-icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #94A3B8;
+  font-size: 16px;
 }
+.header-actions .action-icon:hover { color: #0F172A; }
+
+.node-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+
+.form-item label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* 使用 nodrag 类防止在表单中拖拽时意外移动节点 */
+.node-select,
+.node-input,
+.node-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  background: #F8FAFC;
+  color: #0F172A;
+  font-size: 15px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.node-select:focus,
+.node-input:focus,
+.node-textarea:focus {
+  outline: none;
+  border-color: #818CF8;
+  background: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+}
+
+.node-textarea { resize: vertical; min-height: 80px; }
 
 /* 优雅的连接点 */
-.handle-port {
-  width: 10px;
-  height: 10px;
-  background: #fff;
-  border: 2px solid #4F46E5;
-  border-radius: 50%; /* 纯圆 */
-  transition: all 0.2s;
-  opacity: 0; /* 默认隐藏，悬浮时显示以保持画面干净 */
+/* 优雅稳定的连接点 */
+.custom-handle {
+  width: 12px;
+  height: 12px;
+  background: #FFFFFF;
+  border: 2px solid #818CF8;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.elegant-node:hover .handle-port,
-.elegant-node.is-selected .handle-port {
-  opacity: 1;
+.custom-handle:hover {
+  background: #818CF8;
+  /* 重点：用光晕替代 scale 放大，彻底杜绝 transform 覆盖导致的跳动 */
+  box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.2);
 }
 
-.left-port { left: -5px; }
-.right-port { right: -5px; }
+/* 确保连线点绝对居中，不再受 hover 干扰 */
+.target-handle { left: -6px; }
+.source-handle { right: -6px; }
 </style>
