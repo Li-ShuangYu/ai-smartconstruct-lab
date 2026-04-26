@@ -2,7 +2,7 @@
   <div>
     <header class="manage-header">
       <h1 class="panel-main-title">实训资源管理控制台</h1>
-      <button class="primary-btn" @click="$router.push('/teacher/training-create')">+ 新建实训模板</button>
+      <button class="primary-btn" @click="$router.push('/teacher/training-create')">+ 新建实训</button>
     </header>
 
     <div class="tabs-nav">
@@ -15,7 +15,7 @@
 
     <main class="table-container">
       <div class="data-grid-header">
-        <span>名称</span><span>创建时间</span><span>状态</span><span>操作</span>
+        <span>实训名称</span><span>创建时间</span><span>状态</span><span>操作</span>
       </div>
       <div class="data-grid-body">
         <div v-for="item in tableData[currentTab]" :key="item.id" class="grid-row">
@@ -46,8 +46,8 @@ type TabKey = 'template' | 'instance' | 'history'
 
 const currentTab = ref<TabKey>('template')
 const tabs = [
-  { key: 'template', label: '实训模板库' },
-  { key: 'instance', label: '进行中副本' },
+  { key: 'template', label: '待开启实训库' },
+  { key: 'instance', label: '进行中的实训' },
   { key: 'history', label: '历史实训记录' }
 ]
 
