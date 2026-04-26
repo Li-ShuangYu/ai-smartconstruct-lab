@@ -88,7 +88,7 @@ const removeNode = (idx) => { flowNodes.value.splice(idx, 1); activeNode.value =
 </script>
 
 <style scoped>
-.builder-container { display: flex; height: 100vh; background: #f1f5f9; color: #334155; font-family: sans-serif; }
+.builder-container { display: flex; min-height: 100vh; background: #f1f5f9; color: #334155; font-family: sans-serif; box-sizing: border-box; }
 .palette { width: 260px; background: #fff; border-right: 1px solid #e2e8f0; padding: 16px; }
 .canvas { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
 .config-panel { width: 300px; background: #fff; border-left: 1px solid #e2e8f0; padding: 16px; }

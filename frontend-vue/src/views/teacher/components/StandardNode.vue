@@ -9,6 +9,7 @@
       <div class="header-actions">
         <button class="action-icon" title="运行测试">▶</button>
         <button class="action-icon" title="更多">⋮</button>
+        <button class="action-icon delete-btn nodrag" title="删除此节点" @click="handleDelete">🗑️</button>
       </div>
     </header>
 
@@ -43,9 +44,20 @@
     <Handle type="source" :position="Position.Right" class="custom-handle source-handle" />
   </div>
 </template>
+
 <script setup lang="ts">
-import { Handle, Position } from '@vue-flow/core'
-defineProps({
+// 修改点 2：引入 useVueFlow
+import { Handle, Position, useVueFlow } from '@vue-flow/core'
+
+// 提取删除节点的方法
+const { removeNodes } = useVueFlow()
+
+const props = defineProps({
+  // 修改点 3：必须接收 id 属性，作为删除的凭证
+  id: {
+    type: String,
+    required: true
+  },
   data: {
     type: Object,
     required: true
@@ -55,6 +67,11 @@ defineProps({
     default: false
   }
 })
+
+// 修改点 4：定义点击删除时的执行逻辑
+const handleDelete = () => {
+  removeNodes([props.id])
+}
 </script>
 
 
@@ -115,6 +132,13 @@ defineProps({
   font-size: 16px;
 }
 .header-actions .action-icon:hover { color: #0F172A; }
+
+/* 修改点 5：为删除按钮添加悬停变红的警示交互 */
+.header-actions .delete-btn:hover {
+  color: #EF4444;
+  transform: scale(1.15);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
 .node-body {
   padding: 16px;

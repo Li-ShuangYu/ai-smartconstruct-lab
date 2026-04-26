@@ -1,11 +1,14 @@
 <template>
   <header class="workbench-header">
     <div class="header-left">
-      <div class="logo-area">
-        <img src="@/assets/AIZG-Logo.png" alt="logo" class="logo-img" />
-        <span class="logo-text">AI 学苑 / 教研版</span>
+      <div class="back-action" @click="handleBack">
+        <span class="icon-arrow"><</span>
+        <span class="back-text">返回</span>
       </div>
-      <!-- <h2 class="page-title">{{ currentRouteTitle }}</h2> -->
+      
+      <div class="divider"></div>
+
+      <h2 class="page-title">{{ currentRouteTitle }}</h2>
     </div>
 
     <div class="header-right">
@@ -23,19 +26,24 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
-// 假设你在路由 meta 中定义了 title
+const router = useRouter() // 引入 useRouter 以便调用路由方法
+
+// 获取当前页面标题
 const currentRouteTitle = computed(() => route.meta.title || '工作台')
+
+// 触发返回上一页逻辑
+const handleBack = () => {
+  router.back()
+}
 </script>
 
 <style scoped>
 .workbench-header {
   height: 64px;
-  /* 加上这一行：严禁被 Flex 容器压缩！ */
   flex-shrink: 0; 
-  
   background-color: var(--color-surface, #ffffff);
   border-bottom: 1px solid var(--color-border, #E5E7EB);
   display: flex;
@@ -46,30 +54,46 @@ const currentRouteTitle = computed(() => route.meta.title || '工作台')
   width: 100%;
 }
 
+/* 调整左侧的间距，让元素之间稍微紧凑一些 */
 .header-left {
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 16px; 
 }
 
-.logo-area {
+/* --- 新增：返回按钮的样式 --- */
+.back-action {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--text-secondary, #6B7280);
+  transition: color 0.2s ease;
 }
 
-.logo-img {
-  width: 35px;
-  height: 35px;
-
-  border-radius: 6px;
+/* 悬停时变成品牌主题色，提供良好的交互反馈 */
+.back-action:hover {
+  color: var(--color-primary, #4F46E5);
 }
 
-.logo-text {
-  font-size: 16px;
+.icon-arrow {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+  margin-bottom: 2px; /* 稍微上移以对齐文字的视觉中心 */
+}
+
+.back-text {
+  font-size: 15px;
   font-weight: 600;
-  color: var(--text-primary, #111827);
-  letter-spacing: 0.5px;
+}
+
+/* --- 新增：竖线隔断样式 --- */
+.divider {
+  width: 1px;
+  height: 18px; /* 高度适中，不过分抢眼 */
+  background-color: #D1D5DB; /* 浅灰色竖线 */
+  margin: 0 4px;
 }
 
 .page-title {

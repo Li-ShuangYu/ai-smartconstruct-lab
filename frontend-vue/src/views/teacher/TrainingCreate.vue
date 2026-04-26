@@ -1,29 +1,35 @@
 <template>
   <div class="training-create-wrapper">
-    <aside class="material-sidebar">
-      <h1 class="panel-main-title">流程组件仓库</h1>
-      <div class="category-container">
-        <div v-for="cat in MATERIAL_CATEGORIES" :key="cat.type" class="cat-group">
-          <div class="cat-header" @click="toggleCategory(cat.type)">
-            <span class="cat-label">{{ cat.label }}</span>
-            <i class="pure-chevron" :class="{ 'is-rotated': expandedCats.includes(cat.type) }"></i>
-          </div>
-          
-          <div class="drawer-animator" :class="{ 'is-open': expandedCats.includes(cat.type) }">
-            <div class="node-list">
-              <div 
-                v-for="item in cat.items" 
-                :key="item.type"
-                class="draggable-node"
-                draggable="true"
-                @dragstart="onDragStart($event, item)"
-              >
-                <span class="node-icon">{{ item.icon }}</span>
-                <span class="node-label">{{ item.label }}</span>
+    <aside class="material-sidebar" :class="{ 'is-collapsed': isSidebarCollapsed }">
+      <div class="sidebar-inner">
+        <h1 class="panel-main-title">流程组件仓库</h1>
+        <div class="category-container">
+          <div v-for="cat in MATERIAL_CATEGORIES" :key="cat.type" class="cat-group">
+            <div class="cat-header" @click="toggleCategory(cat.type)">
+              <span class="cat-label">{{ cat.label }}</span>
+              <i class="pure-chevron" :class="{ 'is-rotated': expandedCats.includes(cat.type) }"></i>
+            </div>
+            
+            <div class="drawer-animator" :class="{ 'is-open': expandedCats.includes(cat.type) }">
+              <div class="node-list">
+                <div 
+                  v-for="item in cat.items" 
+                  :key="item.type"
+                  class="draggable-node"
+                  draggable="true"
+                  @dragstart="onDragStart($event, item)"
+                >
+                  <span class="node-icon">{{ item.icon }}</span>
+                  <span class="node-label">{{ item.label }}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+      
+      <div class="sidebar-toggle" @click="isSidebarCollapsed = !isSidebarCollapsed">
+        {{ isSidebarCollapsed ? '▶' : '◀' }}
       </div>
     </aside>
 
@@ -32,6 +38,7 @@
         <button class="glass-btn" :disabled="!canUndo" @click="undo" title="撤回">↩ 撤回</button>
         <button class="glass-btn" :disabled="!canRedo" @click="redo" title="恢复">↪ 恢复</button>
         <div class="divider"></div>
+        <button class="secondary-action-btn" @click="handleDraft">💾 暂存为草稿</button>
         <button class="primary-action-btn" @click="handleSave">🚀 发布实训编排</button>
       </div>
 
@@ -45,28 +52,46 @@
         @node-drag-stop="recordHistory"
       >
         <Background pattern-color="#CBD5E1" :gap="24" :size="1.5" />
-        
-        <Controls position="bottom-left" class="minimal-controls" />
+        <Controls position="bottom-right" class="minimal-controls" />
       </VueFlow>
     </main>
+
+    <transition name="modal-fade">
+      <div v-if="showSuccessModal" class="modal-overlay">
+        <div class="modal-card">
+          <div class="modal-icon-wrapper">
+            <span class="modal-icon">✅</span>
+          </div>
+          <h3 class="modal-title">{{ successTitle }}</h3>
+          <p class="modal-desc">{{ successMessage }}</p>
+          <button class="primary-action-btn modal-btn" @click="confirmAndRedirect">
+            返回实训列表 ({{ countdown }}s)
+          </button>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, markRaw, computed } from 'vue'
+import { ref, markRaw, computed, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { VueFlow, useVueFlow, MarkerType } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { useTrainingStore } from '@/stores/modules/training.store'
 import { MATERIAL_CATEGORIES } from './data/node-templates'
 import StandardNode from './components/StandardNode.vue'
+
 const store = useTrainingStore()
-const { addEdges, toObject } = useVueFlow()
+const router = useRouter() // 引入路由控制跳转
+
+const { addEdges, toObject, screenToFlowCoordinate } = useVueFlow()
+
 const nodeTypes: Record<string, any> = {
   standard: markRaw(StandardNode)
 }
 
-// --- 连线方向性配置：带有箭头的平滑曲线 ---
 const edgeOptions = {
   type: 'smoothstep', 
   animated: true,
@@ -78,6 +103,9 @@ const edgeOptions = {
     color: '#818CF8',
   },
 }
+
+// 侧边栏收起状态
+const isSidebarCollapsed = ref(false)
 
 // --- 撤回/恢复系统 ---
 const historyStack = ref<string[]>([])
@@ -108,7 +136,7 @@ const redo = () => {
   store.edges = nextState.edges
 }
 
-// --- 左侧抽屉逻辑 ---
+// --- 交互逻辑 ---
 const expandedCats = ref(MATERIAL_CATEGORIES.map(c => c.type))
 const toggleCategory = (type: string) => {
   const index = expandedCats.value.indexOf(type)
@@ -128,18 +156,20 @@ const onDrop = (event: DragEvent) => {
   if (!data) return
   recordHistory()
   const item = JSON.parse(data)
-  const { left, top } = (event.currentTarget as HTMLElement).getBoundingClientRect()
   
-  // 注入真实的初始配置数据，代替占位符
+  const position = screenToFlowCoordinate({
+    x: event.clientX,
+    y: event.clientY,
+  })
+  
   const newNode = {
     id: `node_${Date.now()}`,
     type: 'standard', 
-    position: { x: event.clientX - left, y: event.clientY - top },
+    position: position, 
     data: { 
       type: item.type, 
       label: item.label, 
       icon: item.icon,
-      // 预设真实可用的业务参数
       modelSelect: 'qwen-max',
       temperature: 0.7,
       maxTokens: 2048,
@@ -154,70 +184,161 @@ const onConnect = (params: any) => {
   addEdges({ ...params, animated: true })
 }
 const onPaneReady = (instance: any) => { store.flowInstance = instance }
-const handleSave = () => { alert('实训方案配置已生成') }
 
+// --- 弹窗与提交逻辑 ---
+const showSuccessModal = ref(false)
+const successTitle = ref('')
+const successMessage = ref('')
+const countdown = ref(3)
+let timer: any = null
 
+const triggerSuccess = (title: string, message: string) => {
+  successTitle.value = title
+  successMessage.value = message
+  showSuccessModal.value = true
+  countdown.value = 3
+  
+  // 开启倒计时自动跳转
+  timer = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      confirmAndRedirect()
+    }
+  }, 1000)
+}
+
+const confirmAndRedirect = () => {
+  if (timer) clearInterval(timer)
+  showSuccessModal.value = false
+  router.push('/teacher/training-manage')
+}
+
+// 暂存草稿触发
+const handleDraft = () => {
+  triggerSuccess('暂存成功', '您的实训编排草稿已安全保存至工作台。')
+}
+
+// 发布触发
+const handleSave = () => {
+  triggerSuccess('发布成功', '实训编排方案已正式发布，学员将收到实训通知。')
+}
+
+// 组件卸载时清理定时器，防止内存泄漏
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
+})
 </script>
 
 <style scoped>
-/* 15px 基础字号规范 */
 .training-create-wrapper {
   display: flex;
-  height: 100vh;
-  width: 100vw;
+  height: calc(100vh - 64px); 
   background: #F8FAFC;
   font-size: 15px;
   color: #334155;
-  overflow: hidden;
+  overflow: hidden; 
+  box-sizing: border-box;
+  position: relative; /* 为弹窗提供绝对定位的基准 */
 }
 
 .panel-main-title {
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 800;
   color: #0F172A;
-  margin-bottom: 24px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
+/* 侧边栏：加入平滑的宽度过渡动画 */
 .material-sidebar { 
-  width: 320px; /* 加宽以适应复杂的节点名称 */
+  width: 320px; 
   background: #FFFFFF; 
   border-right: 1px solid #E2E8F0;
-  padding: 24px 20px;
   z-index: 20;
   box-shadow: 4px 0 20px rgba(0,0,0,0.02);
   display: flex;
   flex-direction: column;
+  position: relative;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
 }
 
+/* 收起状态的侧边栏 */
+.material-sidebar.is-collapsed {
+  width: 0;
+  border-right: none;
+}
+
+/* 侧边栏内部容器：保持内容固定，避免收起时文字换行扭曲 */
+.sidebar-inner {
+  width: 320px;
+  height: 100%;
+  padding: 24px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+  overflow: hidden;
+}
+
+/* 侧边栏收起时，隐藏内部内容 */
+.material-sidebar.is-collapsed .sidebar-inner {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 侧边栏折叠手柄 */
+.sidebar-toggle {
+  position: absolute;
+  right: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 48px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #94A3B8;
+  font-size: 10px;
+  box-shadow: 2px 0 6px rgba(0,0,0,0.03);
+  z-index: 21;
+  transition: all 0.2s;
+}
+
+.sidebar-toggle:hover {
+  color: #4F46E5;
+  background: #F8FAFC;
+}
 
 .category-container {
   flex: 1;
+  padding-right: 8px;
   overflow-y: auto;
-  /* 为滚动条预留一点右侧内边距，避免紧贴边缘 */
-  padding-right: 4px; 
 }
 
-/* --- 滚动条极致优化 --- */
+/* 1. 极致细的品牌色滚动条 */
 .category-container::-webkit-scrollbar {
-  width: 6px; /* 极窄设计，不抢视觉焦点 */
+  width: 4px;
 }
-
 .category-container::-webkit-scrollbar-track {
-  background: transparent; /* 轨道全透明 */
+  background: transparent;
 }
-
 .category-container::-webkit-scrollbar-thumb {
-  background: #E2E8F0; /* 默认浅色 */
-  border-radius: 10px;
-  transition: background 0.3s;
+  background: rgba(79, 70, 229, 0.3); /* 默认半透明品牌色 */
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+.category-container::-webkit-scrollbar-thumb:hover {
+  background: #4F46E5; /* 悬停时显示纯正的品牌色 */
 }
 
-.category-container::-webkit-scrollbar-thumb:hover {
-  background: #CBD5E1; /* 悬停时稍微加深，提供交互反馈 */
-}
 .cat-header {
   display: flex;
   justify-content: space-between;
@@ -237,7 +358,6 @@ const handleSave = () => { alert('实训方案配置已生成') }
 }
 .pure-chevron.is-rotated { transform: rotate(45deg); }
 
-/* 高性能 CSS Grid 丝滑折叠动画 */
 .drawer-animator {
   display: grid;
   grid-template-rows: 0fr;
@@ -264,7 +384,7 @@ const handleSave = () => { alert('实训方案配置已生成') }
   align-items: center;
   gap: 12px;
   transition: all 0.2s;
-  margin-top: 4px; /* 防止被 overflow 切断阴影 */
+  margin-top: 4px;
 }
 .draggable-node:hover {
   background: #FFFFFF;
@@ -278,7 +398,7 @@ const handleSave = () => { alert('实训方案配置已生成') }
 .canvas-top-toolbar {
   position: absolute;
   top: 24px;
-  right: 24px; /* 移至右上角 */
+  right: 24px;
   z-index: 50;
   display: flex;
   align-items: center;
@@ -307,6 +427,23 @@ const handleSave = () => { alert('实训方案配置已生成') }
 .glass-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .glass-btn:hover:not(:disabled) { background: #F1F5F9; color: #0F172A; }
 
+.secondary-action-btn {
+  padding: 8px 16px;
+  background: #FFFFFF;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.secondary-action-btn:hover {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+  color: #0F172A;
+}
+
 .primary-action-btn {
   padding: 8px 18px;
   background: #0F172A;
@@ -320,7 +457,7 @@ const handleSave = () => { alert('实训方案配置已生成') }
 }
 .primary-action-btn:hover { background: #334155; }
 
-/* 控件定位于左下角 */
+/* 4. 修改控制器位置到右下角 */
 :deep(.minimal-controls) {
   display: flex;
   background: rgba(255, 255, 255, 0.95);
@@ -328,7 +465,8 @@ const handleSave = () => { alert('实训方案配置已生成') }
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.08);
   border: 1px solid #E2E8F0;
-  left: 24px !important; 
+  /* 移除之前的 left: 24px，改为 right: 24px */
+  right: 24px !important; 
   bottom: 24px !important;
 }
 :deep(.vue-flow__controls-button) {
@@ -339,4 +477,78 @@ const handleSave = () => { alert('实训方案配置已生成') }
   border-radius: 6px;
 }
 :deep(.vue-flow__controls-button:hover) { background: #F1F5F9; }
+
+/* 2. 弹窗：取消变暗遮罩，只有一点点模糊 */
+.modal-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent; /* 完全透明，不再变暗！ */
+  backdrop-filter: blur(2px); /* 极其轻微的一点点模糊 */
+  z-index: 999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-card {
+  background: #FFFFFF;
+  padding: 40px;
+  border-radius: 20px;
+  /* 增加了弹窗本身的阴影，使其在透明背景下更立体 */
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0,0,0,0.05);
+  text-align: center;
+  max-width: 360px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.modal-icon-wrapper {
+  width: 64px;
+  height: 64px;
+  background: #DCFCE7; 
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.modal-icon {
+  font-size: 28px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 12px 0;
+}
+
+.modal-desc {
+  font-size: 15px;
+  color: #64748B;
+  margin: 0 0 32px 0;
+  line-height: 1.5;
+}
+
+.modal-btn {
+  width: 100%; 
+  padding: 12px 0;
+  border-radius: 10px;
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
 </style>

@@ -20,14 +20,14 @@
     <section class="section-block">
       <h2 class="section-title">快捷入口</h2>
       <div class="actions-grid">
-        <div class="action-card primary-action" @click="goToAction('/teacher/training/create')">
+        <div class="action-card primary-action" @click="goToAction('/teacher/training-create')">
           <div class="icon-wrapper"><span class="icon">✨</span></div>
           <div class="action-info">
             <h3>创建节点编排</h3>
             <p>通过图形化拖拽，编排新的教学实训流</p>
           </div>
         </div>
-        <div class="action-card" @click="goToAction('/teacher/training/start')">
+        <div class="action-card" @click="goToAction('/teacher/training-manage')">
           <div class="icon-wrapper"><span class="icon">▶️</span></div>
           <div class="action-info">
             <h3>启动实训班次</h3>
@@ -95,14 +95,14 @@ const goToAction = (path: string) => {
 }
 
 .title {
-  font-size: 24px;
+  font-size: 70px;
   font-weight: 600;
   color: var(--text-primary, #111827);
   margin: 0 0 8px 0;
 }
 
 .subtitle {
-  font-size: 14px;
+  font-size: 20px;
   color: var(--text-secondary, #6B7280);
   margin: 0;
 }

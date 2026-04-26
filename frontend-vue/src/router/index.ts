@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 // 导入我们之前写的教师模块路由
 import teacherRoutes from './modules/teacher'
+import studentRoutes from './modules/student'
 
 // 聚合所有路由
 const routes = [
@@ -11,6 +12,8 @@ const routes = [
   },
   // 展开教师模块路由
   ...teacherRoutes,
+  // 展开学生模块路由
+  ...studentRoutes,
   
   // 预留一个简单的 404 捕获
   {
