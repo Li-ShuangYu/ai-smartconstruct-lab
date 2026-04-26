@@ -198,7 +198,6 @@ const handleDelete = (item: any) => {
   gap: 24px;
   height: calc(58vh);
   overflow-y: auto;
-  padding-right: 8px;
   padding-bottom: 24px;
 }
 
