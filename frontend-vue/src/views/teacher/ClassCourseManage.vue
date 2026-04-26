@@ -11,21 +11,21 @@
         </button>
       </div>
     </header>
-
-    <nav class="tabs-nav">
-      <div 
-        class="tab-item" 
-        :class="{ active: currentTab === 'class' }" 
-        @click="currentTab = 'class'"
-      >行政班级 (Class)</div>
-      <div 
-        class="tab-item" 
-        :class="{ active: currentTab === 'course' }" 
-        @click="currentTab = 'course'"
-      >教学课程 (Course)</div>
-    </nav>
-
-    <section class="filter-bar">
+    
+    <div class="toolbar-wrapper">
+      <nav class="tabs-nav">
+        <div 
+          class="tab-item" 
+          :class="{ active: currentTab === 'class' }" 
+          @click="currentTab = 'class'"
+        >行政班级 (Class)</div>
+        <div 
+          class="tab-item" 
+          :class="{ active: currentTab === 'course' }" 
+          @click="currentTab = 'course'"
+        >教学课程 (Course)</div>
+      </nav>
+      
       <div class="search-box">
         <span class="search-icon">🔍</span>
         <input 
@@ -35,10 +35,7 @@
           class="search-input" 
         />
       </div>
-      <div class="stats-mini">
-        <span class="stat-tag">当前共 {{ filteredData.length }} 个{{ currentTab === 'class' ? '班级' : '课程' }}</span>
-      </div>
-    </section>
+    </div>
 
     <main class="list-content">
       <div class="data-grid">
@@ -131,7 +128,6 @@ const handleDelete = (item: any) => {
 
 <style scoped>
 .manage-container {
-  /* min-height: 100%; */
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -141,7 +137,6 @@ const handleDelete = (item: any) => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  /* margin-bottom: 32px; */
 }
 
 .panel-main-title { font-size: 24px; font-weight: 800; color: #0F172A; margin: 0 0 8px 0; }
@@ -152,12 +147,19 @@ const handleDelete = (item: any) => {
 }
 .primary-btn:hover { background: #4338CA; transform: translateY(-1px); }
 
-/* Tab 样式：经典的 B 端切换 */
+/* ==== 优化后的工具栏布局 ==== */
+.toolbar-wrapper {
+  display: flex;
+  justify-content: space-between; /* 两端对齐：左边 Tabs，右边搜索框 */
+  align-items: flex-end; /* 底部对齐，让搜索框和 Tab 贴合底边线 */
+  border-bottom: 1px solid #E2E8F0; /* 统一贯穿的底部分割线 */
+  margin-top: 24px;
+  /* margin-bottom: 24px; */
+}
+
 .tabs-nav {
   display: flex;
   gap: 32px;
-  border-bottom: 1px solid #E2E8F0;
-  margin-bottom: 24px;
 }
 
 .tab-item {
@@ -168,6 +170,7 @@ const handleDelete = (item: any) => {
   cursor: pointer;
   border-bottom: 3px solid transparent;
   transition: all 0.2s;
+  margin-bottom: -1px; /* 核心魔法：让高亮下划线盖住贯穿的灰线 */
 }
 
 .tab-item.active {
@@ -175,29 +178,28 @@ const handleDelete = (item: any) => {
   border-bottom-color: #4F46E5;
 }
 
-/* 过滤栏 */
-.filter-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+/* 搜索框 */
+.search-box { 
+  position: relative; 
+  width: 320px;
+  margin-bottom: 8px; /* 稍微抬高一点点，使其在视觉上和 Tab 文字中心对齐 */
 }
-
-.search-box { position: relative; width: 320px; }
 .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94A3B8; font-size: 14px; }
 .search-input {
-  width: 100%; padding: 10px 10px 10px 40px; border: 1px solid #E2E8F0; border-radius: 10px; font-size: 14px; transition: 0.2s;
+  width: 100%; padding: 10px 10px 10px 40px; border: 1px solid #E2E8F0; border-radius: 10px; font-size: 14px; transition: 0.2s; box-sizing: border-box;
 }
 .search-input:focus { outline: none; border-color: #818CF8; box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1); }
 
-.stat-tag { font-size: 13px; font-weight: 600; color: #64748B; background: #F1F5F9; padding: 6px 12px; border-radius: 6px; }
-
 /* 数据网格布局 */
 .data-grid {
+    padding-top: 24px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 24px;
-  height: calc(60vh);
+  height: calc(58vh);
+  overflow-y: auto;
+  padding-right: 8px;
+  padding-bottom: 24px;
 }
 
 .data-card {
@@ -208,6 +210,8 @@ const handleDelete = (item: any) => {
   display: flex;
   flex-direction: column;
   transition: all 0.3s;
+  height: 267.8px;
+  box-sizing: border-box;
 }
 
 .data-card:hover {

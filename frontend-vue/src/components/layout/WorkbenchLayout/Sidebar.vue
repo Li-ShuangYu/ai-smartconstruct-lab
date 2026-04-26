@@ -23,7 +23,7 @@ import { ref } from 'vue'
 const menuItems = ref([
   { path: '/teacher/workbench', label: '工作台概览', icon: 'IconDashboard' },
   { path: '/teacher/training-manage', label: '实训编排与管理', icon: 'IconWorkflow' },
-  { path: '/teacher/assignment', label: '作业与题库', icon: 'IconBook' },
+  // { path: '/teacher/assignment', label: '作业与题库', icon: 'IconBook' },
   { path: '/teacher/class-course-manage', label: '班级与课程', icon: 'IconBook' },
   { path: '/teacher/evaluation', label: '多维学情评价', icon: 'IconChart' }
 ])

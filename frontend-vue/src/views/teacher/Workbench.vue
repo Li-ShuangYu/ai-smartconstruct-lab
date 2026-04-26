@@ -23,22 +23,22 @@
         <div class="action-card primary-action" @click="goToAction('/teacher/training-create')">
           <div class="icon-wrapper"><span class="icon">✨</span></div>
           <div class="action-info">
-            <h3>创建节点编排</h3>
+            <h3>创建实训</h3>
             <p>通过图形化拖拽，编排新的教学实训流</p>
           </div>
         </div>
         <div class="action-card" @click="goToAction('/teacher/training-manage')">
           <div class="icon-wrapper"><span class="icon">▶️</span></div>
           <div class="action-info">
-            <h3>启动实训班次</h3>
-            <p>基于已有编排，下发任务并开启一堂课</p>
+            <h3>开始实训</h3>
+            <p>基于课程或选择班级，下发新的实训任务</p>
           </div>
         </div>
         <div class="action-card" @click="goToAction('/teacher/assignment/create')">
           <div class="icon-wrapper"><span class="icon">📝</span></div>
           <div class="action-info">
-            <h3>发布新作业</h3>
-            <p>包含思维导图与代码补全题型</p>
+            <h3>综合评价</h3>
+            <p>实训结束后三方总结综合评价</p>
           </div>
         </div>
       </div>
