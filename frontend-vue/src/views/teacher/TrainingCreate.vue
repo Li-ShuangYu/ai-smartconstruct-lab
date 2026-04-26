@@ -42,12 +42,12 @@
         <button class="primary-action-btn" @click="handleSave">🚀 发布实训编排</button>
       </div>
 
-      <VueFlow
+     <VueFlow
         v-model:nodes="store.nodes"
         v-model:edges="store.edges"
         :node-types="nodeTypes"
         :default-edge-options="edgeOptions"
-        @connect="onConnect"
+        :is-valid-connection="checkValidConnection" @connect="onConnect"
         @pane-ready="onPaneReady"
         @node-drag-stop="recordHistory"
       >
@@ -92,8 +92,9 @@ const nodeTypes: Record<string, any> = {
   standard: markRaw(StandardNode)
 }
 
+// 将原本的 edgeOptions 替换为以下代码
 const edgeOptions = {
-  type: 'smoothstep', 
+  type: 'default', // 'default' 在 VueFlow 中对应优雅的贝塞尔曲线
   animated: true,
   style: { strokeWidth: 2, stroke: '#818CF8' },
   markerEnd: {
@@ -102,6 +103,21 @@ const edgeOptions = {
     height: 20,
     color: '#818CF8',
   },
+}
+
+
+// 新增连接校验函数：从物理上禁止异常连线
+const checkValidConnection = (connection: any) => {
+  // 1. 禁止节点连向自己 (自环)
+  if (connection.source === connection.target) return false;
+  
+  // 2. 严格防止端点类型错乱 (Source 只能连 Target)
+  // 因为我们在 StandardNode 里面已经加上了 id="source" 和 id="target"
+  if (connection.sourceHandle === 'target' || connection.targetHandle === 'source') {
+    return false;
+  }
+
+  return true;
 }
 
 // 侧边栏收起状态
