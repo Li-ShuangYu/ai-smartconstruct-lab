@@ -29,7 +29,7 @@ const teacherRoutes = [
         path: 'training-create',
         name: 'TrainingCreate',
         component: () => import('@/views/teacher/TrainingCreate.vue'),
-        meta: { title: '创建实训编排 (沉浸舱)', hideSidebar: true }
+        meta: { title: '实训编排', hideSidebar: true }
       },
       {
         path: 'teacher-live-monitor',
@@ -41,7 +41,7 @@ const teacherRoutes = [
         path: 'training-publish',
         name: 'TrainingPublish',
         component: () => import('@/views/teacher/TrainingPublish.vue'),
-        meta: { title: '发布副本', hideSidebar: true }
+        meta: { title: '发布实训', hideSidebar: true }
       },
       {
         path: 'training-result',

@@ -18,19 +18,23 @@
         <span>实训名称</span><span>创建时间</span><span>状态</span><span>操作</span>
       </div>
       <div class="data-grid-body">
-        <div v-for="item in tableData[currentTab]" :key="item.id" class="grid-row">
-          <span class="name">{{ item.name }}</span>
-          <span class="time">{{ item.time }}</span>
-          <span>
-            <span class="status-tag" :class="item.statusType">{{ item.status }}</span>
-          </span>
-          <div class="actions">
-            <button class="text-btn" @click="handleEdit(item)">编辑</button>
-            <button class="text-btn primary" @click="handleAction(item)">
-              {{ currentTab === 'template' ? '开始实训' : currentTab === 'instance' ? '进入监控' : '查看结果' }}
-            </button>
+        <transition name="fade" mode="out-in">
+          <div :key="currentTab">
+            <div v-for="item in tableData[currentTab]" :key="item.id" class="grid-row">
+              <span class="name">{{ item.name }}</span>
+              <span class="time">{{ item.time }}</span>
+              <span>
+                <span class="status-tag" :class="item.statusType">{{ item.status }}</span>
+              </span>
+              <div class="actions">
+                <button class="text-btn" @click="handleEdit(item)">编辑</button>
+                <button class="text-btn primary" @click="handleAction(item)">
+                  {{ currentTab === 'template' ? '创建实训任务' : currentTab === 'instance' ? '实训进程监控' : '查看实训结果' }}
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
+        </transition>
       </div>
     </main>
   </div>
@@ -94,4 +98,16 @@ const handleAction = (item: any) => {
 .actions { display: flex; gap: 16px; }
 .text-btn { background: none; border: none; cursor: pointer; font-weight: 600; color: #64748B; }
 .text-btn.primary { color: #4F46E5; }
+
+/* Tab 切换动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+}
 </style>

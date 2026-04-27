@@ -2,7 +2,7 @@
   <div class="training-create-wrapper">
     <aside class="material-sidebar" :class="{ 'is-collapsed': isSidebarCollapsed }">
       <div class="sidebar-inner">
-        <h1 class="panel-main-title">流程组件仓库</h1>
+        <h1 class="panel-main-title">实训流程组件仓库</h1>
         <div class="category-container">
           <div v-for="cat in MATERIAL_CATEGORIES" :key="cat.type" class="cat-group">
             <div class="cat-header" @click="toggleCategory(cat.type)">
@@ -38,8 +38,8 @@
         <button class="glass-btn" :disabled="!canUndo" @click="undo" title="撤回">↩ 撤回</button>
         <button class="glass-btn" :disabled="!canRedo" @click="redo" title="恢复">↪ 恢复</button>
         <div class="divider"></div>
-        <button class="secondary-action-btn" @click="handleDraft">💾 暂存为草稿</button>
-        <button class="primary-action-btn" @click="handleSave">🚀 发布实训编排</button>
+        <button class="secondary-action-btn" @click="handleDraft">💾 暂存草稿</button>
+        <button class="primary-action-btn" @click="handleSave">🚀 发布实训</button>
       </div>
 
      <VueFlow
@@ -226,7 +226,7 @@ const triggerSuccess = (title: string, message: string) => {
 const confirmAndRedirect = () => {
   if (timer) clearInterval(timer)
   showSuccessModal.value = false
-  router.push('/teacher/training-manage')
+  router.push('/teacher/training-publish?templateId=1')
 }
 
 // 暂存草稿触发
@@ -236,7 +236,7 @@ const handleDraft = () => {
 
 // 发布触发
 const handleSave = () => {
-  triggerSuccess('发布成功', '实训编排方案已正式发布，学员将收到实训通知。')
+  triggerSuccess('发布成功', '实训编排方案已正式发布，正在前往开始实训界面。。。')
 }
 
 // 组件卸载时清理定时器，防止内存泄漏

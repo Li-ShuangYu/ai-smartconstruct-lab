@@ -1,8 +1,8 @@
 const studentRoutes = [
-  // 1. 常规带侧边栏的工作台路由组
   {
     path: '/student',
     name: 'studentRoot',
+    // 确保这里的路径指向我们刚才修改好的包含过渡动画的 index.vue
     component: () => import('@/components/layout/WorkbenchLayout/index.vue'),
     redirect: '/student/workbench',
     children: [
@@ -10,19 +10,38 @@ const studentRoutes = [
         path: 'workbench',
         name: 'studentWorkbench',
         component: () => import('@/views/student/Workbench.vue'),
-        meta: { title: '工作台概览' }
+        meta: { title: '学生工作台' }
       },
       {
-        path: 'student-cabin',
+        // 关键配置 1：加上 /:id，用于传递实训任务 ID
+        path: 'student-cabin/:id',
         name: 'StudentCabin',
         component: () => import('@/views/student/StudentCabin.vue'),
         meta: { title: '学生舱位' , hideSidebar: true }
+      },
+      {
+        // 关键配置 2：实训详情（只读态）
+        path: 'training-detail/:id',
+        name: 'StudentTrainingDetail',
+        component: () => import('@/views/student/TrainingDetail.vue'), // 需新建此文件
+        meta: { title: '实训详情', hideSidebar: true }
+      },
+      {
+        // 占位：我的班级
+        path: 'classes',
+        name: 'StudentClasses',
+        component: () => import('@/views/student/ClassList.vue'), // 需新建此文件
+        meta: { title: '我的班级', hideSidebar: true }
+      },
+      {
+        // 占位：个人中心
+        path: 'profile',
+        name: 'StudentProfile',
+        component: () => import('@/views/student/UserProfile.vue'), // 需新建此文件
+        meta: { title: '个人中心', hideSidebar: true  }
       }
-      // ...保留原来的 assignment 和 evaluation
     ]
-  },
-  // 2. 【关键分离】：沉浸式编排页面，独立路由，不继承侧边栏布局
- 
+  }
 ]
 
 export default studentRoutes;

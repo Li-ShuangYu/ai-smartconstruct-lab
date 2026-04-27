@@ -34,7 +34,7 @@
             <p>基于课程或选择班级，下发新的实训任务</p>
           </div>
         </div>
-        <div class="action-card" @click="goToAction('/teacher/assignment/create')">
+        <div class="action-card" @click="goToAction('/teacher/evaluation')">
           <div class="icon-wrapper"><span class="icon">📝</span></div>
           <div class="action-info">
             <h3>综合评价</h3>
@@ -87,6 +87,7 @@ const goToAction = (path: string) => {
 
 /* 顶部欢迎与指标 */
 .dashboard-header {
+      margin-top: -10px;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;

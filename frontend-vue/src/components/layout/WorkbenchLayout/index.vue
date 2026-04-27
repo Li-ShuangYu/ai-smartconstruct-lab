@@ -1,82 +1,82 @@
 <template>
   <div class="workbench-layout">
-    <SuperHeader v-if="hideSidebar" />
+    <SuperHeader v-if="renderFullscreen" />
     
-    <Header v-else />
+    <template v-else>
+      <StudentHeader v-if="isStudentSide" />
+      <TeacherHeader v-else />
+    </template>
     
     <div class="main-container">
-      <Sidebar v-if="!hideSidebar" />
+      <Sidebar v-if="!renderFullscreen && !isStudentSide" />
       
-      <main :class="['content-area', { 'is-fullscreen': hideSidebar }]">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
+      <main :class="['content-area', { 'is-fullscreen': renderFullscreen }]">
+        <router-view v-slot="{ Component, route }">
+          <transition 
+            name="fade" 
+            mode="out-in"
+            @after-leave="applyLayoutChange"
+          >
+            <component :is="Component" :key="route.path" />
           </transition>
         </router-view>
       </main>
     </div>
-    
-    <Teleport to="body">
-    </Teleport>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import Sidebar from './Sidebar.vue'
-import Header from './Header.vue'
+import TeacherHeader from './TeacherHeader.vue'      
+import StudentHeader from './StudentHeader.vue' 
 import SuperHeader from './SuperHeader.vue'
 
 const route = useRoute()
 
-// 定义计算属性：如果路由 meta 中带有 hideSidebar: true，则使用 SuperHeader
-const hideSidebar = computed(() => {
-  return route.meta.hideSidebar === true
-})
+// 1. 判断是否处于学生端页面
+const isStudentSide = computed(() => route.path.startsWith('/student'))
+
+// 2. 实际控制页面布局渲染的变量
+const renderFullscreen = ref(route.meta.hideSidebar === true)
+
+// 3. 暂存即将切换的状态（用于动画结束后的同步）
+let pendingLayoutState: boolean | null = null
+
+// 4. 监听路由 meta，处理全屏模式切换
+watch(
+  () => route.meta.hideSidebar,
+  (newVal) => {
+    const isNowFullscreen = newVal === true
+    if (isNowFullscreen !== renderFullscreen.value) {
+      pendingLayoutState = isNowFullscreen
+    }
+  }
+)
+
+// 5. 动画钩子：确保旧页面彻底消失后再切换外层 Header/Sidebar，防止排版崩坏
+const applyLayoutChange = () => {
+  if (pendingLayoutState !== null) {
+    renderFullscreen.value = pendingLayoutState
+    pendingLayoutState = null
+  }
+}
 </script>
 
 <style>
-/* 不加 scoped：这会让这套品牌色滚动条在整个系统内生效 
-  以后你写的任何新页面，都不用再单独写滚动条样式了！
-*/
-
-/* Firefox 兼容 */
+/* 全局滚动条样式保持不变 */
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(79, 70, 229, 0.4) transparent;
 }
-
-html {
-  overflow-y: overlay; /* 让滚动条不挤压页面宽度 */
-}
-
-body {
-  -ms-overflow-style: -ms-autohiding-scrollbar; /* IE/Edge 兼容 */
-}
-
-/* WebKit 内核 (Chrome, Edge, Safari) 极致美化 */
-::-webkit-scrollbar {
-  width: 6px;  /* 细细的垂直滚动条 */
-  height: 6px; /* 细细的水平滚动条 */
-}
-
-::-webkit-scrollbar-track {
-  background: transparent; /* 轨道全透明，显得极其干净 */
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(79, 70, 229, 0.25); /* 默认是很柔和的半透明品牌色 */
-  border-radius: 6px;
-  transition: background-color 0.3s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #4F46E5; /* 鼠标悬停时，立刻变成纯正的品牌主色调 */
-}
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-thumb { background: rgba(79, 70, 229, 0.25); border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #4F46E5; }
 </style>
 
 <style scoped>
+/* 布局样式保持不变 */
 .workbench-layout {
   display: flex;
   flex-direction: column;
@@ -84,41 +84,12 @@ body {
   width: 100vw;
   overflow: hidden;
   background-color: #F9FAFB;
-  position: relative;
-  z-index: 1;
-}
-
-/* 左上角主色晕染 */
-.workbench-layout::before {
-  content: "";
-  position: absolute;
-  top: -15%;
-  left: -5%;
-  width: 600px;
-  height: 600px;
-  background: radial-gradient(circle, rgba(79, 70, 229, 0.06) 0%, rgba(255, 255, 255, 0) 70%);
-  z-index: -1; 
-  pointer-events: none; 
-}
-
-/* 右下角辅助色晕染 */
-.workbench-layout::after {
-  content: "";
-  position: absolute;
-  bottom: -20%;
-  right: -10%;
-  width: 800px;
-  height: 800px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.04) 0%, rgba(255, 255, 255, 0) 70%);
-  z-index: -1;
-  pointer-events: none;
 }
 
 .main-container {
   flex: 1;
   display: flex;
   min-width: 0;
-  background: transparent; 
 }
 
 .content-area {
@@ -126,15 +97,13 @@ body {
   overflow-y: auto;
   padding: 32px;
   box-sizing: border-box;
-  /* 此处的灰色滚动条已被移除，现在由上方的全局样式接管！ */
 }
 
-/* 当没有侧边栏时，取消内边距，让画布/大屏绝对贴边满屏 */
+/* 只有真正的沉浸式模式（renderFullscreen）下才取消内边距 */
 .content-area.is-fullscreen {
   padding: 0;
 }
 
-/* 页面切换路由时的过渡动画 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;

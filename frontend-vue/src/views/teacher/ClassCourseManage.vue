@@ -39,40 +39,44 @@
 
     <main class="list-content">
       <div class="data-grid">
-        <div v-for="item in filteredData" :key="item.id" class="data-card">
-          <div class="card-header">
-            <span class="type-badge" :class="currentTab">
-              {{ currentTab === 'class' ? '行政单位' : '教学单元' }}
-            </span>
-            <span class="id-tag">#{{ item.id }}</span>
-          </div>
+        <transition name="card-fade" mode="out-in">
+          <div :key="currentTab" class="grid-wrapper">
+            <div v-for="item in filteredData" :key="item.id" class="data-card">
+              <div class="card-header">
+                <span class="type-badge" :class="currentTab">
+                  {{ currentTab === 'class' ? '行政单位' : '教学单元' }}
+                </span>
+                <span class="id-tag">#{{ item.id }}</span>
+              </div>
 
-          <div class="card-main">
-            <h3 class="item-name">{{ item.name }}</h3>
-            <div class="item-meta">
-              <div class="meta-row">
-                <span class="meta-label">{{ currentTab === 'class' ? '班级人数' : '已选课人数' }}</span>
-                <span class="meta-value">{{ item.studentCount }} 人</span>
+              <div class="card-main">
+                <h3 class="item-name">{{ item.name }}</h3>
+                <div class="item-meta">
+                  <div class="meta-row">
+                    <span class="meta-label">{{ currentTab === 'class' ? '班级人数' : '已选课人数' }}</span>
+                    <span class="meta-value">{{ item.studentCount }} 人</span>
+                  </div>
+                  <div class="meta-row" v-if="currentTab === 'course'">
+                    <span class="meta-label">授课教师</span>
+                    <span class="meta-value">{{ item.teacher }}</span>
+                  </div>
+                  <div class="meta-row">
+                    <span class="meta-label">创建时间</span>
+                    <span class="meta-value">{{ item.createDate }}</span>
+                  </div>
+                </div>
               </div>
-              <div class="meta-row" v-if="currentTab === 'course'">
-                <span class="meta-label">授课教师</span>
-                <span class="meta-value">{{ item.teacher }}</span>
-              </div>
-              <div class="meta-row">
-                <span class="meta-label">创建时间</span>
-                <span class="meta-value">{{ item.createDate }}</span>
-              </div>
+
+              <footer class="card-footer">
+                <button class="action-btn" @click="handleManage(item)">
+                  {{ currentTab === 'class' ? '管理名册' : '管理选课' }}
+                </button>
+                <div class="v-divider"></div>
+                <button class="action-btn delete" @click="handleDelete(item)">移除</button>
+              </footer>
             </div>
           </div>
-
-          <footer class="card-footer">
-            <button class="action-btn" @click="handleManage(item)">
-              {{ currentTab === 'class' ? '管理名册' : '管理选课' }}
-            </button>
-            <div class="v-divider"></div>
-            <button class="action-btn delete" @click="handleDelete(item)">移除</button>
-          </footer>
-        </div>
+        </transition>
       </div>
 
       <div v-if="filteredData.length === 0" class="empty-state">
@@ -134,6 +138,7 @@ const handleDelete = (item: any) => {
 }
 
 .page-header {
+
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
@@ -192,10 +197,7 @@ const handleDelete = (item: any) => {
 
 /* 数据网格布局 */
 .data-grid {
-    padding-top: 24px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
+  padding-top: 24px;
   height: calc(58vh);
   overflow-y: auto;
   padding-bottom: 24px;
@@ -275,4 +277,24 @@ const handleDelete = (item: any) => {
   color: #94A3B8;
 }
 .empty-icon { font-size: 48px; margin-bottom: 16px; }
+
+.grid-wrapper {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+}
+
+.card-fade-enter-active,
+.card-fade-leave-active {
+  transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.card-fade-enter-from,
+.card-fade-leave-to {
+  opacity: 0;
+  transform: translateY(5px) scale(0.98);
+}
+
+.grid-wrapper {
+  min-height: 100%;
+}
 </style>
