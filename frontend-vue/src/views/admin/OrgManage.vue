@@ -19,6 +19,6 @@ const columns = [
 
 const tableData = [
   { id: 1, orgName: '密码工程学院', level: '院系', director: '付老师', status: '正常', statusType: 'active' },
-  { id: 2, orgName: '24级密码工程01班', level: '行政班级', director: '陈嘉键', status: '正常', statusType: 'active' }
+  { id: 2, orgName: '24级密码工程01班', level: '行政班级', director: '楼茂密', status: '正常', statusType: 'active' }
 ]
 </script>

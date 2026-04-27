@@ -18,7 +18,7 @@ const columns = [
 ]
 
 const tableData = [
-  { id: 1, operator: '陈嘉键', module: '编排节点管理', action: '执行容器诊断，重启机器 158 的 Docker 守护进程', result: '成功', statusType: 'active' },
+  { id: 1, operator: '楼茂密', module: '编排节点管理', action: '执行容器诊断，重启机器 158 的 Docker 守护进程', result: '成功', statusType: 'active' },
   { id: 2, operator: '付老师', module: '教务中心', action: '下发《抗重放(Anti-Replay)机制演练》实训任务至 24级密码工程01班', result: '成功', statusType: 'active' }
 ]
 </script>

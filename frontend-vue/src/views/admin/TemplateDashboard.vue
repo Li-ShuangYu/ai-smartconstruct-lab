@@ -19,6 +19,6 @@ const columns = [
 
 const tableData = [
   { id: 1, templateName: '抗重放(Anti-Replay)机制分析实训', author: '付老师', usageCount: '128', status: '已上架', statusType: 'active' },
-  { id: 2, templateName: '理论导学伙伴(多Agent互动)模板', author: '陈嘉键', usageCount: '56', status: '审核中', statusType: 'warning' }
+  { id: 2, templateName: '理论导学伙伴(多Agent互动)模板', author: '楼茂密', usageCount: '56', status: '审核中', statusType: 'warning' }
 ]
 </script>
