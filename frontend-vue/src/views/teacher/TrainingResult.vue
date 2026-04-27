@@ -24,7 +24,7 @@
         <div class="ai-report">
           <p><strong>优势：</strong> 学员在“SM4 算法对称加密”环节表现极其出色，代码逻辑紧凑，一次性通过了抗重放攻击测试。</p>
           <p><strong>待改进：</strong> 在“后量子密码理论”问答环节，多次向 AI 助手发起基础性重复提问，建议加强前置理论课的预习。</p>
-          <div class="ai-footer">—— 由 密盾智学-辅助导师 自动生成</div>
+          <div class="ai-footer">—— 由 AI学苑-辅助导师 自动生成</div>
         </div>
       </section>
     </div>

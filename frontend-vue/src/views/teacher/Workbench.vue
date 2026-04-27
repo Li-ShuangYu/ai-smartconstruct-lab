@@ -25,7 +25,7 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/></svg>
           </div>
           <div class="action-info">
-            <h3>创建模板</h3>
+            <h3>创建实训</h3>
             <p>通过图形化拖拽，编排新的教学实训模板</p>
           </div>
         </div>
@@ -87,21 +87,21 @@ const goToAction = (path: string) => {
 const historyRecords = ref([
   { 
     id: 1, 
-    status: '进行中', 
+    status: '已就绪', 
     statusType: 'active', 
     time: '更新于 2 小时前', 
     name: '无人机通信抗重放加密对抗演练', 
     desc: '包含 4 个节点：环境初始化 -> 流量截获分析 -> 抗重放机制部署 -> 攻防自动评测。', 
-    participants: '45/50' 
+    participants: '0/50' 
   },
   { 
     id: 2, 
-    status: '待批改', 
+    status: '进行中', 
     statusType: 'warning', 
     time: '更新于 昨天 15:30', 
     name: '后量子密码学(PQC)算法设计与实现', 
-    desc: '学生已全部提交完成，系统 AI 辅助评价已生成，等待教师最终人工复核打分。', 
-    participants: '32/32' 
+    desc: '学生方案已全部提交完成，系统 AI 辅助评价已生成，等待下一步操作。', 
+    participants: '6/32' 
   },
   { 
     id: 3, 
@@ -110,7 +110,7 @@ const historyRecords = ref([
     time: '更新于 2026-04-25', 
     name: '服务器运维与 auth-0 鉴权容器调试', 
     desc: '针对 155/158 机器的 Kubernetes Pod 状态排查与 Docker 容器日志抓取分析实训。', 
-    participants: '28/30' 
+    participants: '30/30' 
   }
 ])
 </script>

@@ -78,9 +78,9 @@ type TabKey = 'template' | 'pending' | 'ongoing' | 'history'
 const currentTab = ref<TabKey>('template')
 const tabs = [
   { key: 'template', label: '实训模板仓库' },
-  { key: 'pending', label: '待启实训任务' },
+  { key: 'pending', label: '待开启的实训' },
   { key: 'ongoing', label: '进行中的实训' },
-  { key: 'history', label: '结束实训记录' }
+  { key: 'history', label: '已结束的实训' }
 ]
 
 // 模拟数据：结合流程图中的状态流转以及密码工程术语

@@ -3,28 +3,46 @@
     <div class="bg-glow"></div>
 
     <header class="hero-section">
-      <div class="brand">
-        <!-- <div class="logo-icon">___</div> -->
-        <img src="@/assets/AIZG-Logo.png" alt="logo" class="logo-img" />
-        <h1 class="logo-text">AI学苑<span>实训平台</span></h1>
-      </div>
-      <p class="slogan">密码学多智能体协同实训教室 · 深度学习与交互</p>
+  <div class="brand">
+    <img src="@/assets/AIZG-Logo.png" alt="logo" class="logo-img" />
+    <h1 class="logo-text">AI学苑<span>实训平台</span></h1>
+  </div>
+  <p class="slogan">密码学多智能体协同实训教室 · 深度学习与交互</p>
 
-      <div class="main-interaction-card">
-        <div class="user-avatar">
-          <div class="avatar-circle"></div>
-          <span class="user-greet">嗨，Tom同学
-          </span>
-        </div>
-        <div class="chat-input-area">
-          <input type="text" placeholder="输入你想学习的内容，例如：抗重放攻击机制原理..." />
-          <div class="action-group">
-            <button class="btn-deep-chat">深度交互</button>
-            <button class="btn-enter-lab">进入课堂</button>
-          </div>
+  <div class="main-interaction-card">
+    <div class="chat-conversation-flow">
+      <div class="chat-bubble ai-bubble">
+        <div class="ai-avatar">AI</div>
+        <div class="bubble-content">
+          <p>嗨，Tom同学！我是你的AI助教。今天你想了解关于**抗重放攻击**的实训，还是想直接进入**SM4编程演练**？</p>
         </div>
       </div>
-    </header>
+      <div class="chat-suggestions">
+        <span class="suggestion-chip">“解释抗重放机制”</span>
+        <span class="suggestion-chip">“SM4编程第一步”</span>
+        <span class="suggestion-chip">“查看我的进度”</span>
+      </div>
+    </div>
+
+    <div class="chat-input-wrapper">
+      <div class="input-container">
+        <input type="text" placeholder="向 AI 助教提问，或输入实训内容关键字..." />
+        <div class="input-actions">
+          <button class="btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
+          </button>
+          <button class="btn-send">
+            <span>发送消息</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+        </div>
+      </div>
+      <div class="lab-entry-area">
+        <button class="btn-enter-lab">进入课堂</button>
+      </div>
+    </div>
+  </div>
+</header>
 
     <div class="content-container">
       <nav class="filter-nav">
@@ -76,8 +94,8 @@
     </div>
 
     <div class="bottom-announcement">
-      <span class="version-tag">OpenMAIC v0.2.0 —— 深度交互模式</span>
-      <span class="update-text">全新交互模式 + 主页上线 + 文档站同步更新</span>
+      <span class="version-tag">AI学苑实训平台 —— 深度交互模式</span>
+      <span class="update-text">全新交互模式 + 主页上线 + 实训同步更新</span>
     </div>
   </div>
 </template>
@@ -172,38 +190,189 @@ const handleAction = (item: any) => {
 
 /* 中央交互卡片 */
 .main-interaction-card {
-  max-width: 800px;
+  max-width: 850px;
+  height: 42vh; /* 稍微调高一点 */
   margin: 40px auto 0;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
-}
-.chat-input-area {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(25px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 32px;
+  padding: 32px;
+  box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.15);
   display: flex;
-  gap: 12px;
-  margin-top: 16px;
+  flex-direction: column;
+  justify-content: space-between;
 }
-.chat-input-area input {
+
+/* 对话流区域 */
+.chat-conversation-flow {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.chat-bubble {
+  display: flex;
+  gap: 16px;
+  max-width: 90%;
+  animation: fadeIn 0.5s ease-out;
+}
+
+.ai-avatar {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  border-radius: 10px;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.bubble-content {
+  background: white;
+  padding: 16px 20px;
+  border-radius: 0 20px 20px 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.bubble-content p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #334155;
+  text-align: left;
+}
+
+/* 引导词设计 */
+.chat-suggestions {
+  display: flex;
+  gap: 10px;
+  margin-left: 52px;
+  flex-wrap: wrap;
+}
+
+.suggestion-chip {
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  color: #6366f1;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.suggestion-chip:hover {
+  background: #6366f1;
+  color: white;
+  transform: translateY(-2px);
+}
+
+/* 输入区域设计 */
+.chat-input-wrapper {
+  margin-top: 24px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.input-container {
+  flex: 1;
+  background: white;
+  border: 2px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 8px 8px 8px 20px;
+  display: flex;
+  align-items: center;
+  transition: border-color 0.3s;
+}
+
+.input-container:focus-within {
+  border-color: #6366f1;
+}
+
+.input-container input {
   flex: 1;
   border: none;
-  background: #f1f5f9;
-  padding: 14px 20px;
-  border-radius: 14px;
   outline: none;
-  font-size: 14px;
+  font-size: 15px;
+  color: #1e293b;
 }
-.btn-deep-chat {
+
+.input-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-icon:hover {
+  background: #f1f5f9;
+  color: #6366f1;
+}
+
+.btn-icon svg { width: 20px; height: 20px; }
+
+.btn-send {
   background: #6366f1;
   color: white;
   border: none;
-  padding: 0 20px;
-  border-radius: 14px;
+  padding: 8px 18px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
   cursor: pointer;
+  transition: all 0.2s;
 }
+
+.btn-send:hover {
+  background: #4f46e5;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-send svg { width: 16px; height: 16px; }
+
+.btn-enter-lab {
+  background: #1e293b;
+  color: white;
+  border: none;
+  height: 52px;
+  padding: 0 24px;
+  border-radius: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.btn-enter-lab:hover {
+  background: #0f172a;
+  transform: scale(1.05);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 
 /* 内容列表区域 */
 .content-container {

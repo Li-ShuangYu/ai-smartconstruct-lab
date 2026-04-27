@@ -72,7 +72,7 @@ interface Message {
 const messages = ref<Message[]>([
   { id: '1', type: 'reminder', content: '付老师 提醒您尽快提交实训任务：UAV通信加密系统对抗演练。', time: '2026-04-27 10:30', isRead: false },
   { id: '2', type: 'evaluation', content: '涅槃 刚刚对您的实训报告《抗重放机制分析》给出了评分及评价。', time: '2026-04-26 15:45', isRead: false },
-  { id: '3', type: 'system', content: '密盾智学平台将于今晚 24:00 进行例行维护，请保存好工作台进度。', time: '2026-04-25 09:00', isRead: true },
+  { id: '3', type: 'system', content: 'AI学苑平台将于今晚 24:00 进行例行维护，请保存好工作台进度。', time: '2026-04-25 09:00', isRead: true },
   { id: '4', type: 'reminder', content: '系统自动催交：您的容器调试实验报告距离截止时间仅剩 2 小时。', time: '2026-04-24 14:20', isRead: true }
 ])
 

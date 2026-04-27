@@ -39,7 +39,7 @@
 </template>
 
 <style scoped>
-.profile-container { padding: 32px; max-width: 1000px; margin: 0 auto; }
+.profile-container {  max-width: 1000px; margin: 0 auto; }
 .profile-layout { display: grid; grid-template-columns: 280px 1fr; gap: 32px; margin-top: 24px; }
 
 .avatar-card { background: white; border-radius: 20px; padding: 40px 24px; text-align: center; border: 1px solid #E2E8F0; }

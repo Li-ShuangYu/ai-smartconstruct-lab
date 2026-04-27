@@ -12,14 +12,21 @@
           :class="{ active: route.path.includes('/student/workbench') }"
           @click="navigateTo('/student/workbench')"
         >
-          实训首页
+          实训工作台
         </div>
         <div 
           class="nav-item" 
-          :class="{ active: route.path.includes('/student/classes') }"
-          @click="navigateTo('/student/classes')"
+          :class="{ active: route.path.includes('/student/my-class') }"
+          @click="navigateTo('/student/my-class')"
         >
           我的班级
+        </div>
+        <div 
+          class="nav-item" 
+          :class="{ active: route.path.includes('/student/courselist') }"
+          @click="navigateTo('/student/courselist')"
+        >
+          课程空间
         </div>
         <div 
           class="nav-item" 

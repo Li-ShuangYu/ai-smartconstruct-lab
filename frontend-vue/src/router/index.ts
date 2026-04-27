@@ -51,7 +51,7 @@ router.beforeEach((to, from, next) => {
 
 
   // 2. 动态设置页面标题
-  const title = to.meta.title ? `${to.meta.title} - 密盾智学` : '密盾智学'
+  const title = to.meta.title ? `${to.meta.title} - AI学苑` : 'AI学苑'
   document.title = title
 
   next()

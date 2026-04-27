@@ -28,10 +28,17 @@ const studentRoutes = [
       },
       {
         // 占位：我的班级
-        path: 'classes',
-        name: 'StudentClasses',
-        component: () => import('@/views/student/ClassList.vue'), // 需新建此文件
+        path: 'my-class',
+        name: 'StudentMyClass',
+        component: () => import('@/views/student/MyClass.vue'), // 需新建此文件
         meta: { title: '我的班级'}
+      },
+      {
+        // 占位：我的课程
+        path: 'courselist',
+        name: 'StudentCourseList',
+        component: () => import('@/views/student/CourseList.vue'), // 需新建此文件
+        meta: { title: '我的课程'}
       },
       {
         // 占位：通知
