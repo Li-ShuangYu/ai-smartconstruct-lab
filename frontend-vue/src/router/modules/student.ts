@@ -17,28 +17,35 @@ const studentRoutes = [
         path: 'student-cabin/:id',
         name: 'StudentCabin',
         component: () => import('@/views/student/StudentCabin.vue'),
-        meta: { title: '学生舱位' , hideSidebar: true }
+        meta: { title: '学生舱位'}
       },
       {
         // 关键配置 2：实训详情（只读态）
         path: 'training-detail/:id',
         name: 'StudentTrainingDetail',
         component: () => import('@/views/student/TrainingDetail.vue'), // 需新建此文件
-        meta: { title: '实训详情', hideSidebar: true }
+        meta: { title: '实训详情'}
       },
       {
         // 占位：我的班级
         path: 'classes',
         name: 'StudentClasses',
         component: () => import('@/views/student/ClassList.vue'), // 需新建此文件
-        meta: { title: '我的班级', hideSidebar: true }
+        meta: { title: '我的班级'}
+      },
+      {
+        // 占位：通知
+        path: 'notifications',
+        name: 'StudentNotifications',
+        component: () => import('@/views/student/Notifications.vue'), // 需新建此文件
+        meta: { title: '消息通知'}
       },
       {
         // 占位：个人中心
         path: 'profile',
         name: 'StudentProfile',
         component: () => import('@/views/student/UserProfile.vue'), // 需新建此文件
-        meta: { title: '个人中心', hideSidebar: true  }
+        meta: { title: '个人中心'}
       }
     ]
   }

@@ -431,7 +431,7 @@ onUnmounted(() => {
   --mod-bg: rgba(255, 255, 255, 0.85); --mod-border: rgba(203, 213, 225, 0.8); --mod-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.9); --mod-radius: 14px; 
   --ai-bg: rgba(219, 234, 254, 0.85); --ai-border: rgba(191, 219, 254, 0.9);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif; 
-  font-size: 16px; width: 100%; height: calc(100vh - 60px); 
+  font-size: 16px; width: 100%; height: 91vh; 
   background-color: #F1F5F9; overflow: hidden; display: flex; justify-content: center; align-items: center; 
   background: linear-gradient(135deg, rgba(226, 232, 240, 0.5) 0%, rgba(203, 213, 225, 0.5) 100%); box-sizing: border-box;
 }

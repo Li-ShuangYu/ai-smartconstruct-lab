@@ -5,6 +5,9 @@ import 'nprogress/nprogress.css'
 // 导入教师和学生模块路由
 import teacherRoutes from './modules/teacher'
 import studentRoutes from './modules/student'
+import adminRoutes from './modules/admin'
+
+
 
 // NProgress 配置
 NProgress.configure({ showSpinner: false, speed: 400 })
@@ -16,6 +19,7 @@ const routes = [
   },
   ...teacherRoutes,
   ...studentRoutes,
+  ...adminRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
@@ -40,7 +44,11 @@ router.beforeEach((to, from, next) => {
     to.meta.role = 'student'
   } else if (to.path.startsWith('/teacher')) {
     to.meta.role = 'teacher'
+  }else if (to.path.startsWith('/admin')) {
+    to.meta.role = 'admin'
   }
+
+
 
   // 2. 动态设置页面标题
   const title = to.meta.title ? `${to.meta.title} - 密盾智学` : '密盾智学'

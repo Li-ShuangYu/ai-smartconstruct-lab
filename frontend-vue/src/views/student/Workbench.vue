@@ -1,80 +1,93 @@
 <template>
-  <div class="student-workbench">
-    <header class="page-header">
-      <div class="header-info">
-        <h1 class="panel-main-title">我的实训工作台</h1>
-        <p class="subtitle">欢迎回来，今天也要继续精进密码学技能</p>
+  <div class="open-maic-wrapper">
+    <div class="bg-glow"></div>
+
+    <header class="hero-section">
+      <div class="brand">
+        <!-- <div class="logo-icon">___</div> -->
+        <img src="@/assets/AIZG-Logo.png" alt="logo" class="logo-img" />
+        <h1 class="logo-text">AI学苑<span>实训平台</span></h1>
       </div>
-      <div class="quick-stats">
-        <div class="stat-box">
-          <span class="num">3</span>
-          <span class="label">进行中</span>
+      <p class="slogan">密码学多智能体协同实训教室 · 深度学习与交互</p>
+
+      <div class="main-interaction-card">
+        <div class="user-avatar">
+          <div class="avatar-circle"></div>
+          <span class="user-greet">嗨，Tom同学
+          </span>
         </div>
-        <div class="stat-box">
-          <span class="num">12</span>
-          <span class="label">已完成</span>
+        <div class="chat-input-area">
+          <input type="text" placeholder="输入你想学习的内容，例如：抗重放攻击机制原理..." />
+          <div class="action-group">
+            <button class="btn-deep-chat">深度交互</button>
+            <button class="btn-enter-lab">进入课堂</button>
+          </div>
         </div>
       </div>
     </header>
 
-    <nav class="filter-tabs">
-      <div 
-        v-for="tab in tabs" 
-        :key="tab.key" 
-        class="tab-item" 
-        :class="{ active: activeTab === tab.key }"
-        @click="activeTab = tab.key"
-      >
-        {{ tab.label }}
-        <span class="count" v-if="getCount(tab.key)">{{ getCount(tab.key) }}</span>
-      </div>
-    </nav>
+    <div class="content-container">
+      <nav class="filter-nav">
+        <div class="nav-left">
+          <div 
+            v-for="tab in tabs" 
+            :key="tab.key" 
+            class="nav-item" 
+            :class="{ active: activeTab === tab.key }"
+            @click="activeTab = tab.key"
+          >
+            {{ tab.label }}
+          </div>
+        </div>
+        <div class="nav-right-stats">
+          <span>进行中 <b>3</b></span>
+          <span class="divider">|</span>
+          <span>已完成 <b>12</b></span>
+        </div>
+      </nav>
 
-    <main class="card-grid">
-      <div v-for="item in filteredList" :key="item.id" class="training-card">
-        <div class="card-status" :class="item.status">{{ getStatusText(item.status) }}</div>
-        <div class="card-body">
-          <h3 class="training-title">{{ item.title }}</h3>
-          <p class="course-name">所属课程：{{ item.course }}</p>
+      <main class="glass-grid">
+        <div v-for="item in filteredList" :key="item.id" class="glass-card">
+          <div class="card-top">
+            <span class="course-tag">{{ item.course }}</span>
+            <span class="status-dot" :class="item.status">{{ getStatusText(item.status) }}</span>
+          </div>
           
-          <div class="progress-section">
-            <div class="progress-info">
+          <h3 class="card-title">{{ item.title }}</h3>
+          
+          <div class="progress-wrap">
+            <div class="progress-labels">
               <span>实训进度</span>
               <span>{{ item.progress }}%</span>
             </div>
-            <div class="progress-bar">
-              <div class="progress-inner" :style="{ width: item.progress + '%' }"></div>
+            <div class="progress-bar-bg">
+              <div class="progress-fill" :style="{ width: item.progress + '%' }"></div>
             </div>
           </div>
 
-          <div class="meta-info">
-            <span class="time">⏱️ 截止时间：{{ item.deadline }}</span>
-          </div>
+          <footer class="card-actions">
+            <span class="deadline">⏱️ {{ item.deadline }}</span>
+            <button class="mini-btn" @click="handleAction(item)">
+              {{ item.status === 'ongoing' ? '继续' : '查看' }}
+            </button>
+          </footer>
         </div>
-        <footer class="card-footer">
-          <button 
-            class="action-btn" 
-            :class="item.status === 'ongoing' ? 'primary' : 'secondary'"
-            @click="handleAction(item)"
-          >
-            {{ item.status === 'ongoing' ? '继续实训' : (item.status === 'not_started' ? '进入详情' : '查看报告') }}
-          </button>
-        </footer>
-      </div>
-    </main>
+      </main>
+    </div>
+
+    <div class="bottom-announcement">
+      <span class="version-tag">OpenMAIC v0.2.0 —— 深度交互模式</span>
+      <span class="update-text">全新交互模式 + 主页上线 + 文档站同步更新</span>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
 
-const router = useRouter()
 const activeTab = ref('all')
-
 const tabs = [
   { label: '全部实训', key: 'all' },
-  { label: '未开始', key: 'not_started' },
   { label: '进行中', key: 'ongoing' },
   { label: '已结束', key: 'ended' }
 ]
@@ -91,67 +104,186 @@ const filteredList = computed(() => {
   return trainingList.value.filter(i => i.status === activeTab.value)
 })
 
-const getCount = (key: string) => {
-  if (key === 'all') return 0
-  return trainingList.value.filter(i => i.status === key).length
-}
-
 const getStatusText = (status: string) => {
-  const map: any = { ongoing: '进行中', not_started: '未开始', ended: '已结束' }
+  const map: any = { ongoing: '进行中', not_started: '待开始', ended: '已结束' }
   return map[status]
 }
 
 const handleAction = (item: any) => {
-  if (item.status === 'ongoing') {
-    router.push(`/student/student-cabin/${item.id}`)
-  } else {
-    alert('跳转至实训详情页')
-  }
+  console.log('Action for:', item.title)
 }
 </script>
 
 <style scoped>
-.student-workbench { padding: 32px; min-height: 100%; box-sizing: border-box; }
+/* 核心容器：沉浸式背景 */
+.open-maic-wrapper {
+  min-height: 100vh;
+  background-color: #f8fafc;
+  background-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+                    radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.05) 0px, transparent 50%);
+  padding: 40px 20px 100px;
+  position: relative;
+  overflow: hidden;
+}
+.logo-img {
+  width: 45;
+  height: 45px;
+  border-radius: 10px;
+}
+.bg-glow {
+  position: absolute;
+  top: -100px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
 
-.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
-.panel-main-title { font-size: 24px; font-weight: 800; color: #0F172A; margin: 0 0 8px 0; }
-.subtitle { font-size: 14px; color: #64748B; margin: 0; }
+/* Hero 区域 */
+.hero-section {
+  text-align: center;
+  margin-bottom: 60px;
+}
+.brand {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.logo-icon {
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: white;
+  padding: 8px 10px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 20px;
+}
+.logo-text {
+  font-size: 32px;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+.logo-text span { color: #6366f1; }
+.slogan { color: #64748b; font-size: 16px; }
 
-.quick-stats { display: flex; gap: 24px; }
-.stat-box { display: flex; flex-direction: column; align-items: flex-end; }
-.stat-box .num { font-size: 24px; font-weight: 800; color: #1E293B; }
-.stat-box .label { font-size: 12px; color: #94A3B8; font-weight: 700; }
+/* 中央交互卡片 */
+.main-interaction-card {
+  max-width: 800px;
+  margin: 40px auto 0;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
+}
+.chat-input-area {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+.chat-input-area input {
+  flex: 1;
+  border: none;
+  background: #f1f5f9;
+  padding: 14px 20px;
+  border-radius: 14px;
+  outline: none;
+  font-size: 14px;
+}
+.btn-deep-chat {
+  background: #6366f1;
+  color: white;
+  border: none;
+  padding: 0 20px;
+  border-radius: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
 
-/* Tabs 样式 */
-.filter-tabs { display: flex; gap: 32px; border-bottom: 1px solid #E2E8F0; margin-bottom: 24px; }
-.tab-item { padding: 12px 4px; font-size: 15px; font-weight: 700; color: #64748B; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; position: relative; }
-.tab-item.active { color: #4F46E5; border-bottom-color: #4F46E5; }
-.tab-item .count { position: absolute; top: 4px; right: -18px; background: #EEF2FF; color: #4F46E5; font-size: 11px; padding: 1px 6px; border-radius: 10px; }
+/* 内容列表区域 */
+.content-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.filter-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 0 10px;
+}
+.nav-left { display: flex; gap: 24px; }
+.nav-item {
+  color: #64748b;
+  font-weight: 600;
+  cursor: pointer;
+  padding-bottom: 4px;
+  border-bottom: 2px solid transparent;
+}
+.nav-item.active {
+  color: #6366f1;
+  border-bottom-color: #6366f1;
+}
+.nav-right-stats {
+  font-size: 13px;
+  color: #94a3b8;
+}
+.nav-right-stats b { color: #1e293b; margin-left: 4px; }
+.divider { margin: 0 12px; opacity: 0.3; }
 
-/* 网格布局 */
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
-.training-card { background: white; border: 1px solid #E2E8F0; border-radius: 16px; padding: 24px; position: relative; transition: all 0.3s; display: flex; flex-direction: column; }
-.training-card:hover { transform: translateY(-4px); border-color: #818CF8; box-shadow: 0 12px 30px rgba(79, 70, 229, 0.06); }
+/* 玻璃卡片网格 */
+.glass-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: transform 0.3s ease;
+}
+.glass-card:hover { transform: translateY(-5px); }
 
-.card-status { position: absolute; top: 16px; right: 16px; font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 6px; }
-.card-status.ongoing { background: #F0FDF4; color: #16A34A; }
-.card-status.not_started { background: #F8FAFC; color: #64748B; }
-.card-status.ended { background: #F1F5F9; color: #94A3B8; }
+.card-top { display: flex; justify-content: space-between; margin-bottom: 12px; }
+.course-tag { font-size: 12px; color: #6366f1; background: #eef2ff; padding: 2px 8px; border-radius: 6px; font-weight: 600; }
+.status-dot { font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.status-dot.ongoing { color: #10b981; }
 
-.training-title { font-size: 18px; font-weight: 800; color: #1E293B; margin: 0 0 12px 0; line-height: 1.4; height: 50px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.course-name { font-size: 13px; color: #64748B; margin-bottom: 20px; }
+.card-title { font-size: 17px; font-weight: 700; color: #1e293b; margin: 0 0 20px; line-height: 1.4; }
 
-.progress-section { margin-bottom: 20px; }
-.progress-info { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 8px; }
-.progress-bar { height: 6px; background: #F1F5F9; border-radius: 10px; overflow: hidden; }
-.progress-inner { height: 100%; background: #4F46E5; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+.progress-wrap { margin-bottom: 20px; }
+.progress-labels { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; margin-bottom: 6px; }
+.progress-bar-bg { height: 6px; background: #f1f5f9; border-radius: 10px; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #a855f7); border-radius: 10px; }
 
-.meta-info { font-size: 12px; color: #94A3B8; font-weight: 500; margin-bottom: 24px; }
+.card-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; pt: 16px; margin-top: 10px; padding-top: 16px; }
+.deadline { font-size: 12px; color: #94a3b8; }
+.mini-btn { border: 1px solid #e2e8f0; background: white; padding: 6px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
 
-.card-footer { margin-top: auto; }
-.action-btn { width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.2s; border: 1px solid transparent; }
-.action-btn.primary { background: #4F46E5; color: white; }
-.action-btn.primary:hover { background: #4338CA; }
-.action-btn.secondary { background: white; border-color: #E2E8F0; color: #475569; }
-.action-btn.secondary:hover { background: #F8FAFC; }
+/* 底部状态条 */
+.bottom-announcement {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px 24px;
+  border-radius: 100px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.version-tag { color: #6366f1; font-weight: 700; }
+.update-text { color: #64748b; }
 </style>
