@@ -9,7 +9,7 @@
             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="avatar" />
             <div class="edit-overlay">📸</div>
           </div>
-          <h2 class="user-name">陈嘉键</h2>
+          <h2 class="user-name">楼茂密</h2>
           <p class="user-role">24级密码工程01班 | 学生</p>
           <div class="user-id">学号: 20240915001</div>
         </div>

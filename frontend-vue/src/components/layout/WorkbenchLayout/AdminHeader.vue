@@ -3,19 +3,19 @@
     <div class="header-left">
       <div class="logo-area" @click="switchToStudent">
         <img src="@/assets/AIZG-Logo.png" alt="logo" class="logo-img" />
-        <span class="logo-text">AI 学苑 / 教研版</span>
+        <span class="logo-text">管理员系统</span>
       </div>
       <!-- <h2 class="page-title">{{ currentRouteTitle }}</h2> -->
     </div>
 
     <div class="header-right">
       <button class="icon-btn">
-        <IconBell class="icon" />
+        <span class="icon">🔔</span>
       </button>
       
       <div class="user-profile">
-        <div class="avatar">J</div>
-        <span class="user-name">Jovi 老师</span>
+        <div class="avatar">管</div>
+        <span class="user-name">Admin</span>
       </div>
     </div>
   </header>
