@@ -16,7 +16,7 @@ NProgress.configure({ showSpinner: false, speed: 400 })
 const routes = [
   {
     path: '/',
-    redirect: '/teacher/workbench'
+    redirect: '/auth/login'
   },
   ...teacherRoutes,
   ...studentRoutes,

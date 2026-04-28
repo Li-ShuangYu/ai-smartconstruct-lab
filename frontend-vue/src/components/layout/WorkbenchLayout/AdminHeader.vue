@@ -1,7 +1,7 @@
 <template>
   <header class="workbench-header">
     <div class="header-left">
-      <div class="logo-area" @click="switchToStudent">
+      <div class="logo-area" @click="switchToAdmin">
         <img src="@/assets/AIZG-Logo.png" alt="logo" class="logo-img" />
         <span class="logo-text">管理员系统</span>
       </div>
@@ -13,7 +13,7 @@
         <span class="icon">🔔</span>
       </button>
       
-      <div class="user-profile">
+      <div class="user-profile" @click="loginout">
         <div class="avatar">管</div>
         <span class="user-name">Admin</span>
       </div>
@@ -30,8 +30,12 @@ const router = useRouter()
 // 假设你在路由 meta 中定义了 title
 const currentRouteTitle = computed(() => route.meta.title || '工作台')
 
-const switchToStudent = () => {
-  router.push('/student')
+const switchToAdmin = () => {
+  router.push('/admin')
+}
+
+const loginout = () => {
+  router.push('/auth/login')
 }
 </script>
 

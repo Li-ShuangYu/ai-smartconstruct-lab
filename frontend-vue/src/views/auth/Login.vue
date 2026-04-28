@@ -27,7 +27,7 @@
         <label>密码</label>
         <div class="input-field">
           <i class="fas fa-lock input-icon"></i>
-          <input type="password" v-model="password" placeholder="请输入密码" required />
+          <input type="password" v-model="password" placeholder="请输入密码"  required />
         </div>
       </div>
 
@@ -39,8 +39,8 @@
         <a href="#" class="forgot-link">忘记密码？</a>
       </div>
 
-      <button type="submit" class="submit-btn">进入系统</button>
-      
+      <!-- <button type="submit" class="submit-btn">进入系统</button> -->
+      <button type="submit" class="submit-btn" @click="handleLogin">进入系统</button>
       <div class="register-prompt">
         没有账号？<router-link to="/auth/register">立即注册</router-link>
       </div>
@@ -58,6 +58,7 @@ const currentRole = ref('student')
 const account = ref('')
 const password = ref('')
 const rememberMe = ref(true)
+
 
 const roles = [
   { id: 'student', label: '学生端', icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>' },
