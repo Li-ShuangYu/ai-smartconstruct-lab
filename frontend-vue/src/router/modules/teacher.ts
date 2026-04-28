@@ -43,30 +43,30 @@ const teacherRoutes = [
         component: () => import('@/views/teacher/TrainingPublish.vue'),
         meta: { title: '发布实训', hideSidebar: true }
       },
-      {
-        path: 'training-result',
-        name: 'TrainingResult',
-        component: () => import('@/views/teacher/TrainingResult.vue'),
-        meta: { title: '实训结果', hideSidebar: true }
-      },
-      {
-        path: 'class-competency/:studentId',
-        name: 'ClassCompetencyProfile',
-        component: () => import('@/views/teacher/ClassCompetencyProfile.vue'),
-        meta: { title: '班级实训总结分析', hideSidebar: true }
-      },
-      {
-        path: 'student-competency/:studentId',
-        name: 'StudentCompetencyProfile',
-        component: () => import('@/views/teacher/StudentCompetencyProfile.vue'),
-        meta: { title: '学生实训总结评价', hideSidebar: true }
-      },
-      {
-        path: 'evaluation',
-        name: 'EvaluationDashboard',
-        component: () => import('@/views/teacher/EvaluationDashboard.vue'),
-        meta: { title: '评估分析'}
-      },
+      // {
+      //   path: 'training-result',
+      //   name: 'TrainingResult',
+      //   component: () => import('@/views/teacher/TrainingResult.vue'),
+      //   meta: { title: '实训结果', hideSidebar: true }
+      // },
+      // {
+      //   path: 'class-competency/:studentId',
+      //   name: 'ClassCompetencyProfile',
+      //   component: () => import('@/views/teacher/ClassCompetencyProfile.vue'),
+      //   meta: { title: '班级实训总结分析', hideSidebar: true }
+      // },
+      // {
+      //   path: 'student-competency/:studentId',
+      //   name: 'StudentCompetencyProfile',
+      //   component: () => import('@/views/teacher/StudentCompetencyProfile.vue'),
+      //   meta: { title: '学生实训总结评价', hideSidebar: true }
+      // },
+      // {
+      //   path: 'evaluation',
+      //   name: 'EvaluationDashboard',
+      //   component: () => import('@/views/teacher/EvaluationDashboard.vue'),
+      //   meta: { title: '评估分析'}
+      // },
       // ...保留原来的 assignment 和 evaluation
     ]
   }
