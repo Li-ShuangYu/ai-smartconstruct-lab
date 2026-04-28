@@ -54,3 +54,4 @@ Thumbs.db
 infrastructure/postgres_data/
 infrastructure/mysql_data/
 infrastructure/qdrant_data/
+frontend-vue/dist.zip
