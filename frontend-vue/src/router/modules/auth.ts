@@ -13,12 +13,13 @@ const authRoutes = [
         component: () => import('@/views/auth/Login.vue'),
         meta: { title: '登录系统' }
       },
-      // 以后你的注册页就可以直接加在这里：
-      // {
-      //   path: '/register',
-      //   name: 'Register',
-      //   component: () => import('@/views/auth/Register.vue'),
-      // }
+    
+      {
+        path: 'register',
+        name: 'Register',
+        component: () => import('@/views/auth/Register.vue'),
+        meta: { title: '注册系统' }
+      }
     ]
   }
 ]

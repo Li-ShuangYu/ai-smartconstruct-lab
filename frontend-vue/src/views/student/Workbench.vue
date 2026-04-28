@@ -37,9 +37,9 @@
               </button>
             </div>
           </div>
-          <div class="lab-entry-area">
+          <!-- <div class="lab-entry-area">
             <button class="btn-enter-lab">进入课堂</button>
-          </div>
+          </div> -->
         </div>
       </div>
     </header>

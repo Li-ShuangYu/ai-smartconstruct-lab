@@ -37,6 +37,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* 整个页面的背景，右侧毛玻璃会透出这个颜色和下方的发光效果 */
   background: linear-gradient(135deg, #f3f4f6 0%, #eef2ff 100%);
   position: relative;
   padding: 20px;
@@ -50,7 +51,7 @@
   transform: translateX(-50%);
   width: 800px;
   height: 400px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -58,13 +59,14 @@
   width: 100%;
   max-width: 80vw;
   height: 520px;
-  background: #ffffff;
+  /* 1. 取消纯白背景，让整个大卡片底色变透明，为右侧毛玻璃做准备 */
+  background: transparent;
   border-radius: 24px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   display: flex;
   overflow: hidden;
   z-index: 10;
-  border: 1px solid rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
 /* --- 左侧视觉区 --- */
@@ -78,15 +80,16 @@
   background-color: #f8fafc;
 }
 
-/* 核心修改 2：图片与右边卡片交汇处的渐变透明处理 */
+/* 2. 核心修改：图片与右边卡片交汇处的渐变透明处理 */
 .auth-left-side::after {
   content: "";
   position: absolute;
   top: 0;
   right: 0;
-  width: 150px; /* 渐变区域宽度 */
+  width: 150px; 
   height: 100%;
-  background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, #ffffff 100%);
+  /* 之前是过渡到纯白(#ffffff)，现在改为过渡到右侧相同的半透明色，实现无缝衔接 */
+  background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.5) 100%);
   z-index: 3;
 }
 
@@ -98,12 +101,12 @@
   z-index: 1;
 }
 
-/* 核心修改 1：悬浮品牌框的模糊与透明效果 */
+/* 悬浮品牌框保持原样 */
 .floating-brand-box {
   position: relative;
-  z-index: 4; /* 确保在渐变遮罩之上 */
-  background: rgba(255, 255, 255, 0.55); /* 半透明底色 */
-  backdrop-filter: blur(15px); /* 毛玻璃核心 */
+  z-index: 4; 
+  background: rgba(255, 255, 255, 0.55); 
+  backdrop-filter: blur(15px); 
   -webkit-backdrop-filter: blur(15px);
   padding: 42px 56px;
   border-radius: 20px;
@@ -140,7 +143,13 @@
 /* --- 右侧路由区 --- */
 .auth-right-side {
   flex: 1;
-  background: #ffffff;
+  /* 3. 核心修改：毛玻璃质感背景 */
+  background: rgba(255, 255, 255, 0.5); /* 半透明白色基底 */
+  backdrop-filter: blur(20px); /* 模糊背景 */
+  -webkit-backdrop-filter: blur(20px);
+  /* 添加一条微弱的左边框来区分左右，也可以不要 */
+  border-left: 1px solid rgba(255, 255, 255, 0.4);
+  
   display: flex;
   align-items: center;
   justify-content: center;

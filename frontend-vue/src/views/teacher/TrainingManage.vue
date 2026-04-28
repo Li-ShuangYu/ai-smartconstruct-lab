@@ -26,7 +26,7 @@
       <div class="data-grid-body">
         <transition name="fade" mode="out-in">
           <div :key="currentTab">
-            <div v-for="item in tableData[currentTab]" :key="item.id" class="grid-row">
+            <div v-for="item in paginatedData" :key="item.id" class="grid-row">
               <span class="name">{{ item.name }}</span>
               <span class="time">{{ item.time }}</span>
               <span>
@@ -57,18 +57,39 @@
               </div>
             </div>
             
-            <div v-if="tableData[currentTab].length === 0" class="empty-state">
+            <div v-if="paginatedData.length === 0" class="empty-state">
               暂无相关实训数据
             </div>
           </div>
         </transition>
+      </div>
+
+      <div class="pagination-wrapper" v-if="total > 0">
+        <span class="page-info">共 <b>{{ total }}</b> 项实训记录</span>
+        <div class="page-controls">
+          <button class="page-btn" :disabled="currentPage === 1" @click="handlePageChange(currentPage - 1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          
+          <div class="page-numbers">
+            <span v-for="p in totalPages" :key="p"
+                  class="page-number" :class="{ active: currentPage === p }"
+                  @click="handlePageChange(p)">
+              {{ p }}
+            </span>
+          </div>
+
+          <button class="page-btn" :disabled="currentPage === totalPages" @click="handlePageChange(currentPage + 1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+        </div>
       </div>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -83,12 +104,16 @@ const tabs = [
   { key: 'history', label: '已结束的实训' }
 ]
 
-// 模拟数据：结合流程图中的状态流转以及密码工程术语
+// 模拟数据：结合流程图中的状态流转以及密码工程术语 (扩充了数据以便测试分页)
 const tableData = ref({
   template: [
     { id: 1, name: '无人机通信抗重放演练', time: '更新于 2026-04-26', status: '已就绪', statusType: 'success' },
     { id: 2, name: '后量子密码学 PQC 算法', time: '更新于 2026-04-27', status: '草稿', statusType: 'info' },
-    { id: 3, name: '密码侧信道分析模板', time: '更新于 2026-04-27', status: 'AI处理中', statusType: 'warn' }
+    { id: 3, name: '密码侧信道分析模板', time: '更新于 2026-04-27', status: 'AI处理中', statusType: 'warn' },
+    { id: 4, name: 'SM4 分组密码算法实操', time: '更新于 2026-04-28', status: '已就绪', statusType: 'success' },
+    { id: 5, name: '基于属性的加密(ABE)机制', time: '更新于 2026-04-28', status: '已就绪', statusType: 'success' },
+    { id: 6, name: '区块链零知识证明实训', time: '更新于 2026-04-29', status: '草稿', statusType: 'info' },
+    { id: 7, name: 'SM2 椭圆曲线数字签名', time: '更新于 2026-04-29', status: '已就绪', statusType: 'success' }
   ],
   pending: [
     { id: 101, name: '24级密码工程1班-抗重放实操', time: '计划开始: 2026-04-28', status: '未开始', statusType: 'default' }
@@ -101,36 +126,55 @@ const tableData = ref({
   ]
 })
 
-// === 操作逻辑分发 ===
+// === 分页逻辑 ===
+const currentPage = ref(1)
+const pageSize = ref(5) // 每页显示 5 条
 
+// 当前 Tab 下的总数据量
+const total = computed(() => tableData.value[currentTab.value].length)
+
+// 总页数
+const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
+
+// 当前页应该展示的数据
+const paginatedData = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return tableData.value[currentTab.value].slice(start, end)
+})
+
+// 监听 Tab 切换，重置页码为 1
+watch(currentTab, () => {
+  currentPage.value = 1
+})
+
+// 处理翻页
+const handlePageChange = (page: number) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+  }
+}
+
+// === 操作逻辑分发 ===
 const handleEditTemplate = (item: any) => {
   router.push(`/teacher/training-create?id=${item.id}`)
 }
-
 const handleCreateTask = (item: any) => {
   if(item.status !== '已就绪') return
   router.push(`/teacher/training-publish?templateId=${item.id}`)
 }
-
 const handleEditTask = (item: any) => {
   console.log('修改实训任务信息', item.id)
-  // 跳转到任务修改页
 }
-
 const handleStartTask = (item: any) => {
   console.log('手动开启实训', item.id)
-  // 状态流转逻辑
 }
-
 const handleEndTask = (item: any) => {
   console.log('结束实训', item.id)
-  // 状态流转逻辑
 }
-
 const handleEnterLive = (item: any) => {
   router.push(`/teacher/teacher-live-monitor?instanceId=${item.id}`)
 }
-
 const handleViewHistory = (item: any) => {
   router.push(`/teacher/class-competency/${item.id}`)
 }
@@ -146,7 +190,7 @@ const handleViewHistory = (item: any) => {
 .tab-item { padding: 12px 4px; cursor: pointer; color: #64748B; font-weight: 600; transition: all 0.3s; border-bottom: 2px solid transparent; }
 .tab-item.active { color: #4F46E5; border-bottom-color: #4F46E5; }
 
-/* 严格控制网格布局比例和宽度，操作列固定尺寸，单行紧凑对齐，杜绝留白过多 */
+/* 网格排版 */
 .data-grid-header, .grid-row { 
   display: grid; 
   grid-template-columns: 2.5fr 1.5fr 1fr 200px; 
@@ -155,31 +199,63 @@ const handleViewHistory = (item: any) => {
 
 .data-grid-header { padding: 12px 24px; background: #F1F5F9; border-radius: 8px; font-weight: 700; color: #475569; }
 .action-header { text-align: left; }
-
-.grid-row { padding: 20px 24px; background: white; margin-top: 12px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: background 0.2s;}
-.grid-row:hover { background: #F8FAFC; }
+.data-grid-body {height: 333px;
+}
+.grid-row { padding: 16px 24px; background: white; margin-top: 10px; border-radius: 12px; border: 1px solid #F1F5F9; transition: all 0.2s;}
+.grid-row:hover { background: #F8FAFC; border-color: #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);}
 
 .name { font-weight: 600; color: #1E293B; }
 .time { font-size: 13px; color: #64748B; }
 
-.status-tag { padding: 4px 10px; border-radius: 6px; font-size: 13px; font-weight: 600; display: inline-block; text-align: center;}
+.status-tag { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block; text-align: center;}
 .status-tag.success { background: #DCFCE7; color: #166534; }
 .status-tag.warn { background: #FEF3C7; color: #92400E; }
 .status-tag.info { background: #DBEAFE; color: #1E40AF; }
 .status-tag.default { background: #F1F5F9; color: #475569; }
 
 .actions { display: flex; gap: 12px; align-items: center; justify-content: flex-start;}
-.text-btn { background: none; border: none; cursor: pointer; font-size: 14px; font-weight: 600; color: #64748B; padding: 0; transition: color 0.2s;}
-.text-btn:hover { color: #334155; }
+.text-btn { background: none; border: none; cursor: pointer; font-size: 13px; font-weight: 600; color: #64748B; padding: 0; transition: color 0.2s;}
+.text-btn:hover { color: #334155; text-decoration: underline;}
 .text-btn.primary { color: #4F46E5; }
 .text-btn.primary:hover { color: #4338CA; }
 .text-btn.danger { color: #EF4444; }
 .text-btn.danger:hover { color: #DC2626; }
-.text-btn:disabled { color: #CBD5E1; cursor: not-allowed; }
+.text-btn:disabled { color: #CBD5E1; cursor: not-allowed; text-decoration: none;}
 
 .empty-state { padding: 40px; text-align: center; color: #94A3B8; font-size: 14px; }
 
-/* Tab 切换动画 */
+/* === 分页组件紧凑样式 === */
+.pagination-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 20px;
+  padding: 12px 24px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #F1F5F9;
+}
+.page-info { font-size: 13px; color: #64748B; }
+.page-info b { color: #1E293B; margin: 0 2px; }
+
+.page-controls { display: flex; gap: 12px; align-items: center; }
+.page-btn {
+  background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; 
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #475569; transition: all 0.2s; padding: 0;
+}
+.page-btn svg { width: 16px; height: 16px; }
+.page-btn:hover:not(:disabled) { background: #EEF2FF; border-color: #C7D2FE; color: #4F46E5; }
+.page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.page-numbers { display: flex; gap: 4px; }
+.page-number {
+  min-width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; font-size: 13px; font-weight: 600; color: #475569; cursor: pointer; transition: all 0.2s;
+}
+.page-number:hover { background: #F1F5F9; }
+.page-number.active { background: #4F46E5; color: white; }
+
 .fade-enter-active,
 .fade-leave-active { transition: opacity 0.3s ease, transform 0.3s ease; }
 .fade-enter-from,

@@ -42,7 +42,7 @@
       <button type="submit" class="submit-btn">进入系统</button>
       
       <div class="register-prompt">
-        没有账号？<router-link to="/register">立即注册</router-link>
+        没有账号？<router-link to="/auth/register">立即注册</router-link>
       </div>
 
     </form>

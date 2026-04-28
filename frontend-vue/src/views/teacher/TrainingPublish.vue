@@ -2,7 +2,7 @@
   <div class="publish-wrapper">
     <div class="publish-card">
       <header class="publish-header">
-        <h1 class="panel-main-title">实例化实训副本</h1>
+        <h1 class="panel-main-title">实例化实训</h1>
         <p class="subtitle">配置实训基础信息并下发底层计算资源</p>
       </header>
       
@@ -11,7 +11,7 @@
           <h2 class="column-title">1. 基础与排期</h2>
           
           <section class="form-group">
-            <label>副本名称 <span class="required">*</span></label>
+            <label>实训名称 <span class="required">*</span></label>
             <input type="text" v-model="formData.name" placeholder="例如：2026春季学期-密码工程01班实测" class="base-input" />
           </section>
 
