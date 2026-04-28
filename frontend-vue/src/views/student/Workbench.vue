@@ -3,46 +3,46 @@
     <div class="bg-glow"></div>
 
     <header class="hero-section">
-  <div class="brand">
-    <img src="@/assets/AIZG-Logo.png" alt="logo" class="logo-img" />
-    <h1 class="logo-text">AI学苑<span>实训平台</span></h1>
-  </div>
-  <p class="slogan">密码学多智能体协同实训教室 · 深度学习与交互</p>
+      <div class="brand">
+        <img src="@/assets/AIZG-Logo.png" alt="logo" class="logo-img" />
+        <h1 class="logo-text">AI学苑<span>实训平台</span></h1>
+      </div>
+      <p class="slogan">密码学多智能体协同实训教室 · 深度学习与交互</p>
 
-  <div class="main-interaction-card">
-    <div class="chat-conversation-flow">
-      <div class="chat-bubble ai-bubble">
-        <div class="ai-avatar">AI</div>
-        <div class="bubble-content">
-          <p>嗨，Tom同学！我是你的AI助教。今天你想了解关于**抗重放攻击**的实训，还是想直接进入**SM4编程演练**？</p>
+      <div class="main-interaction-card">
+        <div class="chat-conversation-flow">
+          <div class="chat-bubble ai-bubble">
+            <div class="ai-avatar">AI</div>
+            <div class="bubble-content">
+              <p>嗨，Tom同学！我是你的AI助教。今天你想了解关于**抗重放攻击**的实训，还是想直接进入**SM4编程演练**？</p>
+            </div>
+          </div>
+          <div class="chat-suggestions">
+            <span class="suggestion-chip">“解释抗重放机制”</span>
+            <span class="suggestion-chip">“SM4编程第一步”</span>
+            <span class="suggestion-chip">“查看我的进度”</span>
+          </div>
+        </div>
+
+        <div class="chat-input-wrapper">
+          <div class="input-container">
+            <input type="text" placeholder="向 AI 助教提问，或输入实训内容关键字..." />
+            <div class="input-actions">
+              <button class="btn-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
+              </button>
+              <button class="btn-send">
+                <span>发送消息</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+              </button>
+            </div>
+          </div>
+          <div class="lab-entry-area">
+            <button class="btn-enter-lab">进入课堂</button>
+          </div>
         </div>
       </div>
-      <div class="chat-suggestions">
-        <span class="suggestion-chip">“解释抗重放机制”</span>
-        <span class="suggestion-chip">“SM4编程第一步”</span>
-        <span class="suggestion-chip">“查看我的进度”</span>
-      </div>
-    </div>
-
-    <div class="chat-input-wrapper">
-      <div class="input-container">
-        <input type="text" placeholder="向 AI 助教提问，或输入实训内容关键字..." />
-        <div class="input-actions">
-          <button class="btn-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg>
-          </button>
-          <button class="btn-send">
-            <span>发送消息</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-          </button>
-        </div>
-      </div>
-      <div class="lab-entry-area">
-        <button class="btn-enter-lab">进入课堂</button>
-      </div>
-    </div>
-  </div>
-</header>
+    </header>
 
     <div class="content-container">
       <nav class="filter-nav">
@@ -52,20 +52,20 @@
             :key="tab.key" 
             class="nav-item" 
             :class="{ active: activeTab === tab.key }"
-            @click="activeTab = tab.key"
+            @click="handleTabChange(tab.key)"
           >
             {{ tab.label }}
           </div>
         </div>
         <div class="nav-right-stats">
-          <span>进行中 <b>3</b></span>
+          <span>进行中 <b>{{ stats.ongoing }}</b></span>
           <span class="divider">|</span>
-          <span>已完成 <b>12</b></span>
+          <span>已完成 <b>{{ stats.ended }}</b></span>
         </div>
       </nav>
 
       <main class="glass-grid">
-        <div v-for="item in filteredList" :key="item.id" class="glass-card">
+        <div v-for="item in paginatedList" :key="item.id" class="glass-card">
           <div class="card-top">
             <span class="course-tag">{{ item.course }}</span>
             <span class="status-dot" :class="item.status">{{ getStatusText(item.status) }}</span>
@@ -90,7 +90,21 @@
             </button>
           </footer>
         </div>
+        
+        <div v-if="paginatedList.length === 0" class="empty-state">
+          该分类下暂无实训任务
+        </div>
       </main>
+
+      <div class="pagination-wrapper" v-if="tabFilteredList.length > 0">
+        <Pagination 
+          :total="tabFilteredList.length"
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :page-sizes="[6, 12, 18]" 
+          class="custom-pagination"
+        />
+      </div>
     </div>
 
     <div class="bottom-announcement">
@@ -102,6 +116,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import Pagination from '@/views/common/Pagination.vue'
 
 const activeTab = ref('all')
 const tabs = [
@@ -110,21 +125,52 @@ const tabs = [
   { label: '已结束', key: 'ended' }
 ]
 
+// 分页状态
+const currentPage = ref(1)
+const pageSize = ref(6) // 设定每页 6 条 (2行 x 3列)
+
+// 扩充模拟数据
 const trainingList = ref([
   { id: 1, title: '无人机抗重放攻击模拟演练', course: '通信安全实务', status: 'ongoing', progress: 65, deadline: '2026-05-10' },
   { id: 2, title: 'SM4 算法加密解密编程实战', course: '国密算法基础', status: 'not_started', progress: 0, deadline: '2026-05-15' },
   { id: 3, title: 'PQC 后量子签名算法原理', course: '前沿密码学', status: 'ended', progress: 100, deadline: '2026-04-20' },
-  { id: 4, title: '数字签名与身份认证流程', course: '身份鉴别技术', status: 'ongoing', progress: 20, deadline: '2026-05-12' }
+  { id: 4, title: '数字签名与身份认证流程', course: '身份鉴别技术', status: 'ongoing', progress: 20, deadline: '2026-05-12' },
+  { id: 5, title: '分组密码操作模式 (ECB/CBC)', course: '国密算法基础', status: 'ended', progress: 100, deadline: '2026-03-10' },
+  { id: 6, title: '侧信道攻击 (SCA) 硬件分析初探', course: '硬件安全', status: 'ongoing', progress: 45, deadline: '2026-05-20' },
+  { id: 7, title: 'RSA 密钥对生成与大数分解', course: '公钥密码学', status: 'not_started', progress: 0, deadline: '2026-06-01' },
+  { id: 8, title: 'TLS 1.3 握手协议抓包与分析', course: '网络安全协议', status: 'ongoing', progress: 80, deadline: '2026-05-08' },
 ])
 
-const filteredList = computed(() => {
+// 统计信息
+const stats = computed(() => {
+  return {
+    ongoing: trainingList.value.filter(i => i.status === 'ongoing').length,
+    ended: trainingList.value.filter(i => i.status === 'ended').length
+  }
+})
+
+// Tab 过滤后的数据
+const tabFilteredList = computed(() => {
   if (activeTab.value === 'all') return trainingList.value
   return trainingList.value.filter(i => i.status === activeTab.value)
+})
+
+// 分页截取后的最终渲染数据
+const paginatedList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return tabFilteredList.value.slice(start, end)
 })
 
 const getStatusText = (status: string) => {
   const map: any = { ongoing: '进行中', not_started: '待开始', ended: '已结束' }
   return map[status]
+}
+
+// 切换 Tab 时重置页码到第一页
+const handleTabChange = (key: string) => {
+  activeTab.value = key
+  currentPage.value = 1
 }
 
 const handleAction = (item: any) => {
@@ -139,12 +185,12 @@ const handleAction = (item: any) => {
   background-color: #f8fafc;
   background-image: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
                     radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.05) 0px, transparent 50%);
-  padding: 40px 20px 100px;
+  padding: 40px 20px 50px; /* 增加底部 padding 防止固定在底部的栏遮挡内容 */
   position: relative;
   overflow: hidden;
 }
 .logo-img {
-  width: 45;
+  width: 45px;
   height: 45px;
   border-radius: 10px;
 }
@@ -171,14 +217,6 @@ const handleAction = (item: any) => {
   gap: 12px;
   margin-bottom: 16px;
 }
-.logo-icon {
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  color: white;
-  padding: 8px 10px;
-  border-radius: 12px;
-  font-weight: 800;
-  font-size: 20px;
-}
 .logo-text {
   font-size: 32px;
   font-weight: 800;
@@ -191,7 +229,7 @@ const handleAction = (item: any) => {
 /* 中央交互卡片 */
 .main-interaction-card {
   max-width: 850px;
-  height: 42vh; /* 稍微调高一点 */
+  height: 42vh;
   margin: 40px auto 0;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(25px);
@@ -204,7 +242,6 @@ const handleAction = (item: any) => {
   justify-content: space-between;
 }
 
-/* 对话流区域 */
 .chat-conversation-flow {
   flex: 1;
   display: flex;
@@ -250,7 +287,6 @@ const handleAction = (item: any) => {
   text-align: left;
 }
 
-/* 引导词设计 */
 .chat-suggestions {
   display: flex;
   gap: 10px;
@@ -276,7 +312,6 @@ const handleAction = (item: any) => {
   transform: translateY(-2px);
 }
 
-/* 输入区域设计 */
 .chat-input-wrapper {
   margin-top: 24px;
   display: flex;
@@ -373,7 +408,6 @@ const handleAction = (item: any) => {
   to { opacity: 1; transform: translateY(0); }
 }
 
-
 /* 内容列表区域 */
 .content-container {
   max-width: 1100px;
@@ -405,12 +439,15 @@ const handleAction = (item: any) => {
 .nav-right-stats b { color: #1e293b; margin-left: 4px; }
 .divider { margin: 0 12px; opacity: 0.3; }
 
-/* 玻璃卡片网格 */
+/* 玻璃卡片网格 - 强制3列排版 */
 .glass-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
+  height: 450px; /* 设置一个最小高度，防止第二页只有1个数据时底部组件上跳 */
+  align-content: start;
 }
+
 .glass-card {
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
@@ -418,6 +455,7 @@ const handleAction = (item: any) => {
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.4);
   transition: transform 0.3s ease;
+  height: max-content;
 }
 .glass-card:hover { transform: translateY(-5px); }
 
@@ -433,9 +471,37 @@ const handleAction = (item: any) => {
 .progress-bar-bg { height: 6px; background: #f1f5f9; border-radius: 10px; }
 .progress-fill { height: 100%; background: linear-gradient(90deg, #6366f1, #a855f7); border-radius: 10px; }
 
-.card-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; pt: 16px; margin-top: 10px; padding-top: 16px; }
+.card-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 16px; margin-top: 10px; }
 .deadline { font-size: 12px; color: #94a3b8; }
 .mini-btn { border: 1px solid #e2e8f0; background: white; padding: 6px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+/* 分页组件外层容器 */
+.pagination-wrapper {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center; /* 也可以使用 flex-end 靠右对齐 */
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+/* 覆盖全局分页组件背景使其融入玻璃态设计 */
+:deep(.custom-pagination) {
+  background-color: transparent;
+  border-top: none;
+  width: 100%;
+}
+
+.empty-state {
+  grid-column: span 3;
+  text-align: center;
+  padding: 60px 0;
+  color: #94A3B8;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  border: 1px dashed #cbd5e1;
+}
 
 /* 底部状态条 */
 .bottom-announcement {
