@@ -58,7 +58,7 @@
                   </div>
                   <div class="meta-row" v-if="currentTab === 'course'">
                     <span class="meta-label">授课教师</span>
-                    <span class="meta-value">{{ item.teacher }}</span>
+                    <span class="meta-value">{{ (item as any).teacher }}</span>
                   </div>
                   <div class="meta-row">
                     <span class="meta-label">创建时间</span>
@@ -95,14 +95,29 @@ const currentTab = ref<TabKey>('class')
 const searchQuery = ref('')
 
 // 模拟数据结构：体现解耦逻辑
-const classData = ref([
+interface ClassItem {
+  id: number
+  name: string
+  studentCount: number
+  createDate: string
+}
+
+interface CourseItem {
+  id: number
+  name: string
+  teacher: string
+  studentCount: number
+  createDate: string
+}
+
+const classData = ref<ClassItem[]>([
   { id: 1001, name: '24级密码工程01班', studentCount: 32, createDate: '2026-03-01' },
   { id: 1002, name: '24级密码工程02班', studentCount: 28, createDate: '2026-03-01' },
   { id: 1003, name: '25级信息安全专项班', studentCount: 45, createDate: '2026-04-10' },
   { id: 1004, name: '26级信息安全专项班', studentCount: 45, createDate: '2026-04-10' }
 ])
 
-const courseData = ref([
+const courseData = ref<CourseItem[]>([
   { id: 2001, name: '对称密码学应用实务', teacher: '陈教授', studentCount: 120, createDate: '2026-03-15' },
   { id: 2002, name: '后量子密码理论 (选修)', teacher: '林博士', studentCount: 45, createDate: '2026-03-20' },
   { id: 2003, name: '无人机抗重放通信协议', teacher: '张高工', studentCount: 32, createDate: '2026-04-05' },
@@ -110,7 +125,7 @@ const courseData = ref([
 ])
 
 // 过滤逻辑
-const filteredData = computed(() => {
+const filteredData = computed<(ClassItem | CourseItem)[]>(() => {
   const list = currentTab.value === 'class' ? classData.value : courseData.value
   const query = searchQuery.value.toLowerCase().trim()
   if (!query) return list
