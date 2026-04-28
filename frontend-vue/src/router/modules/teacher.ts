@@ -44,10 +44,10 @@ const teacherRoutes = [
         meta: { title: '发布实训', hideSidebar: true }
       },
       {
-        path: 'training-result',
-        name: 'TrainingResult',
-        component: () => import('@/views/teacher/TrainingResult.vue'),
-        meta: { title: '实训结果', hideSidebar: true }
+        path: 'profile',
+        name: 'UserProfile',
+        component: () => import('@/views/teacher/UserProfile.vue'),
+        meta: { title: '用户中心', hideSidebar: true }
       },
       {
         path: 'class-competency/:studentId',
@@ -67,7 +67,7 @@ const teacherRoutes = [
         component: () => import('@/views/teacher/EvaluationDashboard.vue'),
         meta: { title: '评估分析'}
       },
-      // ...保留原来的 assignment 和 evaluation
+
     ]
   }
 ]
