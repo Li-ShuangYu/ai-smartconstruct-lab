@@ -7,6 +7,7 @@ import teacherRoutes from './modules/teacher'
 import studentRoutes from './modules/student'
 import adminRoutes from './modules/admin'
 import authRoutes from './modules/auth'
+import trainingRoutes from './modules/training'
 
 
 
@@ -16,12 +17,14 @@ NProgress.configure({ showSpinner: false, speed: 400 })
 const routes = [
   {
     path: '/',
-    redirect: '/auth/login'
+    redirect: '/auth/login',
+    meta: { title: '登录' }
   },
   ...teacherRoutes,
   ...studentRoutes,
   ...adminRoutes,
   ...authRoutes,
+  ...trainingRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
@@ -50,6 +53,8 @@ router.beforeEach((to, from) => {
     to.meta.role = 'admin'
   } else if (to.path.startsWith('/auth')) {
     to.meta.role = 'auth'
+  } else if (to.path.startsWith('/training')) {
+    to.meta.role = 'training'
   }
 
 

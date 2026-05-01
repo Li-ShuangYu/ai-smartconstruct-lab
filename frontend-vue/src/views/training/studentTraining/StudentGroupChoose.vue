@@ -135,7 +135,7 @@ const confirmSelection = () => {
 
 const goToTaskSelect = () => {
   showTeamSuccessModal.value = false;
-  router.push('/student/task-select');
+  router.push('/training/student-training/student-task-select');
 };
 
 onMounted(() => {
@@ -180,7 +180,7 @@ const groups = [
 
 <style scoped>
 .student-home-container {
-  padding: 0 4px;
+  padding: 0px 16px;
 }
 
 .home-header {
