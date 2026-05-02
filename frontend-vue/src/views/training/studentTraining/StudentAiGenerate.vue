@@ -1,432 +1,516 @@
 <template>
   <div class="page-wrapper">
-    <div class="ide-layout">
-      <!-- 左侧：代码预览区 -->
-      <div class="editor-column">
-        <div class="vscode-panel editor-panel">
+    <!-- 顶部状态栏 -->
+    <header class="vscode-header">
+      <div class="header-left">
+        <svg class="icon icon-md icon-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
+        <span class="header-title">冰达 NanoCar 智能调试控制台</span>
+        <span class="header-badge">ROS1 Melodic</span>
+      </div>
+      <div class="header-right">
+        <span class="status-label">设备连接状态:</span>
+        <div class="status-indicator">
+          <span :class="['status-dot', hwActive ? 'dot-active' : 'dot-waiting']"></span>
+          <span :class="hwActive ? 'text-success' : 'text-warning'">{{ hwActive ? 'ONLINE (ACTIVE)' : 'WAITING' }}</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="ide-layout">
+      <!-- 左侧：AI 控制与遥测 -->
+      <aside class="sidebar-column">
+        <div class="vscode-panel">
+          <div class="panel-titlebar">
+            <svg class="icon icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            {{ theme === 'cyan' ? 'AI 任务下发控制台' : 'AI 异常捕获与重构中心' }}
+          </div>
+          <div class="panel-content flex-col">
+            <textarea v-model="activePrompt" class="vscode-textarea custom-scrollbar" readonly></textarea>
+            <button v-if="!hasGeneratedV1" @click="generateV1Code" class="vscode-btn btn-primary w-full mt-3">
+              一键生成 ROS 巡线与图传代码
+            </button>
+            <div v-else class="status-banner mt-3" :class="theme === 'cyan' ? 'banner-info' : 'banner-error'">
+              {{ theme === 'cyan' ? '当前状态：任务执行中' : '当前状态：代码深度重构中' }}
+            </div>
+          </div>
+        </div>
+
+        <div class="vscode-panel flex-1">
+          <div class="panel-titlebar">环境与硬件遥测</div>
+          <div class="panel-content flex-col justify-center">
+            <div class="telemetry-group">
+              <div class="telemetry-row"><span>Jetson Nano CPU</span><span>{{ mockCpu }}%</span></div>
+              <div class="progress-track"><div class="progress-fill bg-accent" :style="{ width: mockCpu + '%' }"></div></div>
+            </div>
+            <div class="telemetry-group mt-3">
+              <div class="telemetry-row"><span>MEM Usage</span><span>{{ mockRam }} / 4GB</span></div>
+              <div class="progress-track"><div class="progress-fill bg-purple" :style="{ width: (mockRam / 4 * 100) + '%' }"></div></div>
+            </div>
+            <div class="radar-container mt-4">
+              <div class="radar-ring">
+                <div class="radar-ring-inner"></div>
+                <div :class="['radar-sweep', hwActive ? 'sweep-active' : 'sweep-inactive']"></div>
+                <div v-if="hwActive" class="radar-target"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 右侧：代码编辑与终端 -->
+      <section class="editor-column">
+        <div class="vscode-panel flex-1">
           <div class="vscode-tabs-header">
             <div class="mac-controls">
-              <div class="mac-dot dot-close"></div>
-              <div class="mac-dot dot-min"></div>
-              <div class="mac-dot dot-max"></div>
+               <div class="mac-dot dot-close"></div><div class="mac-dot dot-min"></div><div class="mac-dot dot-max"></div>
             </div>
             <div class="vscode-tab active">
-              <svg class="icon icon-sm tab-icon-py" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6zm4 4h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-              generated_logic.py
+              <svg class="icon icon-sm icon-py" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6zm4 4h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              line_follow_stream.py
             </div>
+            <div class="flex-1"></div>
+            <button v-if="canDeployV1" @click="deployV1" class="vscode-btn btn-success mr-2">下载部署到机器人</button>
+            <button v-if="canDeployV2" @click="deployV2" class="vscode-btn btn-success mr-2">重新部署 V2 代码</button>
           </div>
-          <div class="vscode-editor-body custom-scrollbar" ref="codeScrollRef">
-            <div v-if="codeLines.length === 0" class="editor-empty">
-              <svg class="icon icon-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-              <span>等待 AI 规划任务...</span>
-            </div>
-            <div v-for="(line, idx) in codeLines" :key="idx" class="code-line">
-              <div class="line-num">{{ idx + 1 }}</div>
-              <div class="line-content" v-html="line.content"></div>
-            </div>
+          
+          <div class="vscode-editor-body custom-scrollbar" ref="codeContainer">
+            <div v-if="isCodeLoading" class="editor-overlay"><svg class="icon icon-lg icon-accent spinner" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>
+            <pre class="code-pre"><code v-html="highlightedCode"></code></pre>
           </div>
         </div>
-      </div>
 
-      <!-- 右侧：AI 生成控制台 -->
-      <div class="vscode-panel chat-panel">
-        <div class="chat-header">
-          <div class="chat-title">
-            <svg class="icon icon-sm icon-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-            <span>任务规划器</span>
+        <div class="vscode-panel terminal-panel">
+          <div class="terminal-titlebar">
+            <span>root@nanocar:~/catkin_ws$ bash</span>
+          </div>
+          <div class="terminal-body custom-scrollbar" ref="terminalContainer">
+            <div v-for="(log, idx) in terminalLogs" :key="idx" :class="['term-line', log.type]">{{ log.text }}</div>
           </div>
         </div>
-        <div class="chat-body custom-scrollbar" ref="chatScrollRef">
-          <div v-for="(block, idx) in chatBlocks" :key="idx" class="chat-block">
-            <div :class="block.role === 'user' ? 'msg-user' : 'msg-ai'">
-              <div v-if="block.type === 'agent'" class="agent-card">
-                 <span>{{ block.filename }}</span>
-                 <svg v-if="block.status === 'loading'" class="icon icon-sm spinner" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              </div>
-              <div v-else class="ai-text" v-html="block.content"></div>
+      </section>
+
+      <!-- 弹窗遮罩 -->
+      <transition name="fade">
+        <div v-if="isDetecting" class="modal-overlay">
+          <div class="flex-col align-center">
+            <div class="spinner-xl mb-4"></div>
+            <h2 class="modal-title">AI 正在深度诊断环境与日志...</h2>
+          </div>
+        </div>
+      </transition>
+
+      <transition name="fade">
+        <div v-if="showErrorPopup" class="modal-overlay">
+          <div class="vscode-modal border-error">
+            <div class="modal-header text-error">
+              <svg class="icon icon-md mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+              检测到致命异常
             </div>
+            <p class="modal-desc bg-error-light">分析终端日志发现：雷达话题配置错误（应为 /rplidar_scan），且摄像头节点 astrapro_nodelet 因权限被拒绝导致加载失败。</p>
+            <button @click="handleRewrite" class="vscode-btn btn-error w-full mt-3">AI 去优化并重写代码</button>
           </div>
         </div>
-        <div class="chat-footer">
-          <div class="input-container highlight-input">
-            <textarea v-model="currentInput" rows="3" class="chat-textarea" placeholder="输入任务需求..."></textarea>
-            <div class="input-actions">
-              <span class="input-hints">Shift+Enter 换行</span>
-              <button @click="handleSend" class="hero-send-btn">
-                <svg class="icon icon-sm" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 10l7-7m0 0l7 7m-7-7v18"></path></svg>
-                发送需求
-              </button>
+      </transition>
+
+      <transition name="fade">
+        <div v-if="showSuccessPopup" class="modal-overlay">
+          <div class="vscode-modal border-success">
+            <div class="modal-header text-success">
+              <svg class="icon icon-md mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+              诊断通过，部署成功
             </div>
+            <p class="modal-desc bg-success-light">AI检测确认：所有硬件节点已正常启动，视频流推流正常，机器人准备就绪。</p>
+            <button @click="handleFinish" class="vscode-btn btn-success w-full mt-3">继续任务 (监控机器人运行)</button>
           </div>
         </div>
-      </div>
-    </div>
+      </transition>
+
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, nextTick, onMounted } from 'vue'
 
-const router = useRouter()
+const theme = ref('cyan')
+const activePrompt = ref('请重新给我一个冰达机器人如何按迹寻路，并实时回传镜头拍摄的图像。要有完整详细的步骤，包括机器人端，电脑端和手机端分别都有哪些具体操作。同时我需要将命令写入冰达机器人，让机器人按事先写好的路线走，并将拍摄的图像无线回传电脑，手机。冰达机器人型号是NanoCar（melodic，ROS1），雷达是rplidar_super，摄像头是astrapro，输出为代码。')
+const hasGeneratedV1 = ref(false)
+const isCodeLoading = ref(false) 
+const canDeployV1 = ref(false)
+const canDeployV2 = ref(false)
+const isDetecting = ref(false) 
+const showErrorPopup = ref(false)
+const showSuccessPopup = ref(false)
+const hwActive = ref(false)
 
-const appState = ref(1)
-const isGenerating = ref(false)
-const canDeploy = ref(false)
-const chatBlocks = ref([])
-const currentInput = ref('')
-const chatScrollRef = ref(null)
-const codeScrollRef = ref(null)
-const terminalScrollRef = ref(null)
-
-const codeLines = ref([])
+const rawCode = ref('')
 const terminalLogs = ref([])
-const isTerminalRunning = ref(false)
-const showDiffBar = ref(false)
-const diffActionHandled = ref(false)
+const codeContainer = ref(null)
+const terminalContainer = ref(null)
 
-const delay = (ms) => new Promise(res => setTimeout(res, ms))
+const mockCpu = ref(15)
+const mockRam = ref(1.6)
 
-const scrollToBottom = async () => { await nextTick(); if (chatScrollRef.value) { chatScrollRef.value.scrollTop = chatScrollRef.value.scrollHeight } }
-const scrollCodeToBottom = async () => { await nextTick(); if (codeScrollRef.value) { codeScrollRef.value.scrollTop = codeScrollRef.value.scrollHeight } }
-const scrollToDiff = async () => { await nextTick(); if (codeScrollRef.value) { codeScrollRef.value.scrollTop = 1500 } }
-const scrollTerminalToBottom = async () => { await nextTick(); if (terminalScrollRef.value) { terminalScrollRef.value.scrollTop = terminalScrollRef.value.scrollHeight } }
+const codeV1 = `#!/usr/bin/env python
+# [Generated by AI] - NanoCar Line Follow & Video Stream (V1)
+import rospy
+import cv2
+import numpy as np
+from sensor_msgs.msg import Image, LaserScan
+from geometry_msgs.msg import Twist
+from cv_bridge import CvBridge, CvBridgeError
 
-const streamRichText = async (htmlContent) => {
-  const block = { role: 'ai', type: 'text', content: '', isTyping: true }
-  chatBlocks.value.push(block)
-  await scrollToBottom()
-  
-  const chunkSize = 15
-  for (let i = 0; i < htmlContent.length; i += chunkSize) {
-    block.content += htmlContent.slice(i, i + chunkSize)
-    await delay(10)
-    if (i % 60 === 0) await scrollToBottom()
-  }
-  block.content = htmlContent
-  block.isTyping = false
-  await scrollToBottom()
-}
+class NanoCarLineFollower:
+    def __init__(self):
+        rospy.init_node('line_follower_stream', anonymous=True)
+        self.bridge = CvBridge()
+        self.cmd_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        
+        # 订阅摄像头图像 (标准话题)
+        rospy.loginfo("Subscribing to camera topic...")
+        self.image_sub = rospy.Subscriber('/camera/rgb/image_raw', Image, self.image_cb)
+        
+        # 订阅雷达数据用于避障保护
+        # BUG: 这里使用了默认的 /scan 话题，但冰达实际为 /rplidar_scan
+        rospy.loginfo("Subscribing to lidar topic...")
+        self.lidar_sub = rospy.Subscriber('/scan', LaserScan, self.lidar_cb)
 
-const streamCodeLines = async (linesToAppend, delayMs = 15) => {
-  for (const line of linesToAppend) {
-    codeLines.value.push(line)
-    await delay(delayMs)
-    if(codeLines.value.length % 5 === 0) await scrollCodeToBottom()
-  }
-  await scrollCodeToBottom()
-}
+        self.twist = Twist()
+        self.safe_distance = 0.3 # 30cm安全距离
 
-const streamTerminal = async (logs, delayMs = 120) => {
-  isTerminalRunning.value = true
-  for (const log of logs) {
-    terminalLogs.value.push(log)
-    await delay(delayMs)
-    await scrollTerminalToBottom()
-  }
-  isTerminalRunning.value = false
-}
+    def image_cb(self, msg):
+        try:
+            cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            # 转换为HSV进行黄线识别
+            hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+            lower_yellow = np.array([20, 100, 100])
+            upper_yellow = np.array([30, 255, 255])
+            mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+            
+            # 计算质心并发布速度
+            M = cv2.moments(mask)
+            if M['m00'] > 0:
+                cx = int(M['m10']/M['m00'])
+                err = cx - cv_image.shape[1]/2
+                self.twist.linear.x = 0.2
+                self.twist.angular.z = -float(err) / 100
+                self.cmd_pub.publish(self.twist)
+                
+            # 显示推流画面
+            cv2.imshow("NanoCar Camera Stream", cv_image)
+            cv2.waitKey(3)
+        except CvBridgeError as e:
+            rospy.logerr(e)
+        
+    def lidar_cb(self, msg):
+        # 简单的雷达避障逻辑
+        front_distances = msg.ranges[len(msg.ranges)//2 - 10 : len(msg.ranges)//2 + 10]
+        if min(front_distances) < self.safe_distance:
+            self.twist.linear.x = 0
+            self.twist.angular.z = 0
+            self.cmd_pub.publish(self.twist)
+            rospy.logwarn("Obstacle detected! Stopping.")
 
-const pushAgent = async (filename, path, waitTime, addLines = 0, delLines = 0) => {
-  const block = { role: 'ai', type: 'agent', filename, path, status: 'loading', add: addLines, del: delLines }
-  chatBlocks.value.push(block)
-  await scrollToBottom()
-  await delay(waitTime)
-  block.status = 'success'
-  await scrollToBottom()
-}
+if __name__ == '__main__':
+    try:
+        rospy.loginfo("Starting NanoCar Line Follower Node...")
+        follower = NanoCarLineFollower()
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass`
 
-onMounted(() => {
-  const savedState = localStorage.getItem('demo_state') || '1'
-  appState.value = parseInt(savedState, 10)
+const codeV2 = `#!/usr/bin/env python
+# [Generated by AI] - NanoCar Line Follow & Video Stream (V2 FIXED)
+import rospy
+import cv2
+import numpy as np
+import os
+from sensor_msgs.msg import Image, LaserScan
+from geometry_msgs.msg import Twist
+from cv_bridge import CvBridge, CvBridgeError
 
-  if (appState.value === 1) {
-    currentInput.value = "请重新给我一个冰达机器人如何按迹寻路，并实时回传镜头拍摄的图像。要有完整详细的步骤，包括机器人端，电脑端和手机端分别都有哪些具体操作。"
-  } else if (appState.value === 2) {
-    codeLines.value = getV1FullCode()
-    terminalLogs.value = getV1TerminalError()
-    currentInput.value = "根据报错，雷达话题应为 /rplidar_scan，请优化代码并赋予摄像头 /dev/video0 权限"
-    chatBlocks.value = [
-      { role: 'user', content: "生成冰达机器人寻迹与图传的完整代码..." },
-      { role: 'ai', type: 'text', content: "<p>已生成 <code>nanocar_track.py</code>，请运行查看。</p>" }
-    ]
-  } else if (appState.value === 3) {
-    codeLines.value = getV2FullCode()
-    terminalLogs.value = getV2TerminalSuccess()
-    chatBlocks.value = [
-      { role: 'user', content: "修复完成，确认采纳。" },
-      { role: 'ai', type: 'text', content: "<p><b>已完成！</b>机器人目前正在按照既定路线寻迹前行。</p>" }
-    ]
-    canDeploy.value = true
-  }
-})
+class NanoCarLineFollower:
+    def __init__(self):
+        rospy.init_node('line_follower_stream', anonymous=True)
+        self.bridge = CvBridge()
+        self.cmd_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+        
+        # [FIX]: 修复摄像头权限问题，确保 astrapro 节点能读取设备
+        rospy.loginfo("Applying hardware permissions...")
+        os.system("sudo chmod 777 /dev/video*")
+        
+        # [FIX]: 修改为正确的 astrapro 图像话题
+        self.image_sub = rospy.Subscriber('/astrapro/camera/rgb/image_raw', Image, self.image_cb)
+        
+        # [FIX]: 修改为冰达 rplidar_super 的正确雷达话题
+        rospy.loginfo("Subscribing to correct lidar topic...")
+        self.lidar_sub = rospy.Subscriber('/rplidar_scan', LaserScan, self.lidar_cb)
 
-const handleSend = async () => {
-  if (isGenerating.value) return
-  const query = currentInput.value
-  currentInput.value = ''
-  isGenerating.value = true
-  canDeploy.value = false
-  chatBlocks.value.push({ role: 'user', content: query })
-  await scrollToBottom()
-  if (appState.value === 1) await runState1Sequence()
-  else if (appState.value === 2) await runState2Sequence()
-}
+        self.twist = Twist()
+        self.safe_distance = 0.3 
 
-const runState1Sequence = async () => {
-  await streamRichText("好的，开始生成代码...")
-  await pushAgent("规划项目结构与环境", "", 1500)
-  codeLines.value = [] 
-  await streamCodeLines(getV1FullCode().slice(0, 45), 15)
-  await streamRichText("正在编写核心的ROS寻迹节点逻辑...")
-  await pushAgent("编写 ROS 寻迹底层代码", "nanocar_track.py", 2500, 120, 0)
-  await streamCodeLines(getV1FullCode().slice(45, 140), 10)
-  await streamRichText("正在补充摄像头图传与通信模块...")
-  await pushAgent("编写图传代码", "nanocar_track.py", 2000, 80, 0)
-  await streamCodeLines(getV1FullCode().slice(140), 10)
-  await streamRichText("代码生成完毕，正在进行系统预检...")
-  const checkAgent = { role: 'ai', type: 'agent', filename: 'AI 代码预检', path: '', status: 'loading' }
-  chatBlocks.value.push(checkAgent)
-  await scrollToBottom()
-  await streamTerminal(getTerminalBuildLogs(), 150)
-  checkAgent.status = 'success'
-  await streamRichText("<p>已经生成了完整的代码，请去部署页面测试。</p>")
-  isGenerating.value = false
-  canDeploy.value = true
-}
+    def image_cb(self, msg):
+        try:
+            cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
+            lower_yellow = np.array([20, 100, 100])
+            upper_yellow = np.array([30, 255, 255])
+            mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+            
+            M = cv2.moments(mask)
+            if M['m00'] > 0:
+                cx = int(M['m10']/M['m00'])
+                err = cx - cv_image.shape[1]/2
+                self.twist.linear.x = 0.2
+                self.twist.angular.z = -float(err) / 100
+                self.cmd_pub.publish(self.twist)
+                
+            # [FIX]: 降低分辨率进行无线推流优化
+            stream_img = cv2.resize(cv_image, (320, 240))
+            cv2.imshow("NanoCar Wireless Stream", stream_img)
+            cv2.waitKey(3)
+        except CvBridgeError as e:
+            rospy.logerr(e)
+        
+    def lidar_cb(self, msg):
+        # 防撞保护
+        if not msg.ranges: return
+        front_distances = msg.ranges[len(msg.ranges)//2 - 10 : len(msg.ranges)//2 + 10]
+        if front_distances and min(front_distances) < self.safe_distance:
+            self.twist.linear.x = 0
+            self.twist.angular.z = 0
+            self.cmd_pub.publish(self.twist)
 
-const runState2Sequence = async () => {
-  await streamRichText("收到报错信息，正在分析错误原因...")
-  await pushAgent("召回报错分析", "", 1800)
-  await streamRichText("确认雷达话题名不匹配，正在为您修改代码...")
-  await pushAgent("修改寻迹节点话题订阅", "nanocar_track.py", 2000, 3, 2)
-  codeLines.value = getV2CodeDiff_Part1()
-  await scrollToDiff()
-  await streamRichText("同步排查关联的权限配置...")
-  await pushAgent("补充设备 udev 权限代码", "nanocar_track.py", 2000, 7, 1)
-  codeLines.value = getV2CodeDiff_Full()
-  await scrollToDiff()
-  await streamRichText("正在执行二次预检...")
-  const checkAgent = { role: 'ai', type: 'agent', filename: 'AI 二次预检', path: '', status: 'loading' }
-  chatBlocks.value.push(checkAgent)
-  await scrollToBottom()
-  await streamTerminal(getV2TerminalPrecheck(), 120) 
-  checkAgent.status = 'success'
-  showDiffBar.value = true
-  await streamRichText("已修复问题，请确认是否采纳。")
-  await scrollToDiff()
-  isGenerating.value = false
-}
+if __name__ == '__main__':
+    try:
+        rospy.loginfo("Starting NanoCar Line Follower Node...")
+        follower = NanoCarLineFollower()
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass`
 
-const handleAcceptDiff = async () => {
-  showDiffBar.value = false
-  diffActionHandled.value = true
-  codeLines.value = getV2FullCode() 
-  isGenerating.value = true
-  await pushAgent("应用变更并重载 ROS 环境", "", 1500)
-  await streamTerminal([
-    { text: '$ source devel/setup.bash', color: 'text-slate-600' },
-    { text: '$ roslaunch nanocar_track start.launch', color: 'text-slate-600' },
-    { text: '[INFO]: Setting /dev/video0 permissions...', color: 'text-green-600' },
-    { text: '✅ [SYSTEM] All subsystems operational.', color: 'text-blue-600 font-bold' }
-  ], 100)
-  await streamRichText("<p>变更已应用，可随时打包代码。</p>")
-  isGenerating.value = false
-  canDeploy.value = true
-}
-
-const handleRejectDiff = () => {
-  showDiffBar.value = false
-  codeLines.value = getV1FullCode()
-  isGenerating.value = false
-}
-
-const navigateToDeploy = () => { if (appState.value !== 3) { router.push('/training/student-training/student-deploy') } }
-
-// ---------------- 浅色高亮与 Diff 样式计算 ----------------
 const highlightedCode = computed(() => {
   if (!rawCode.value) return ''
   let html = rawCode.value
     .replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/(#.*)/g, '<span style="color: #16a34a;">$1</span>') // 绿色注释
-    .replace(/\b(import|from|class|def|if|try|except|pass|self|__init__|__name__|not|and|return)\b/g, '<span style="color: #2563eb;">$1</span>') // 蓝色关键字
-    .replace(/(".*?"|'.*?')/g, '<span style="color: #b45309;">$1</span>') // 橙色字符串
-    .replace(/\b([a-zA-Z_]\w*)(?=\()/g, '<span style="color: #7c3aed;">$1</span>') // 紫色函数名
-    .replace(/\b(rospy|cv2|np|os)\b/g, '<span style="color: #0284c7;">$1</span>') // 青色库名
+    .replace(/(#.*)/g, '<span class="hl-comment">$1</span>')
+    .replace(/\b(import|from|class|def|if|try|except|pass|self|__init__|__name__|not|and|return)\b/g, '<span class="hl-keyword">$1</span>')
+    .replace(/(".*?"|'.*?')/g, '<span class="hl-string">$1</span>')
+    .replace(/\b([a-zA-Z_]\w*)(?=\()/g, '<span class="hl-func">$1</span>')
   return html
 })
 
-const getLineBgColor = (line) => {
-  if (line.diffType === 'added') return 'bg-green-50 border-l-[3px] border-green-500'
-  if (line.diffType === 'removed') return 'bg-red-50 border-l-[3px] border-red-500 line-through opacity-70'
-  return 'border-l-[3px] border-transparent hover:bg-slate-50'
-}
-const getLineNumColor = (line) => {
-  if (line.diffType === 'added') return 'text-green-600'
-  if (line.diffType === 'removed') return 'text-red-600'
-  return 'text-slate-400'
-}
-const getLineTextColor = (line) => {
-  if (line.diffType === 'added') return 'text-green-700'
-  if (line.diffType === 'removed') return 'text-red-700'
-  return 'text-slate-700'
+const typeWriter = (text) => {
+  return new Promise((resolve) => {
+    rawCode.value = ''
+    let i = 0
+    const chunkSize = 12 
+    const step = () => {
+      rawCode.value += text.slice(i, i + chunkSize)
+      i += chunkSize
+      if (codeContainer.value) codeContainer.value.scrollTop = codeContainer.value.scrollHeight
+      if (i < text.length) requestAnimationFrame(step)
+      else resolve()
+    }
+    requestAnimationFrame(step)
+  })
 }
 
-// ===== 模拟长篇代码生成库 (替换为带 html span 的纯文本数组) =====
-const getV1FullCode = () => {
-  const code = [
-    { content: '<span style="color:#2563eb">#!/usr/bin/env python</span>' },
-    { content: '<span style="color:#2563eb">import</span> rospy' },
-    { content: '<span style="color:#2563eb">import</span> cv2' },
-    { content: '<span style="color:#2563eb">import</span> numpy <span style="color:#2563eb">as</span> np' },
-    { content: '<span style="color:#2563eb">class</span> <span style="color:#7c3aed">NanoCarTracker</span>:' },
-    { content: '    <span style="color:#2563eb">def</span> <span style="color:#7c3aed">__init__</span>(<span style="color:#2563eb">self</span>):' },
-    { content: '        rospy.init_node(<span style="color:#b45309">"nanocar_track_node"</span>)' },
-    { content: '        <span style="color:#16a34a"># 错误订阅点：使用了默认的 /scan</span>' },
-    { content: '        rospy.Subscriber(<span style="color:#b45309">"<span style="color:#dc2626; font-weight:bold">/scan</span>"</span>, LaserScan, <span style="color:#2563eb">self</span>.lidar_callback)' },
-    { content: '    <span style="color:#2563eb">def</span> <span style="color:#7c3aed">init_hardware</span>(<span style="color:#2563eb">self</span>):' },
-    { content: '        <span style="color:#16a34a"># 缺少权限授予代码</span>' },
-    { content: '        rospy.loginfo(<span style="color:#b45309">"Checking camera /dev/video0 access..."</span>)' }
+const printTerminal = async (logs) => {
+  terminalLogs.value = []
+  for (const log of logs) {
+    await new Promise(r => setTimeout(r, log.delay))
+    terminalLogs.value.push({
+      text: `[${new Date().toLocaleTimeString('en-US', {hour12:false, fractionalSecondDigits: 3})}] ${log.text}`,
+      type: log.type
+    })
+    nextTick(() => {
+      if (terminalContainer.value) terminalContainer.value.scrollTop = terminalContainer.value.scrollHeight
+    })
+  }
+}
+
+const generateV1Code = async () => {
+  hasGeneratedV1.value = true
+  isCodeLoading.value = true
+  await new Promise(r => setTimeout(r, 1500))
+  isCodeLoading.value = false
+  await typeWriter(codeV1)
+  canDeployV1.value = true
+}
+
+const deployV1 = async () => {
+  canDeployV1.value = false
+  const v1Logs = [
+    { text: 'Connecting to root@192.168.3.114 via SSH...', type: 'info', delay: 300 },
+    { text: 'Authentication successful.', type: 'success', delay: 400 },
+    { text: 'Writing line_follow_stream.py to workspace...', type: 'info', delay: 500 },
+    { text: 'Executing catkin_make --pkg nanocar_core...', type: 'info', delay: 800 },
+    { text: '[100%] Built target line_follower_stream', type: 'success', delay: 600 },
+    { text: 'Sourcing /opt/ros/melodic/setup.bash...', type: 'info', delay: 200 },
+    { text: 'Launching roslaunch nanocar_core core.launch...', type: 'info', delay: 500 },
+    { text: 'Node [/line_follower_stream] started.', type: 'info', delay: 400 },
+    { text: '[FATAL] [16234234.123]: Cannot find /scan topic for rplidar_super! Check hardware connection.', type: 'error', delay: 1000 },
+    { text: '[FATAL] [16234234.145]: astrapro camera nodelet load failed.', type: 'error', delay: 200 },
+    { text: 'Exception thrown: Permission denied on /dev/video0.', type: 'error', delay: 100 },
+    { text: 'Process [/line_follower_stream] died [pid 14521, exit code 255].', type: 'warning', delay: 300 }
   ]
-  for(let i=0; i<150; i++) code.push({ content: '        <span style="color:#16a34a"># Standard logic loop...</span>' })
-  return code
+  await printTerminal(v1Logs)
+  isDetecting.value = true
+  await new Promise(r => setTimeout(r, 2000))
+  isDetecting.value = false
+  showErrorPopup.value = true
 }
 
-const getV2CodeDiff_Part1 = () => {
-  const code = getV1FullCode()
-  code.splice(7, 2, 
-    { content: '        <span style="color:#16a34a"># 错误订阅点：使用了默认的 /scan</span>', diffType: 'removed' },
-    { content: '        rospy.Subscriber(<span style="color:#b45309">"<span style="color:#dc2626; font-weight:bold">/scan</span>"</span>, LaserScan, <span style="color:#2563eb">self</span>.lidar_callback)', diffType: 'removed' },
-    { content: '        <span style="color:#16a34a"># 修改：使用真实的雷达话题</span>', diffType: 'added' },
-    { content: '        rospy.Subscriber(<span style="color:#b45309">"/rplidar_scan"</span>, LaserScan, <span style="color:#2563eb">self</span>.lidar_callback)', diffType: 'added' }
-  )
-  return code
+const handleRewrite = async () => {
+  showErrorPopup.value = false 
+  theme.value = 'red' 
+  activePrompt.value = "发现报错：雷达话题和摄像头权限问题。请修改雷达话题为 /rplidar_scan 并在脚本中确保摄像头节点 astrapro_nodelet 被正确加载赋予权限。"
+  await new Promise(r => setTimeout(r, 800))
+  isCodeLoading.value = true
+  await new Promise(r => setTimeout(r, 1000))
+  isCodeLoading.value = false
+  await typeWriter(codeV2)
+  canDeployV2.value = true
 }
 
-const getV2CodeDiff_Full = () => {
-  const code = getV2CodeDiff_Part1()
-  code.splice(12, 1, 
-    { content: '        <span style="color:#16a34a"># 缺少权限授予代码</span>', diffType: 'removed' },
-    { content: '        <span style="color:#16a34a"># 增加：赋予设备权限</span>', diffType: 'added' },
-    { content: '        os.system(<span style="color:#b45309">"sudo chmod 777 /dev/video0"</span>)', diffType: 'added' }
-  )
-  return code
+const deployV2 = async () => {
+  canDeployV2.value = false
+  const v2Logs = [
+    { text: 'Re-connecting to workspace...', type: 'info', delay: 300 },
+    { text: 'Overwriting line_follow_stream.py with AI patch V2...', type: 'info', delay: 500 },
+    { text: 'Recompiling workspace...', type: 'info', delay: 800 },
+    { text: 'Executing sudo chmod 777 /dev/video*...', type: 'info', delay: 500 },
+    { text: 'Permissions granted.', type: 'success', delay: 300 },
+    { text: 'Launching roslaunch nanocar_core core.launch...', type: 'info', delay: 500 },
+    { text: '[SUCCESS]: /rplidar_scan topic is active and publishing (10Hz).', type: 'success', delay: 1000 },
+    { text: '[SUCCESS]: astrapro camera loaded successfully at /dev/video0.', type: 'success', delay: 400 },
+    { text: '[SUCCESS]: Video stream broadcasting on port 8080.', type: 'success', delay: 300 },
+    { text: 'Robot path following routine active. Hardware OK.', type: 'success', delay: 200 }
+  ]
+  await printTerminal(v2Logs)
+  isDetecting.value = true
+  await new Promise(r => setTimeout(r, 2000))
+  isDetecting.value = false
+  showSuccessPopup.value = true
 }
 
-const getV2FullCode = () => { return getV2CodeDiff_Full().filter(c => c.diffType !== 'removed').map(c => ({ content: c.content })) }
+const handleFinish = async () => {
+  showSuccessPopup.value = false
+  theme.value = 'cyan' 
+  activePrompt.value = "系统运行状态极佳。当前执行任务：自动巡线及实时图传反馈。"
+  await new Promise(r => setTimeout(r, 500))
+  hwActive.value = true
+}
 
-// 终端颜色映射到浅色系
-const getTerminalBuildLogs = () => [ { text: '$ catkin_make', color: 'text-slate-600' }, { text: '[100%] Built target', color: 'text-green-600' } ]
-const getV2TerminalPrecheck = () => [ { text: 'Checking syntax...', color: 'text-slate-600' }, { text: '[OK] Syntax check passed.', color: 'text-green-600' } ]
-const getV1TerminalError = () => [ { text: '[ERROR]: Cannot connect to /scan.', color: 'text-red-600 font-bold' }, { text: '[ERROR]: Permission denied: /dev/video0', color: 'text-red-600 font-bold' } ]
-const getV2TerminalSuccess = () => [ { text: '[INFO]: Successfully subscribed to /rplidar_scan', color: 'text-green-600' } ]
+onMounted(() => {
+  setInterval(() => {
+    const baseCpu = hwActive.value ? 65 : 15;
+    const baseRam = hwActive.value ? 2.8 : 1.6;
+    mockCpu.value = Math.max(5, Math.min(100, baseCpu + Math.floor(Math.random() * 15 - 7)))
+    mockRam.value = Number((baseRam + Math.random() * 0.2).toFixed(1))
+  }, 1500)
+})
 </script>
 
 <style scoped>
-.page-container { height: 100%; display: flex; flex-direction: column; background: transparent; overflow: hidden; font-family: sans-serif; }
-.layout-grid-debug { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; height: 100%; padding: 24px; }
+:root {
+  --vscode-bg: #ffffff; --vscode-panel-bg: #f3f3f3; --vscode-border: #e4e6e8;
+  --vscode-text: #333333; --vscode-text-muted: #8a8a8a; --vscode-accent: #007acc;
+  --vscode-success: #107c10; --vscode-error: #e51400; --vscode-code-bg: #ffffff;
+}
+.page-wrapper { padding: 16px; height: calc(100vh - 64px); box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; color: var(--vscode-text); font-family: -apple-system, sans-serif;}
 
-/* ================= 左侧浅色 IDE区 ================= */
-.code-terminal-col { display: flex; flex-direction: column; gap: 20px; overflow: hidden; }
-.alert-success { background: #dcfce7; border: 1px solid #22c55e; color: #15803d; padding: 14px 20px; border-radius: 12px; font-weight: bold; font-size: 14px; display: flex; align-items: center; }
-.alert-error { background: #fee2e2; border: 1px solid #ef4444; color: #b91c1c; padding: 14px 20px; border-radius: 12px; font-weight: bold; font-size: 14px; display: flex; align-items: center; }
+/* Header */
+.vscode-header { display: flex; justify-content: space-between; align-items: center; padding: 0 16px 16px 16px; border-bottom: 1px solid var(--vscode-border); margin-bottom: 16px; flex-shrink: 0; }
+.header-left, .header-right { display: flex; align-items: center; gap: 12px; }
+.header-title { font-size: 16px; font-weight: bold; }
+.header-badge { border: 1px solid var(--vscode-border); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace; }
+.status-indicator { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: bold; }
+.status-dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot-active { background: var(--vscode-success); animation: pulse 2s infinite; }
+.dot-waiting { background: #d7ba7d; }
 
-/* 编辑器容器 */
-.ide-window { flex: 2; display: flex; flex-direction: column; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; position: relative; }
-.ide-header { background: rgba(255,255,255,0.5); display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
-.flex-row { display: flex; align-items: center; } .gap-2 { gap: 8px; } .gap-3 { gap: 12px; }
-.mac-dot { width: 12px; height: 12px; border-radius: 50%; }
+/* Layout */
+.ide-layout { display: flex; gap: 16px; height: 100%; min-height: 0; }
+.sidebar-column { width: 360px; display: flex; flex-direction: column; gap: 16px; flex-shrink: 0; }
+.editor-column { flex: 1; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.flex-col { display: flex; flex-direction: column; } .flex-1 { flex: 1; min-height: 0;} .w-full { width: 100%; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; }
+.align-center { align-items: center; } .justify-center { justify-content: center; }
 
-/* Tab 样式 */
-.ide-tabs { display: flex; margin-bottom: -13px; margin-left: 16px; }
-.ide-tab { background: white; color: #334155; padding: 8px 16px; font-size: 13px; font-family: monospace; border-top: 2px solid #3b82f6; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0; border-radius: 6px 6px 0 0; display: flex; align-items: center; font-weight: bold; }
-.tab-close { color: #94a3b8; cursor: pointer; margin-left: 8px; font-weight: normal; } .tab-close:hover { color: #ef4444; }
+/* Panels */
+.vscode-panel { background: var(--vscode-bg); border: 1px solid var(--vscode-border); border-radius: 4px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+.panel-titlebar { height: 35px; background: var(--vscode-panel-bg); border-bottom: 1px solid var(--vscode-border); display: flex; align-items: center; padding: 0 12px; font-size: 12px; font-weight: 600; color: #616161; gap: 8px;}
+.panel-content { padding: 16px; flex: 1; overflow-y: auto; }
 
-.ide-actions { color: #64748b; }
-.ide-breadcrumb { background: #f8fafc; color: #64748b; font-size: 12px; font-family: monospace; padding: 8px 16px; border-bottom: 1px solid #e2e8f0; }
-.breadcrumb-sep { margin: 0 6px; color: #cbd5e1; }
-.text-slate-600 { color: #475569; } .text-blue-600 { color: #2563eb; }
+/* Controls */
+.vscode-textarea { width: 100%; height: 120px; border: 1px solid var(--vscode-border); border-radius: 2px; padding: 8px; font-size: 13px; color: var(--vscode-text); resize: none; outline: none; background: #fafafa; font-family: inherit;}
+.vscode-textarea:focus { border-color: var(--vscode-accent); }
+.vscode-btn { padding: 6px 14px; font-size: 13px; font-weight: bold; border-radius: 2px; cursor: pointer; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; transition: 0.2s; }
+.btn-primary { background: var(--vscode-accent); color: white; border-color: #005a9e; } .btn-primary:hover { background: #0062a3; }
+.btn-success { background: var(--vscode-success); color: white; } .btn-success:hover { background: #0b580b; }
+.btn-error { background: var(--vscode-error); color: white; } .btn-error:hover { background: #bd1000; }
 
-/* Diff 提示栏 */
-.diff-bar { background: #eff6ff; border-bottom: 1px solid #3b82f6; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; }
-.diff-msg { color: #1e293b; font-size: 13px; font-weight: bold; }
-.kbd-light { background: white; border: 1px solid #cbd5e1; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 6px; font-family: monospace; color: #64748b; }
-.btn-diff-reject { background: white; color: #64748b; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; transition: all 0.2s; }
-.btn-diff-reject:hover { background: #f1f5f9; color: #1e293b; }
-.btn-diff-accept { background: #3b82f6; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; cursor: pointer; font-weight: bold; display: flex; align-items: center; transition: background 0.2s; }
-.btn-diff-accept:hover { background: #2563eb; }
+.status-banner { padding: 10px; border-radius: 2px; font-size: 12px; font-weight: bold; text-align: center; }
+.banner-info { background: #e6f4ff; color: var(--vscode-accent); border: 1px solid #bce0fd; }
+.banner-error { background: #fde7e9; color: var(--vscode-error); border: 1px solid #f9c2c6; }
 
-/* 代码区 */
-.code-editor { flex: 1; overflow-y: auto; padding: 16px 0; background: white; font-family: monospace; font-size: 14px; line-height: 1.6; }
-.code-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-weight: bold; letter-spacing: 1px; }
-.code-line { display: flex; width: 100%; transition: background-color 0.1s; }
-.line-num { width: 48px; text-align: right; padding-right: 16px; color: #94a3b8; user-select: none; flex-shrink: 0; }
-.line-content { white-space: pre; padding-left: 8px; word-break: break-all; color: #334155; }
+/* Telemetry */
+.telemetry-row { display: flex; justify-content: space-between; font-size: 11px; font-family: monospace; color: var(--vscode-text-muted); margin-bottom: 4px; }
+.progress-track { width: 100%; height: 6px; background: var(--vscode-border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; transition: width 0.3s; }
+.bg-accent { background: var(--vscode-accent); } .bg-purple { background: #795e26; }
 
-/* 终端面板 */
-.terminal-window { flex: 1; display: flex; flex-direction: column; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-.terminal-header { background: #f8fafc; display: flex; justify-content: space-between; align-items: center; padding: 0 16px; border-bottom: 1px solid #e2e8f0; }
-.terminal-tabs { display: flex; gap: 20px; }
-.tab { padding: 10px 0; color: #64748b; font-size: 13px; cursor: pointer; font-weight: bold; }
-.tab.active { color: #1e293b; border-bottom: 2px solid #3b82f6; }
-.terminal-actions { padding-right: 8px; }
-.terminal-body { flex: 1; overflow-y: auto; padding: 16px; font-family: monospace; font-size: 13px; line-height: 1.7; background: white; }
-.cursor-blink { display: inline-block; width: 8px; height: 16px; background: #334155; animation: blink 1s step-end infinite; vertical-align: middle; margin-left: 4px; }
-.shrink-0 { flex-shrink: 0; }
+/* Radar */
+.radar-container { display: flex; justify-content: center; align-items: center; padding: 16px 0; }
+.radar-ring { width: 100px; height: 100px; border-radius: 50%; border: 1px solid var(--vscode-border); position: relative; overflow: hidden; }
+.radar-ring-inner { position: absolute; inset: 20px; border-radius: 50%; border: 1px dashed var(--vscode-border); }
+.radar-sweep { position: absolute; width: 50px; height: 50px; right: 50%; bottom: 50%; transform-origin: bottom right; animation: spin 2s linear infinite; }
+.sweep-active { background: conic-gradient(from 0deg, transparent 70%, rgba(0, 122, 204, 0.4) 100%); }
+.sweep-inactive { background: conic-gradient(from 0deg, transparent 70%, rgba(0,0,0,0.05) 100%); }
+.radar-target { position: absolute; width: 6px; height: 6px; background: var(--vscode-accent); border-radius: 50%; top: 20px; right: 30px; animation: pulse 1s infinite; }
 
-/* ================= 右侧白底毛玻璃聊天区 ================= */
-.chat-col { display: flex; flex-direction: column; height: 100%; }
-.glass-card { background: rgba(255,255,255,0.7); backdrop-filter: blur(10px); border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
-.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05); }
-.shadow-sm { box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
-.shadow-md { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-.card-header { padding: 16px 20px; border-bottom: 1px solid #e2e8f0; }
-.flex-between { display: flex; justify-content: space-between; align-items: center; }
-.flex-col { display: flex; flex-direction: column; } .flex-1 { flex: 1; }
-.gap-4 { gap: 16px; } .p-4 { padding: 16px; } .p-5 { padding: 20px; }
-.bg-white\/50 { background: rgba(255,255,255,0.5); } .bg-white\/60 { background: rgba(255,255,255,0.6); }
+/* Editor */
+.vscode-tabs-header { display: flex; align-items: center; background: var(--vscode-panel-bg); height: 35px; padding-right: 8px; border-bottom: 1px solid var(--vscode-border);}
+.mac-controls { display: flex; gap: 6px; padding: 0 12px; }
+.mac-dot { width: 10px; height: 10px; border-radius: 50%; } .dot-close { background: #ff5f56; } .dot-min { background: #ffbd2e; } .dot-max { background: #27c93f; }
+.vscode-tab { display: flex; align-items: center; padding: 0 16px; height: 100%; font-size: 13px; color: var(--vscode-text); background: var(--vscode-bg); border-right: 1px solid var(--vscode-border); border-top: 2px solid var(--vscode-accent); }
+.icon-py { color: #3776ab; margin-right: 6px; }
 
-.chat-block { display: flex; flex-direction: column; width: 100%; margin-bottom: 24px; }
-.chat-user { align-self: flex-end; max-width: 90%; }
-.bubble-user { background: #f1f5f9; color: #1e293b; padding: 14px 18px; border-radius: 16px 16px 4px 16px; font-size: 14px; border: 1px solid #e2e8f0; line-height: 1.6; }
-.chat-ai { align-self: flex-start; max-width: 95%; }
+.vscode-editor-body { flex: 1; overflow-y: auto; background: var(--vscode-code-bg); padding: 12px 16px; font-family: Consolas, monospace; font-size: 13px; line-height: 1.5; position: relative; }
+.code-pre { margin: 0; white-space: pre-wrap; word-break: break-all; color: var(--vscode-text); }
+.editor-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.7); display: flex; align-items: center; justify-content: center; }
 
-.agent-box { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 12px; }
-.agent-content { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-.truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Highlighting */
+:deep(.hl-comment) { color: #008000; }
+:deep(.hl-keyword) { color: #0000ff; }
+:deep(.hl-string) { color: #a31515; }
+:deep(.hl-func) { color: #795e26; }
 
-.ai-text-content { font-size: 14px; color: #334155; line-height: 1.7; padding-left: 4px; }
-/* 聊天框内的代码片段保持浅色风格的底色 */
-.rich-text :deep(code) { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-family: monospace; color: #dc2626; border: 1px solid #e2e8f0; }
-.cursor-blink-dark { display: inline-block; width: 6px; height: 14px; background: #334155; animation: blink 1s step-end infinite; vertical-align: middle; margin-left: 4px; }
+/* Terminal */
+.terminal-panel { height: 35%; flex-shrink: 0; }
+.terminal-titlebar { background: var(--vscode-panel-bg); padding: 8px 12px; font-size: 12px; font-family: monospace; border-bottom: 1px solid var(--vscode-border); color: var(--vscode-text-muted); }
+.terminal-body { flex: 1; overflow-y: auto; background: #ffffff; padding: 12px; font-family: Consolas, monospace; font-size: 12px; line-height: 1.6; }
+.term-line { margin-bottom: 2px; }
+.info { color: var(--vscode-text); } .success { color: var(--vscode-success); } .error { color: var(--vscode-error); font-weight: bold; } .warning { color: #d7ba7d; }
 
-.input-wrapper { background: white; border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; transition: border-color 0.2s; }
-.input-wrapper:focus-within { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
-.input-header { margin-bottom: 8px; }
-.custom-textarea { width: 100%; border: none; outline: none; resize: none; font-size: 14px; color: #1e293b; background: transparent; line-height: 1.5; }
-.btn-send { background: #3b82f6; color: white; border: none; padding: 8px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; display: flex; align-items: center; transition: background 0.2s; }
-.btn-send:hover:not(:disabled) { background: #2563eb; }
-.btn-send:disabled { background: #cbd5e1; cursor: not-allowed; }
-.btn-large { width: 100%; padding: 16px; border: none; border-radius: 12px; font-weight: bold; font-size: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+/* Modals */
+.modal-overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.8); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.vscode-modal { background: var(--vscode-bg); border: 1px solid var(--vscode-border); border-top: 4px solid; border-radius: 4px; padding: 20px; width: 400px; box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+.border-error { border-top-color: var(--vscode-error); } .border-success { border-top-color: var(--vscode-success); }
+.modal-header { display: flex; align-items: center; font-size: 16px; font-weight: bold; margin-bottom: 12px; }
+.text-error { color: var(--vscode-error); } .text-success { color: var(--vscode-success); }
+.modal-desc { font-size: 13px; line-height: 1.5; padding: 8px; border-radius: 2px; color: var(--vscode-text); }
+.bg-error-light { background: #fde7e9; border: 1px solid #f9c2c6; } .bg-success-light { background: #eaf6ea; border: 1px solid #c3e6c3; }
 
-/* 实用类 */
-.text-lg { font-size: 18px; } .text-sm { font-size: 14px; } .text-xs { font-size: 12px; }
-.font-bold { font-weight: bold; } .font-mono { font-family: monospace; }
-.text-slate-800 { color: #1e293b; } .text-slate-700 { color: #334155; } .text-slate-500 { color: #64748b; } .text-slate-400 { color: #94a3b8; }
-.text-green { color: #10b981; } .text-red { color: #ef4444; }
-.bg-green { background: #10b981; } .hover-bg-green-dark:hover { background: #059669; }
-.bg-slate-200 { background: #e2e8f0; } .bg-slate-800 { background: #1e293b; }
-.tag-outline { border: 1px solid; padding: 4px 8px; border-radius: 6px; font-size: 12px; font-weight: bold; background: white; }
-
-.spinner { animation: spin 1s linear infinite; border-radius: 50%; }
-
-.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-
-.fade-in { animation: fadeIn 0.4s ease-out forwards; }
-.fade-down-enter-active, .fade-down-leave-active { transition: all 0.4s ease; }
-.fade-down-enter-from, .fade-down-leave-to { opacity: 0; transform: translateY(-10px); }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+/* Utils */
+.icon { width: 16px; height: 16px; flex-shrink: 0; vertical-align: middle; }
+.icon-sm { width: 18px; height: 18px; } .icon-md { width: 20px; height: 20px; } .icon-lg { width: 32px; height: 32px; }
+.icon-accent { color: var(--vscode-accent); }
+.spinner { animation: spin 1s linear infinite; } .spinner-xl { width: 40px; height: 40px; border: 3px solid #eee; border-top-color: var(--vscode-accent); border-radius: 50%; animation: spin 1s linear infinite; }
+.custom-scrollbar::-webkit-scrollbar { width: 8px; height: 8px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; } .fade-enter-from, .fade-leave-to { opacity: 0; }
 </style>

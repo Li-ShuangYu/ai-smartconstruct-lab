@@ -23,7 +23,7 @@
           :class="{'opacity-50': !currentGroup.state.isSubmitted || currentGroup.state.evalStatus !== 'finished'}"
           :style="{ backgroundColor: (currentGroup.state.isSubmitted && currentGroup.state.evalStatus === 'finished') ? '#23b586' : '#94a3b8' }"
         >
-          进入评分环节
+          进入下一环节
         </button>
       </div>
     </header>
@@ -393,7 +393,7 @@ const goToSchemeDetail = () => {
   if (!currentGroup.value.state.isSubmitted || currentGroup.value.state.evalStatus !== 'finished') {
     return;
   }
-  router.push('/training/student-training/student-scheme-detail');
+  router.push('/training/student-training/student-aiGenerate');
 };
 
 const goToTaskSplit = () => {

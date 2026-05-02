@@ -63,6 +63,12 @@ const trainingRoutes = [
         meta: { title: '部署机器人' }
       },
       {
+        path: 'student-training/student-robot-debug',
+        name: 'StudentRobotDebug',
+        component: () => import('@/views/training/studentTraining/StudentRobotDebug.vue'),    
+        meta: { title: '调试机器人' }
+      },
+      {
         path: 'teacher-training/teacher-scheme-split',
         name: 'TeacherSchemeSplit',
         component: () => import('@/views/training/teacherTraining/TeacherSchemeSplit.vue'),    

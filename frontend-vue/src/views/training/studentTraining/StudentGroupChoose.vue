@@ -123,9 +123,39 @@ const selectGroup = (index) => {
   selectedGroupId.value = index;
 };
 
+// 【修改点：补充数据提取和写入 localStorage 的逻辑】
 const confirmSelection = () => {
   if (selectedGroupId.value !== null) {
     isLoading.value = true;
+    
+    // 1. 提取当前选中的组别数据
+    const selectedGroup = groups[selectedGroupId.value];
+    
+    // 2. 补全下游页面需要的类名映射主题（适配下游通过 class 获取颜色的逻辑）
+    const themeMap = [
+      { borderClass: 'border-blue-900/40', activeBorderClass: 'border-blue-500', bgHighlightClass: 'bg-blue-50', badgeBgClass: 'bg-blue-600', textClass: 'text-blue-600', tagClass: 'bg-blue-100 text-blue-600 border-blue-200', shadowClass: 'shadow-[0_4px_15px_rgba(59,130,246,0.15)]' },
+      { borderClass: 'border-red-900/40', activeBorderClass: 'border-red-500', bgHighlightClass: 'bg-red-50', badgeBgClass: 'bg-red-600', textClass: 'text-red-600', tagClass: 'bg-red-100 text-red-600 border-red-200', shadowClass: 'shadow-[0_4px_15px_rgba(239,68,68,0.15)]' },
+      { borderClass: 'border-amber-900/40', activeBorderClass: 'border-amber-500', bgHighlightClass: 'bg-amber-50', badgeBgClass: 'bg-amber-500', textClass: 'text-amber-600', tagClass: 'bg-amber-100 text-amber-600 border-amber-200', shadowClass: 'shadow-[0_4px_15px_rgba(245,158,11,0.15)]' },
+      { borderClass: 'border-purple-900/40', activeBorderClass: 'border-purple-500', bgHighlightClass: 'bg-purple-50', badgeBgClass: 'bg-purple-600', textClass: 'text-purple-600', tagClass: 'bg-purple-100 text-purple-600 border-purple-200', shadowClass: 'shadow-[0_4px_15px_rgba(168,85,247,0.15)]' }
+    ];
+
+    // 3. 打包数据
+    const groupInfo = {
+      groupId: selectedGroupId.value + 1, // 编号 1-4
+      groupName: selectedGroup.title,
+      algorithm: selectedGroup.algorithm,
+      persona: selectedGroup.persona,
+      traits: selectedGroup.traits,
+      style: selectedGroup.style,
+      colorTheme: themeMap[selectedGroupId.value],
+      selectTime: new Date().toISOString()
+    };
+
+    // 4. 塞进 localStorage
+    localStorage.setItem('selectedGroupInfo', JSON.stringify(groupInfo));
+    console.log('队伍数据已打包存入本地缓存:', groupInfo);
+
+    // 5. 继续原有的UI交互（等待 -> 弹窗）
     setTimeout(() => {
       isLoading.value = false;
       showTeamSuccessModal.value = true;
