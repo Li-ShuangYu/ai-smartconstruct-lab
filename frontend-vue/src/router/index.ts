@@ -43,8 +43,32 @@ const router = createRouter({
 router.beforeEach((to, from) => {
   NProgress.start()
 
-  // 1. 【核心逻辑】根据路径前缀动态判断角色并注入 meta
-  // 这样 index.vue 就可以直接通过 route.meta.role 获取角色了
+  const token = localStorage.getItem('auth_token')
+  const isAuthPage = to.path.startsWith('/auth')
+
+  // 1. 认证检查：非认证页面需要有效 Token
+  if (!isAuthPage && !token) {
+    NProgress.done()
+    return { path: '/auth/login', query: { redirect: to.fullPath } }
+  }
+
+  // 2. 已登录用户访问认证页，直接跳转对应首页
+  if (isAuthPage && token) {
+    try {
+      const userStr = localStorage.getItem('auth_user')
+      if (userStr) {
+        const user = JSON.parse(userStr)
+        const roleMap: Record<number, string> = { 1: '/admin', 2: '/teacher/workbench', 3: '/student/workbench' }
+        const target = roleMap[user.roleType] || '/student/workbench'
+        if (to.path === '/auth/login' || to.path === '/auth/register' || to.path === '/auth') {
+          NProgress.done()
+          return target
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  }
+
+  // 3. 【核心逻辑】根据路径前缀动态判断角色并注入 meta
   if (to.path.startsWith('/student')) {
     to.meta.role = 'student'
   } else if (to.path.startsWith('/teacher')) {
@@ -57,9 +81,7 @@ router.beforeEach((to, from) => {
     to.meta.role = 'training'
   }
 
-
-
-  // 2. 动态设置页面标题
+  // 4. 动态设置页面标题
   const title = to.meta.title ? `${to.meta.title} - AI学苑` : 'AI学苑'
   document.title = title
 

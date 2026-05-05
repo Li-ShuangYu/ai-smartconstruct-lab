@@ -39,8 +39,11 @@
         <a href="#" class="forgot-link">忘记密码？</a>
       </div>
 
-      <!-- <button type="submit" class="submit-btn">进入系统</button> -->
-      <button type="submit" class="submit-btn" @click="handleLogin">进入系统</button>
+      <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
+
+      <button type="submit" class="submit-btn" :disabled="loading" @click="handleLogin">
+        {{ loading ? '登录中...' : '进入系统' }}
+      </button>
       <div class="register-prompt">
         没有账号？<router-link to="/auth/register">立即注册</router-link>
       </div>
@@ -52,13 +55,25 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { login as loginApi } from '@/services/modules/auth.service'
+import { useAuthStore } from '@/stores/modules/auth.store'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const currentRole = ref('student')
 const account = ref('')
 const password = ref('')
 const rememberMe = ref(true)
+const loading = ref(false)
+const errorMsg = ref('')
 
+const roleMap: Record<string, number> = { student: 3, teacher: 2, admin: 1 }
+
+const routeMap: Record<string, string> = {
+  student: '/student/workbench',
+  teacher: '/teacher/workbench',
+  admin: '/admin'
+}
 
 const roles = [
   { id: 'student', label: '学生端', icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>' },
@@ -72,10 +87,32 @@ const accountPlaceholder = computed(() => {
   return '请输入管理员账号'
 })
 
-const handleLogin = () => {
-  if (currentRole.value === 'student') router.push('/student/workbench')
-  else if (currentRole.value === 'teacher') router.push('/teacher/workbench')
-  else router.push('/admin')
+const handleLogin = async () => {
+  errorMsg.value = ''
+  if (!account.value || !password.value) {
+    errorMsg.value = '请输入账号和密码'
+    return
+  }
+  loading.value = true
+  try {
+    const res = await loginApi({
+      username: account.value,
+      password: password.value,
+      roleType: roleMap[currentRole.value]
+    })
+    if (res.code === 200 && res.data) {
+      const { token, userId, username, roleType } = res.data
+      authStore.setAuth(token, userId, username, roleType)
+      const roleKey = currentRole.value
+      router.push(routeMap[roleKey] || '/student/workbench')
+    } else {
+      errorMsg.value = res.message || '登录失败'
+    }
+  } catch (e: any) {
+    errorMsg.value = e?.response?.data?.message || '网络错误，请稍后重试'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -225,8 +262,20 @@ const handleLogin = () => {
   box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
 }
 
+.submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .submit-btn:active {
   transform: scale(0.98);
+}
+
+.error-msg {
+  color: #ef4444;
+  font-size: 13px;
+  margin-bottom: 16px;
+  text-align: center;
 }
 
 /* 注册入口 */

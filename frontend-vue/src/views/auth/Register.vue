@@ -47,7 +47,12 @@
         </div>
       </div>
 
-      <button type="submit" class="submit-btn">立即注册</button>
+      <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
+      <div v-if="successMsg" class="success-msg">{{ successMsg }}</div>
+
+      <button type="submit" class="submit-btn" :disabled="loading">
+        {{ loading ? '注册中...' : '立即注册' }}
+      </button>
       
       <div class="login-prompt">
         已有账号？<router-link to="/auth/login">返回登录</router-link>
@@ -59,9 +64,15 @@
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { register as registerApi } from '@/services/modules/auth.service'
 
 const router = useRouter()
 const currentRole = ref('student')
+const loading = ref(false)
+const errorMsg = ref('')
+const successMsg = ref('')
+
+const roleMap: Record<string, number> = { student: 3, teacher: 2, admin: 1 }
 
 const form = reactive({
   id: '',
@@ -82,14 +93,43 @@ const idPlaceholder = computed(() => {
   return '管理员账号'
 })
 
-const handleRegister = () => {
-  if (form.password !== form.confirmPassword) {
-    alert('两次输入的密码不一致')
+const handleRegister = async () => {
+  errorMsg.value = ''
+  successMsg.value = ''
+
+  if (!form.id || !form.password || !form.confirmPassword) {
+    errorMsg.value = '请填写所有必填项'
     return
   }
-  console.log('注册提交:', { role: currentRole.value, ...form })
-  // 模拟注册成功
-  router.push('/login')
+  if (form.password !== form.confirmPassword) {
+    errorMsg.value = '两次输入的密码不一致'
+    return
+  }
+  if (form.password.length < 6) {
+    errorMsg.value = '密码长度不能少于6位'
+    return
+  }
+
+  loading.value = true
+  try {
+    const res = await registerApi({
+      username: form.id,
+      password: form.password,
+      roleType: roleMap[currentRole.value]
+    })
+    if (res.code === 200) {
+      successMsg.value = '注册成功，即将跳转登录页...'
+      setTimeout(() => {
+        router.push('/auth/login')
+      }, 1500)
+    } else {
+      errorMsg.value = res.message || '注册失败'
+    }
+  } catch (e: any) {
+    errorMsg.value = e?.response?.data?.message || '网络错误，请稍后重试'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -205,6 +245,11 @@ const handleRegister = () => {
   transition: all 0.2s ease;
 }
 
+.submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .submit-btn:hover {
   background-color: #4f46e5;
   box-shadow: 0 6px 15px rgba(99, 102, 241, 0.2);
@@ -225,5 +270,17 @@ const handleRegister = () => {
 
 .login-prompt a:hover {
   text-decoration: underline;
+}
+
+.error-msg {
+  color: #ef4444;
+  font-size: 13px;
+  text-align: center;
+}
+
+.success-msg {
+  color: #22c55e;
+  font-size: 13px;
+  text-align: center;
 }
 </style>
