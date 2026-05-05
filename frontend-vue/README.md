@@ -618,22 +618,212 @@ frontend-vue/
 - **功能**：理论实训（选择题/填空题）
 - **UI特性**：题目展示、答题卡
 
-#### TrainingStart.vue
-- **路径**：`/training/student-training/training-start`
-- **功能**：学生开始实训，方向选择与组队
+### 学生实训流程 (studentTraining)
+
+#### StudentGroupChoose.vue
+- **路径**：`/training/student-training/group-choose`
+- **功能**：课题攻坚方向选择，学生组队入口
 - **技术实现**：
-  - Vue 3 Composition API + Transition 动画
-  - 选中状态管理（selectedGroupId）
-  - 团队成员展示
-  - 路由跳转（goToTaskSelect）
+  - Vue 3 Composition API + Transition 动画组件
+  - 响应式状态管理（selectedGroupId、isLoading）
+  - 本地存储操作（getColorFromStorage）
+  - 路由编程式导航（goToTaskSelect）
 - **UI特性**：
-  - **页头**：标题 + 确认按钮（根据选择状态启用/禁用）
-  - **小组卡片网格**：玻璃态卡片，hover 效果
-  - **卡片内容**：组号标签、主题色、算法名称、人物画像、做事风格描述
-  - **选中状态**：选中卡片显示对勾图标 + 边框高亮
-  - **成功弹窗**：组队成功后模态框，展示团队成员列表
-  - **动画效果**：fade-in、fade-up、transition-group
-- **业务场景**：密码学研究方向选择，如 SM4 加密组、SM2 签名组、PQC 后量子组等
+  - **页头区域**：标题 + 确认按钮（根据选择状态动态启用/禁用）
+  - **小组卡片网格**：4宫格玻璃态卡片，支持 hover 效果和选中状态
+  - **卡片内容**：组号标签（带主题色）、算法名称、人物画像、性格标签、做事风格描述
+  - **选中状态**：卡片边框高亮 + 对勾图标显示
+  - **成功弹窗**：组队成功后展示模态框，显示团队成员列表
+  - **动画效果**：fade-in、fade-up、transition-group 列表动画
+- **业务场景**：密码学研究方向选择（低功耗优化/侧信道防护/抗重放攻击/后量子算法）
+
+#### StudentTaskSelect.vue
+- **路径**：`/training/student-training/task-select`
+- **功能**：需求分析 - 任务接收与选择
+- **技术实现**：
+  - Toast 提示组件（transition + v-if）
+  - 等待接收动画状态管理（isReceiving）
+  - 任务选择状态管理（selectedGroupId、hoveredGroup）
+- **UI特性**：
+  - **顶部Toast**：任务确认成功提示，带勾号图标
+  - **状态指示器**：根据选择状态显示不同颜色
+  - **等待接收遮罩**：加载动画 + 调试跳过按钮
+  - **主线任务横幅**：玻璃态卡片展示核心任务描述
+  - **支线任务4宫格**：可选择的任务方向卡片，带 AI 助教分析
+  - **确认按钮**：根据选择状态动态变化
+- **业务场景**：无人机通信加密系统全流程设计任务分配
+
+#### StudentAiGenerate.vue
+- **路径**：`/training/student-training/ai-generate`
+- **功能**：AI 辅助代码生成控制台
+- **技术实现**：
+  - VSCode 风格布局（header + sidebar + editor + terminal）
+  - 模拟硬件遥测数据（mockCpu、mockRam）
+  - 雷达扫描动画效果
+  - 代码高亮展示
+  - 终端日志实时输出
+- **UI特性**：
+  - **顶部状态栏**：设备连接状态指示（ONLINE/WAITING）
+  - **左侧面板**：
+    - AI 任务下发控制台：显示当前提示词，一键生成 ROS 代码
+    - 环境与硬件遥测：CPU/内存进度条、雷达扫描动画
+  - **右侧面板**：
+    - 代码编辑器：仿 VSCode 标签页，显示 Python ROS 代码
+    - 终端面板：命令行风格输出日志
+  - **模态遮罩**：AI 诊断中显示加载动画
+- **业务场景**：冰达 NanoCar 智能调试，一键生成巡线与图传代码
+
+#### StudentDebug.vue
+- **路径**：`/training/student-training/debug`
+- **功能**：代码调试与闭环验证
+- **技术实现**：
+  - 代码差异高亮（diffType: added/removed）
+  - 多标签页编辑器（仿 VSCode）
+  - 终端日志实时滚动
+  - 错误提示与修复建议
+- **UI特性**：
+  - **顶部提示条**：成功/错误状态提示（fade-down 动画）
+  - **编辑器主体**：
+    - Mac 风格窗口控制按钮
+    - 面包屑导航路径
+    - 代码差异条（接受/拒绝变更）
+    - 行号 + 差异标记（绿色新增/红色删除）
+  - **终端面板**：多标签（问题/输出/调试控制台/终端）
+- **业务场景**：ROS 代码调试，处理权限错误、订阅失败等问题
+
+#### StudentSchemeUpload.vue
+- **路径**：`/training/student-training/scheme-upload`
+- **功能**：方案文档上传与提交
+- **技术实现**：文件上传、进度追踪、提交确认
+
+#### StudentSchemeDetail.vue
+- **路径**：`/training/student-training/scheme-detail`
+- **功能**：各组方案互评详情
+- **技术实现**：
+  - 多组方案切换（prevGroup/nextGroup）
+  - 评分状态管理（allReviewsSubmitted）
+  - 动态主题色获取（getHexColor）
+- **UI特性**：
+  - **12列栅格布局**：基础信息(3列) + 架构展示(5列) + 互评面板(4列)
+  - **左侧信息卡**：方案代号、副标题、目标硬件、核心算法列表
+  - **中间架构区**：系统架构层级展示、安全流程图
+  - **右侧互评区**：评分表单、评语输入、提交状态
+- **业务场景**：学生小组方案互评打分
+
+#### StudentTaskSplit.vue
+- **路径**：`/training/student-training/task-split`
+- **功能**：任务分工与协作
+- **技术实现**：任务分配、角色分工、进度跟踪
+
+#### StudentRobotDebug.vue
+- **路径**：`/training/student-training/robot-debug`
+- **功能**：机器人调试界面
+- **技术实现**：硬件状态监控、调试工具集成
+
+#### StudentDeploy.vue
+- **路径**：`/training/student-training/deploy`
+- **功能**：代码部署到硬件
+- **技术实现**：部署流程、状态反馈
+
+#### StudentMyScoreResult.vue
+- **路径**：`/training/student-training/score-result`
+- **功能**：成绩与评价结果查看
+- **技术实现**：成绩展示、评价详情
+
+### 教师实训流程 (teacherTraining)
+
+#### TeacherDemandSplit.vue
+- **路径**：`/training/teacher-training/demand-split`
+- **功能**：需求分析与分组展示（教师端）
+- **技术实现**：
+  - 4组并行展示（2x2 网格布局）
+  - 加载进度模拟（progress + delay）
+  - 响应式状态管理（reactive）
+- **UI特性**：
+  - **2x2 卡片网格**：每组一个玻璃态卡片，顶部彩色边框区分
+  - **加载动画**：AI 需求深度推演中进度条
+  - **卡片内容**：
+    - 主线需求：通信加密设计
+    - 支线需求：各组专项方向
+    - AI 需求分类与资料推送
+    - 预选方案与分工说明
+- **业务场景**：教师查看各组需求分析结果，确认任务分配
+
+#### TeacherTaskSplit.vue
+- **路径**：`/training/teacher-training/task-split`
+- **功能**：教师任务分配与队歌生成
+- **技术实现**：
+  - 队歌生成状态管理（isGeneratingSongs、allSongsGenerated）
+  - 音乐播放控制（playMusic）
+  - 音频可视化效果（music-wave-container）
+- **UI特性**：
+  - **生成按钮**：状态切换（生成中/已完成）
+  - **音乐播放**：各组独立播放/暂停按钮
+  - **音乐波形动画**：播放时显示跳动柱状图
+- **业务场景**：教师为各组生成队歌，增强团队凝聚力
+
+#### TeacherSchemeSplit.vue
+- **路径**：`/training/teacher-training/scheme-split`
+- **功能**：方案分屏评审（教师端）
+- **技术实现**：
+  - 上传状态监听（uploadedStates）
+  - 自动监听机制
+  - 方案导出功能
+- **UI特性**：
+  - **等待上传状态**：加载动画 + 逐字显示文字
+  - **已上传状态**：方案文档展示、文件预览
+  - **架构评审 Agent 按钮**：等待所有组上传后启用
+  - **自动监听提示**：显示监听中状态
+- **业务场景**：教师实时监控学生方案提交状态
+
+#### TeacherAiEvaluate.vue
+- **路径**：`/training/teacher-training/ai-evaluate`
+- **功能**：方案 AI 评估（教师端）
+- **技术实现**：
+  - 深色主题布局（darkBg、panelBg）
+  - AI 评估进度模拟（progress + scan-line 动画）
+  - 悬停交互效果（hoveredGroup）
+- **UI特性**：
+  - **深色主题**：类似专业 IDE 的暗色风格
+  - **四象限布局**：4个小组的评估报告卡片
+  - **AI 推演动画**：扫描线效果 + 进度条
+  - **评分展示**：AI 综合评分、各项指标
+- **业务场景**：AI 专家系统对各组方案进行深度评估
+
+#### TeacherSchemeDetail.vue
+- **路径**：`/training/teacher-training/scheme-detail`
+- **功能**：方案详情查看（教师端）
+- **技术实现**：方案详情展示、评分管理
+
+#### TeacherSimulation.vue
+- **路径**：`/training/teacher-training/simulation`
+- **功能**：仿真验证（教师端）
+- **技术实现**：仿真参数配置、结果展示
+
+#### TeacherStudentGroup.vue
+- **路径**：`/training/teacher-training/student-group`
+- **功能**：学生分组管理（教师端）
+- **技术实现**：分组配置、成员管理
+
+#### TeacherTaskPublish.vue
+- **路径**：`/training/teacher-training/task-publish`
+- **功能**：任务发布（教师端）
+- **技术实现**：任务配置、发布流程
+
+#### TeacherDemandSummary.vue
+- **路径**：`/training/teacher-training/demand-summary`
+- **功能**：需求汇总（教师端）
+- **技术实现**：需求整理、报告生成
+
+#### TeacherGroupScoreOverview.vue
+- **路径**：`/training/teacher-training/group-score-overview`
+- **功能**：各组成绩总览（教师端）
+- **技术实现**：成绩统计、可视化展示
+
+#### StudentTaskReceive.vue
+- **路径**：`/training/teacher-training/student-task-receive`
+- **功能**：学生任务接收状态监控（教师端）
+- **技术实现**：实时状态监控、进度追踪
 
 ---
 
