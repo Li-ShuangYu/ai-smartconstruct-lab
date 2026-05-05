@@ -19,6 +19,7 @@
 | Pinia | Vue状态管理 | 2.x |
 | Naive UI | Vue 3组件库 | 2.x |
 | Vue Flow | 流程图/节点编排组件 | 11.x |
+| NProgress | 路由进度条 | - |
 
 ---
 
@@ -110,63 +111,12 @@ frontend-vue/
 │   │
 │   ├── views/                # 页面组件
 │   │   ├── auth/            # 认证页面
-│   │   │   ├── Login.vue    # 登录页
-│   │   │   └── Register.vue # 注册页
 │   │   ├── teacher/         # 教师端页面
-│   │   │   ├── Workbench.vue           # 教师工作台
-│   │   │   ├── TrainingCreate.vue      # 实训编排
-│   │   │   ├── TrainingManage.vue       # 实训管理
-│   │   │   ├── TrainingPublish.vue     # 发布实训
-│   │   │   ├── ClassCourseManage.vue   # 班级课程管理
-│   │   │   ├── TeacherLiveMonitor.vue  # 直播监控
-│   │   │   ├── EvaluationDashboard.vue # 评估分析
-│   │   │   ├── EvaluationManage.vue   # 评估管理
-│   │   │   ├── ClassCompetencyProfile.vue  # 班级能力分析
-│   │   │   ├── StudentCompetencyProfile.vue # 学生能力分析
-│   │   │   ├── UserProfile.vue        # 用户中心
-│   │   │   └── components/           # 教师端专用组件
-│   │   │       ├── StandardNode.vue   # 标准节点组件
-│   │   │       └── PropertyEditor.vue # 属性编辑器
-│   │   │       └── data/
-│   │   │           └── node-templates.ts # 节点模板数据
 │   │   ├── student/         # 学生端页面
-│   │   │   ├── Workbench.vue        # 学生工作台
-│   │   │   ├── StudentCabin.vue     # 学生舱位
-│   │   │   ├── TrainingDetail.vue   # 实训详情
-│   │   │   ├── MyClass.vue         # 我的班级
-│   │   │   ├── CourseList.vue      # 课程列表
-│   │   │   ├── MyTraining.vue      # 我的实训
-│   │   │   ├── MyHomework.vue      # 我的作业
-│   │   │   ├── MySubmission.vue    # 我的提交
-│   │   │   ├── Notifications.vue   # 通知消息
-│   │   │   └── UserProfile.vue     # 个人中心
 │   │   ├── admin/           # 管理员端页面
-│   │   │   ├── AdminLayout.vue     # 管理员布局
-│   │   │   ├── TeacherManage.vue   # 教师管理
-│   │   │   ├── StudentManage.vue   # 学生管理
-│   │   │   ├── OrgManage.vue      # 机构管理
-│   │   │   ├── CourseManage.vue   # 课程管理
-│   │   │   ├── MenuManage.vue     # 菜单管理
-│   │   │   ├── NodeManage.vue     # 节点管理
-│   │   │   ├── TemplateDashboard.vue # 模板管理
-│   │   │   ├── QuestionDashboard.vue # 题目管理
-│   │   │   ├── TicketManage.vue   # 工单管理
-│   │   │   ├── ServiceMonitor.vue # 服务监控
-│   │   │   └── AuditLog.vue      # 审计日志
 │   │   ├── homework/        # 作业页面
-│   │   │   ├── ExamPage.vue        # 考试页面
-│   │   │   ├── HomeworkDetail.vue  # 作业详情
-│   │   │   └── MindMapPractice.vue # 思维导图练习
 │   │   ├── training/         # 实训页面
-│   │   │   ├── CodeTraining.vue    # 编码实训
-│   │   │   ├── TheoryTraining.vue   # 理论实训
-│   │   │   └── studentTraining/
-│   │   │       └── TrainingStart.vue # 学生实训开始
 │   │   └── common/          # 公共页面
-│   │       ├── 404.vue     # 404错误页
-│   │       ├── 500.vue     # 500错误页
-│   │       ├── Pagination.vue      # 分页组件
-│   │       └── AdminStandardPage.vue # 管理员标准页面
 │   │
 │   ├── rules/               # 开发规范
 │   │   ├── .cursorrules    # Cursor AI规则
@@ -298,261 +248,396 @@ frontend-vue/
 
 ---
 
-## � 服务层 (Services)
-
-### API 封装
-
-`services/api.ts` 封装了 Axios 实例，提供：
-- 请求拦截器（添加 Token、请求 ID）
-- 响应拦截器（统一错误处理、Token 刷新）
-- 统一错误提示
-
-### 类型定义
-
-| 文件 | 说明 |
-|------|------|
-| auth.types.ts | 认证相关类型（登录请求/响应、注册请求/响应） |
-| user.types.ts | 用户相关类型（用户信息、权限） |
-| training.types.ts | 实训相关类型（实训创建/查询/更新） |
-| homework.types.ts | 作业相关类型（作业提交/批改） |
-
-### API 服务
-
-| 服务 | 说明 |
-|------|------|
-| auth.service.ts | 认证服务（登录、注册、Token刷新） |
-| user.service.ts | 用户服务（用户信息、权限查询） |
-| training.service.ts | 实训服务（CRUD操作） |
-| homework.service.ts | 作业服务（提交、批改） |
-| assistant.service.ts | 智能助手服务 |
-
----
-
-## 💾 状态管理 (Stores)
-
-使用 Pinia 进行状态管理，采用 Setup 语法。
-
-### Store 模块
-
-| Store | 说明 |
-|-------|------|
-| auth.store.ts | 用户认证状态（Token、用户信息、登录状态） |
-| app.store.ts | 全局应用状态（加载状态、主题） |
-| training.store.ts | 实训状态（当前实训、实训列表） |
-| homework.store.ts | 作业状态 |
-| assistant.store.ts | 智能助手对话状态 |
-
----
-
-## 🪝 Hooks
-
-组合式函数封装复用逻辑：
-
-| Hook | 说明 |
-|------|------|
-| useAuth | 权限认证（登录、登出、权限检查） |
-| useTraining | 实训操作（创建、提交、评分） |
-| useStepProgress | 步进流程（实训节点进度） |
-| useTelemetry | 埋点上报（用户行为追踪） |
-| useAssistant | 智能助手（对话、问答） |
-
----
-
-## 🧰 工具函数
-
-| 工具 | 说明 |
-|------|------|
-| format.ts | 格式化（日期、数字、文件大小） |
-| storage.ts | 本地存储（Token、用户信息） |
-| validate.ts | 表单校验（邮箱、手机、密码） |
-| telemetry.ts | 埋点上报（页面访问、点击事件） |
-
----
-
 ## 📄 页面详解
 
 ### 认证模块 (auth)
 
 #### Login.vue
 - **路径**：`/auth/login`
-- **功能**：用户登录
-- **字段**：用户名/邮箱、密码、记住我
-- **布局**：AuthLayout 左右分栏
+- **功能**：用户登录，支持学生/教师/管理员三种角色切换登录
+- **技术实现**：
+  - Vue 3 Composition API + `<script setup>` 语法
+  - 响应式数据管理（ref、computed）
+  - 路由编程式导航（useRouter + router.push）
+  - CSS Scoped 样式隔离
+  - 角色切换状态管理
+- **UI特性**：
+  - **角色分段控制器**：三个可点击角色卡片（学生端/教师端/管理端），带SVG图标
+  - **动态账号占位符**：根据角色切换显示不同提示文字（学号/工号/管理员账号）
+  - **表单选项**：记住我复选框、忘记密码链接
+  - **注册入口**：底部跳转到注册页面链接
+- **布局**：AuthLayout 左右分栏结构，左侧品牌展示区，右侧登录表单
 
 #### Register.vue
 - **路径**：`/auth/register`
-- **功能**：用户注册
-- **字段**：用户名、邮箱、密码、确认密码、验证码
+- **功能**：用户注册账号
+- **技术实现**：表单校验、路由跳转
 
 ### 教师端 (teacher)
 
 #### Workbench.vue
 - **路径**：`/teacher/workbench`
-- **功能**：教师工作台概览
-- **内容**：班级列表、实训统计、最近活动
+- **功能**：教师工作台首页，仪表盘式数据展示
+- **技术实现**：
+  - Vue 3 Composition API + `<script setup>`
+  - 响应式布局（flex、grid）
+  - 路由编程式导航
+  - 模拟数据驱动展示
+- **UI特性**：
+  - **Header区域**：问候语 + 今日任务统计卡片（本周活跃学生、待办任务）
+  - **快捷入口网格**：三个主操作卡片（创建实训/开启实训/综合评价），带图标和描述
+  - **历史实训列表**：状态标签（已就绪/进行中/已结束）、时间信息、参与人数统计
+  - **卡片悬浮效果**：hover transform 动画
+- **业务场景**：密码学多智能体协同实训管理
 
 #### TrainingCreate.vue
 - **路径**：`/teacher/training-create`
-- **功能**：可视化实训编排（沉浸式）
-- **布局**：全屏 Vue Flow 画布
-- **组件**：StandardNode（标准节点）、PropertyEditor（属性编辑）
+- **功能**：可视化实训流程编排器，拖拽式节点工作流设计
+- **技术实现**：
+  - **Vue Flow**：基于 @vue-flow/core 的可视化工作流编辑器
+  - **拖拽API**：HTML5 Drag & Drop API（draggable、ondragstart、ondrop）
+  - **坐标转换**：screenToFlowCoordinate 将页面坐标转换为流程图坐标
+  - **节点组件**：markRaw 动态组件注册（避免响应式开销）
+  - **历史记录系统**：撤回/恢复栈（historyStack、redoStack），最多保存30步
+  - **连线校验**：checkValidConnection 防止自环和类型错误连接
+  - **状态管理**：Pinia store（useTrainingStore）管理 nodes 和 edges
+- **UI特性**：
+  - **左侧组件仓库面板**：可折叠侧边栏，分类展示节点（LLM调用/代码执行/条件分支等）
+  - **顶部工具栏**：撤回/恢复按钮、草稿暂存、发布实训
+  - **Canvas画布**：VueFlow 实例，支持缩放、拖拽、节点连接
+  - **Background背景**：点阵图案（pattern-color, gap, size）
+  - **Controls控件**：右下角最小化导航控件
+  - **成功弹窗**：发布后的模态框 + 倒计时自动跳转
+- **布局**：MaterialSidebar + CanvasContainer + ModalOverlay 三栏结构
+- **业务场景**：编排 SM4 密钥配置、无人机抗重放攻击等实训流程
 
 #### TrainingManage.vue
 - **路径**：`/teacher/training-manage`
-- **功能**：实训列表管理
-- **操作**：创建、编辑、发布、删除
+- **功能**：实训资源全生命周期管理（模板/待发布/进行中/历史）
+- **技术实现**：
+  - Vue 3 Composition API + TypeScript 类型断言
+  - Tab 状态切换（template/pending/ongoing/history）
+  - 分页逻辑（totalPages、handlePageChange）
+  - 路由编程跳转
+  - Transition 组件实现 Tab 切换动画
+- **UI特性**：
+  - **Tab导航栏**：四个状态切换标签，当前选中项高亮
+  - **数据表格**：Grid 布局表头 + 表体，支持不同操作按钮
+  - **状态标签**：根据状态显示不同颜色标签（已就绪/进行中/已结束）
+  - **分页控件**：上一页/下一页 + 页码数字按钮 + 共多少项信息
+  - **空状态**：无数据时显示友好提示
+- **操作流程**：编辑模板 → 创建实训任务 → 开启实训 → 进入实训监控 → 结束实训 → 查看历史
 
 #### TrainingPublish.vue
 - **路径**：`/teacher/training-publish`
-- **功能**：发布实训到班级（沉浸式）
-
-#### ClassCourseManage.vue
-- **路径**：`/teacher/class-course-manage`
-- **功能**：班级与课程关联管理
-- **标签页**：班级管理、课程管理
-
-#### TeacherLiveMonitor.vue
-- **路径**：`/teacher/teacher-live-monitor`
-- **功能**：实时监控学生实训状态（沉浸式）
+- **功能**：实训任务发布，选择班级和学生下发
+- **技术实现**：表单配置、班级选择组件
 
 #### EvaluationDashboard.vue
 - **路径**：`/teacher/evaluation`
-- **功能**：班级/学生能力分析看板
+- **功能**：实训评价总览，多维数据统计
+- **技术实现**：
+  - Vue 3 Composition API
+  - 计算属性过滤（filteredProjects）
+  - 搜索功能（searchQuery）
+  - 路由编程跳转（useRouter）
+- **UI特性**：
+  - **搜索栏**：输入框过滤项目名称或分类
+  - **项目卡片网格**：每个项目显示分类标签、日期、平均分、完成率、技能标签
+  - **指标展示**：平均分、完成率数字高亮
+  - **技能标签**：如 SM4、时间戳验证、Dilithium 等密码学相关标签
+  - **操作按钮**：查看详细报告跳转
+- **业务场景**：评价学生密码学实训能力，如无人机通信抗重放攻击、国密SM3杂凑分析等
 
 #### EvaluationManage.vue
 - **路径**：`/teacher/evaluation-manage`
-- **功能**：评估标准管理
+- **功能**：评价任务管理，创建和管理评价活动
+- **技术实现**：表单编辑、状态管理
 
 #### ClassCompetencyProfile.vue
 - **路径**：`/teacher/class-competency/:studentId`
-- **功能**：班级实训总结分析
+- **功能**：班级实训总结分析，能力雷达图
+- **技术实现**：
+  - 路由参数获取（useRoute.params）
+  - 图表可视化（雷达图/柱状图）
+  - 数据聚合分析
 
 #### StudentCompetencyProfile.vue
 - **路径**：`/teacher/student-competency/:studentId`
-- **功能**：学生实训能力评价
+- **功能**：学生个人实训能力画像
+- **技术实现**：
+  - 单学生数据查询
+  - 能力维度展示
+
+#### ClassCourseManage.vue
+- **路径**：`/teacher/class-course`
+- **功能**：班级课程关联管理
+- **技术实现**：课程分配、班级数据管理
+
+#### TeacherLiveMonitor.vue
+- **路径**：`/teacher/live-monitor`
+- **功能**：实训现场实时监控
+- **技术实现**：实时数据刷新、WebSocket 连接
 
 #### UserProfile.vue
 - **路径**：`/teacher/profile`
-- **功能**：个人信息管理
+- **功能**：教师个人信息管理
+- **技术实现**：表单编辑、个人信息展示
 
 ### 学生端 (student)
 
 #### Workbench.vue
 - **路径**：`/student/workbench`
-- **功能**：学生学习工作台
-- **内容**：进行中实训、已完成、作业提醒
+- **功能**：学生学习工作台，AI助教交互 + 实训任务列表
+- **技术实现**：
+  - Vue 3 Composition API + `<script setup>` 语法
+  - 分页组件集成（Pagination.vue）
+  - 计算属性过滤（tabFilteredList、paginatedList）
+  - 响应式数据处理
+- **UI特性**：
+  - **背景效果**：动态光晕背景（bg-glow、radial-gradient）
+  - **Hero区域**：品牌Logo + AI对话气泡 + 快捷建议标签（解释抗重放机制/SM4编程第一步/查看我的进度）
+  - **AI对话界面**：输入框 + 发送按钮，支持语音图标
+  - **玻璃态卡片**：backdrop-filter blur 毛玻璃效果，悬浮动画
+  - **Tab导航**：全部实训/进行中/已结束切换
+  - **实训卡片网格**：
+    - 课程标签（国密算法、密码学等）
+    - 状态指示器（ongoing/not_started/ended）
+    - 进度条（渐变色填充）
+    - 截止日期展示
+    - 继续/查看按钮
+  - **自定义分页**：融入玻璃态设计风格
+  - **底部状态栏**：版本信息 + 更新说明
+- **业务场景**：密码学多智能体协同实训教室，沉浸式学习体验
 
 #### StudentCabin.vue
 - **路径**：`/student/student-cabin/:id`
-- **功能**：沉浸式实训舱（WebIDE风格）
-- **布局**：全屏沉浸式，左右分栏（题目区+答题区）
+- **功能**：沉浸式实训舱，WebIDE风格，左侧AI指导 + 右侧代码编辑
+- **技术实现**：
+  - 全屏深色主题布局（100vh）
+  - 左右分栏结构（flex）
+  - 聊天消息流渲染（v-for、动态class）
+  - 响应式高度计算
+- **UI特性**：
+  - **左侧AI助手面板**（白色背景，宽度400px）：
+    - Header：标题 "理论指导伙伴 (LangChain 驱动)"
+    - 聊天消息流：AI气泡（灰色背景）、用户气泡（紫色背景）、思考状态提示
+    - 输入区域：输入框 + 发送按钮
+  - **右侧IDE容器**（深色背景，flex: 1）：
+    - IDE Header：文件名显示 + 编译验证按钮（绿色）
+    - 代码编辑器区：等宽字体，预设代码模板（SM4时间戳校验）
+    - 底部终端区：暗黑色背景，绿色命令行风格输出
+- **布局**：ai-assistant (400px) + ide-container (flex: 1)
+- **业务场景**：无人机抗重放攻击的 SM4 密钥配置实训，AI 实时指导编程
 
 #### TrainingDetail.vue
 - **路径**：`/student/training-detail/:id`
-- **功能**：实训详情（只读）
+- **功能**：实训详情查看（只读模式）
+- **技术实现**：路由参数获取实训ID，详情数据展示
 
 #### MyClass.vue
 - **路径**：`/student/my-class`
-- **功能**：我的班级、班级成员
+- **功能**：我的班级、班级成员查看
+- **UI特性**：班级信息卡片、成员列表展示
 
 #### CourseList.vue
 - **路径**：`/student/courselist`
-- **功能**：选修课程列表
+- **功能**：选修课程列表，搜索 + 分页
+- **技术实现**：
+  - Vue 3 Composition API + `<script setup>`
+  - 计算属性过滤（filteredList）
+  - 分页状态管理（currentPage、pageSize）
+  - Pagination 组件集成
+- **UI特性**：
+  - **页头**：标题 + 搜索框（实时过滤课程名或教师名）
+  - **卡片网格**：每张卡片显示课程代码、类型标签、名称、教师、学分
+  - **操作按钮**：进入课程区
+  - **空状态**：无匹配数据显示友好提示
+- **业务场景**：密码系统设计、UAV通信加密专论等课程选修
 
 #### MyTraining.vue
 - **路径**：`/student/my-training`
-- **功能**：我的实训记录
+- **功能**：我的实训记录，学习历程追踪
+- **UI特性**：实训历史列表、时间线展示
 
 #### MyHomework.vue
 - **路径**：`/student/my-homework`
-- **功能**：我的作业列表
+- **功能**：我的作业列表，提交状态查看
+- **UI特性**：作业列表、批改状态标签
 
 #### MySubmission.vue
 - **路径**：`/student/my-submission`
-- **功能**：我的提交记录
+- **功能**：我的提交记录，代码和答案追踪
+- **UI特性**：提交历史、版本对比
 
 #### Notifications.vue
 - **路径**：`/student/notifications`
-- **功能**：系统通知、个人消息
+- **功能**：系统通知、个人消息中心
+- **UI特性**：消息列表、时间轴、未读标记
 
 #### UserProfile.vue
 - **路径**：`/student/profile`
-- **功能**：个人中心
+- **功能**：个人中心，信息编辑
+- **UI特性**：个人信息展示、编辑表单
 
 ### 管理员端 (admin)
 
 #### TeacherManage.vue
 - **路径**：`/admin/teacher`
 - **功能**：教师账号管理（增删改查）
+- **技术实现**：
+  - 复用 AdminStandardPage 通用组件
+  - TypeScript 列定义接口
+  - 模拟数据列表
+- **UI特性**：
+  - **表格列**：教职工号、姓名、所属院系、账号状态
+  - **状态标签**：账号状态标签（正常/禁用等）
+  - **操作按钮**：编辑、删除
+- **布局**：使用 AdminStandardPage 统一后台管理页面样式
 
 #### StudentManage.vue
 - **路径**：`/admin/student`
 - **功能**：学生账号管理
+- **技术实现**：AdminStandardPage 组件复用，数据类型定义
+- **UI特性**：学生表格、批量操作支持
 
 #### OrgManage.vue
 - **路径**：`/admin/org`
 - **功能**：组织机构管理（学校/院系）
+- **技术实现**：树形数据结构、递归组件渲染
+- **UI特性**：树形结构展示、增删改操作
 
 #### CourseManage.vue
 - **路径**：`/admin/course`
 - **功能**：课程模板管理
+- **技术实现**：CRUD 操作、数据持久化模拟
+- **UI特性**：课程列表、类型标签
 
 #### MenuManage.vue
 - **路径**：`/admin/menu`
 - **功能**：系统菜单配置
+- **技术实现**：菜单树编辑、层级关系管理
+- **UI特性**：菜单树编辑界面、拖拽排序
 
 #### NodeManage.vue
 - **路径**：`/admin/node`
-- **功能**：节点/题库管理
+- **功能**：节点/题库管理，实训原子组件配置
+- **技术实现**：节点类型定义、配置界面
+- **UI特性**：节点列表、属性编辑
 
 #### TemplateDashboard.vue
 - **路径**：`/admin/template`
 - **功能**：实训模板管理
+- **技术实现**：模板列表、分类管理
+- **UI特性**：模板卡片、操作按钮
 
 #### QuestionDashboard.vue
 - **路径**：`/admin/question`
 - **功能**：题目管理
+- **技术实现**：题目 CRUD、分类标签
+- **UI特性**：题目编辑、题目库列表
 
 #### TicketManage.vue
 - **路径**：`/admin/ticket`
-- **功能**：工单/问题反馈
+- **功能**：工单/问题反馈处理
+- **技术实现**：工单状态流转、处理流程
+- **UI特性**：工单列表、状态标签
 
 #### ServiceMonitor.vue
 - **路径**：`/admin/monitor`
 - **功能**：系统服务监控
+- **技术实现**：状态指标采集、前端可视化
+- **UI特性**：状态指示、图表展示
 
 #### AuditLog.vue
 - **路径**：`/admin/audit`
 - **功能**：操作审计日志
+- **技术实现**：日志查询、时间范围筛选
+- **UI特性**：日志列表、时间线
+
+#### AdminStandardPage.vue
+- **路径**：（通用组件，被各管理页面复用）
+- **功能**：统一后台管理页面模板，减少重复代码
+- **技术实现**：
+  - Vue 3 defineProps 接收配置参数
+  - 搜索过滤（filteredData computed）
+  - 分页状态管理
+  - defineEmits 定义事件
+  - CSS Grid 布局
+- **Props配置**：
+  - title：页面标题
+  - columns：列定义数组（key, label, isTag）
+  - data：数据源数组
+  - gridLayout：表格列宽布局
+- **Events**：
+  - add：新增数据
+  - edit：编辑数据
+  - delete：删除数据
+- **UI特性**：
+  - **工具栏**：搜索框 + 新增按钮
+  - **表头行**：Grid 布局，列定义
+  - **数据行**：v-for 渲染，支持状态标签
+  - **操作列**：编辑/删除按钮
+  - **空状态**：无数据显示友好提示
+  - **分页组件**：Pagination 复用
 
 ### 作业模块 (homework)
 
 #### ExamPage.vue
+- **路径**：`/homework/exam`
 - **功能**：在线考试页面
-- **特性**：计时器、题目切换、提交
+- **技术实现**：
+  - 计时器功能（setInterval）
+  - 题目状态管理
+  - 答案暂存机制
+- **UI特性**：考试界面、进度显示、计时器
 
 #### HomeworkDetail.vue
-- **功能**：作业详情与批改
+- **路径**：`/homework/detail`
+- **功能**：作业详情查看与批改
+- **UI特性**：作业内容展示、批改状态
 
 #### MindMapPractice.vue
-- **功能**：思维导图练习（封装 Vue Flow）
+- **路径**：`/homework/mindmap`
+- **功能**：思维导图练习
+- **技术实现**：
+  - Vue Flow 封装实现思维导图
+  - 节点编辑、连线
+- **UI特性**：节点可视化、拖拽编辑
 
 ### 实训模块 (training)
 
 #### CodeTraining.vue
+- **路径**：`/training/code`
 - **功能**：编码实训舱
-- **组件**：代码编辑器（Monaco Editor）
+- **技术实现**：代码编辑器集成
+- **UI特性**：Monaco Editor 或类似编辑器
 
 #### TheoryTraining.vue
+- **路径**：`/training/theory`
 - **功能**：理论实训（选择题/填空题）
+- **UI特性**：题目展示、答题卡
 
 #### TrainingStart.vue
 - **路径**：`/training/student-training/training-start`
-- **功能**：学生开始实训
+- **功能**：学生开始实训，方向选择与组队
+- **技术实现**：
+  - Vue 3 Composition API + Transition 动画
+  - 选中状态管理（selectedGroupId）
+  - 团队成员展示
+  - 路由跳转（goToTaskSelect）
+- **UI特性**：
+  - **页头**：标题 + 确认按钮（根据选择状态启用/禁用）
+  - **小组卡片网格**：玻璃态卡片，hover 效果
+  - **卡片内容**：组号标签、主题色、算法名称、人物画像、做事风格描述
+  - **选中状态**：选中卡片显示对勾图标 + 边框高亮
+  - **成功弹窗**：组队成功后模态框，展示团队成员列表
+  - **动画效果**：fade-in、fade-up、transition-group
+- **业务场景**：密码学研究方向选择，如 SM4 加密组、SM2 签名组、PQC 后量子组等
 
 ---
 
-## � 开发命令
+## 🔧 开发命令
 
 ```bash
 # 安装依赖
