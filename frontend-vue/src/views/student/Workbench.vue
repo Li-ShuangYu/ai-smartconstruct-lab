@@ -85,9 +85,10 @@
 
           <footer class="card-actions">
             <span class="deadline">⏱️ {{ item.deadline }}</span>
-            <button class="mini-btn" @click="handleAction(item)">
-              {{ item.status === 'ongoing' ? '继续' : '查看' }}
-            </button>
+  <button class="mini-btn" @click="handleAction(item)">
+  <!-- 根据状态动态显示：进行中->继续，未开始->开始，已结束->查看 -->
+  {{ item.status === 'ongoing' ? '继续' : (item.status === 'not_started' ? '开始' : '查看') }}
+</button>
           </footer>
         </div>
         
@@ -116,7 +117,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router' // 1. 引入路由
 import Pagination from '@/views/common/Pagination.vue'
+
+const router = useRouter() // 2. 实例化 router
 
 const activeTab = ref('all')
 const tabs = [
@@ -127,7 +131,7 @@ const tabs = [
 
 // 分页状态
 const currentPage = ref(1)
-const pageSize = ref(6) // 设定每页 6 条 (2行 x 3列)
+const pageSize = ref(6)
 
 // 扩充模拟数据
 const trainingList = ref([
@@ -167,14 +171,18 @@ const getStatusText = (status: string) => {
   return map[status]
 }
 
-// 切换 Tab 时重置页码到第一页
 const handleTabChange = (key: string) => {
   activeTab.value = key
   currentPage.value = 1
 }
 
+// 3. 核心跳转逻辑
 const handleAction = (item: any) => {
-  console.log('Action for:', item.title)
+  // 跳转到你要求的路由，并把当前任务的 ID 传过去
+  router.push({
+    path: '/training/student-training/student-group-choose',
+    query: { id: item.id }
+  })
 }
 </script>
 
