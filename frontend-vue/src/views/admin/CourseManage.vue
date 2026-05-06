@@ -48,11 +48,57 @@ const columns: DataTableColumns<Course> = [
   ])}}
 ]
 
-async function fetchData(){loading.value=true;try{const r=await api.getCourses(page.value,pageSize.value,keyword.value||undefined);if(r.code===200)data.value=r.data!}catch{}finally{loading.value=false}}
+async function fetchData(){
+  loading.value = true
+  try {
+    const r = await api.getCourses(page.value, pageSize.value, keyword.value || undefined)
+    if (r.code === 200) {
+      data.value = r.data
+    } else {
+      message.error(r.message || '获取数据失败')
+    }
+  } catch (e: any) {
+    message.error(e?.response?.data?.message || '网络错误，请稍后重试')
+  } finally {
+    loading.value = false
+  }
+}
+
 function openModal(row:Course|null){editingId.value=row?.id??null;if(row){Object.assign(form,row)}else{Object.assign(form,{courseName:'',courseCode:'',description:'',status:0,needEnrollCode:0,enrollCode:''})};showModal.value=true}
-async function save(){if(!form.courseName.trim()){message.warning('请输入课程名称');return};saving.value=true;try{editingId.value?await api.updateCourse(editingId.value,{...form}):await api.addCourse({...form});message.success('成功');showModal.value=false;await fetchData()}catch{message.error('失败')}finally{saving.value=false}}
-async function handleDelete(row:Course){try{await api.deleteCourse(row.id!);message.success('已删除');await fetchData()}catch{message.error('失败')}}
-async function toggleStatus(row:Course){const ns=row.status===1?0:1;try{await api.updateCourseStatus(row.id!,ns);message.success('已更新');await fetchData()}catch{message.error('失败')}}
-onMounted(()=>fetchData())
+async function save(){
+  if(!form.courseName.trim()){message.warning('请输入课程名称');return}
+  saving.value=true
+  try {
+    editingId.value ? await api.updateCourse(editingId.value, {...form}) : await api.addCourse({...form})
+    message.success('保存成功')
+    showModal.value=false
+    await fetchData()
+  } catch (e: any) {
+    message.error(e?.response?.data?.message || '保存失败')
+  } finally {
+    saving.value=false
+  }
+}
+async function handleDelete(row:Course){
+  try {
+    await api.deleteCourse(row.id!)
+    message.success('已删除')
+    await fetchData()
+  } catch (e: any) {
+    message.error(e?.response?.data?.message || '删除失败')
+  }
+}
+async function toggleStatus(row:Course){
+  const ns=row.status===1?0:1
+  try {
+    await api.updateCourseStatus(row.id!,ns)
+    message.success('已更新')
+    await fetchData()
+  } catch (e: any) {
+    message.error(e?.response?.data?.message || '状态更新失败')
+  }
+}
+
+onMounted(() => fetchData())
 </script>
 <style scoped>.admin-page{padding:24px;background:#fff;border-radius:8px;min-height:100%}.page-header h1{font-size:20px;font-weight:800;color:#0F172A;margin:0 0 16px}</style>

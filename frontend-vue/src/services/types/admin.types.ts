@@ -98,3 +98,19 @@ export interface OperationLog {
   ipAddress?: string
   createdAt: string
 }
+
+export interface Teacher {
+  userId: number
+  employeeNo: string
+  realName: string
+  deptId: number
+}
+
+export interface Student {
+  userId: number
+  studentNo: string
+  realName: string
+  deptId: number
+  majorId: number
+  classId: number
+}

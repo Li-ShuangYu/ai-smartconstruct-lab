@@ -17,8 +17,5 @@ const columns = [
   { key: 'status', label: '状态', isTag: true }
 ]
 
-const tableData = [
-  { id: 1, menuName: '学生工作台', routePath: '/student/workbench', permission: 'sys:student:workbench', status: '启用', statusType: 'active' },
-  { id: 2, menuName: '实训模板仓库', routePath: '/teacher/training-manage', permission: 'sys:teacher:template', status: '启用', statusType: 'active' }
-]
+const tableData: any[] = []
 </script>

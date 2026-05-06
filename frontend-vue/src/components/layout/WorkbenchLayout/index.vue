@@ -16,15 +16,17 @@
       <Sidebar v-if="!isAdminSide && !isStudentSide && !renderFullscreen" />
 
       <main :class="['content-area', { 'is-fullscreen': renderFullscreen }]">
-        <router-view v-slot="{ Component, route }">
-          <transition 
-            name="fade" 
-            mode="out-in"
-            @after-leave="applyLayoutChange"
-          >
-            <component :is="Component" :key="route.path" />
-          </transition>
-        </router-view>
+        <n-message-provider>
+          <router-view v-slot="{ Component, route }">
+            <transition
+              name="fade"
+              mode="out-in"
+              @after-leave="applyLayoutChange"
+            >
+              <component :is="Component" :key="route.path" />
+            </transition>
+          </router-view>
+        </n-message-provider>
       </main>
     </div>
   </div>
@@ -33,28 +35,21 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import Sidebar from './Sidebar.vue' // 默认为老师侧边栏
-import AdminSidebar from './AdminSidebar.vue' // 新建管理员侧边栏
-import TeacherHeader from './TeacherHeader.vue'      
-import StudentHeader from './StudentHeader.vue' 
+import { NMessageProvider } from 'naive-ui'
+import Sidebar from './Sidebar.vue'
+import AdminSidebar from './AdminSidebar.vue'
+import TeacherHeader from './TeacherHeader.vue'
+import StudentHeader from './StudentHeader.vue'
 import SuperHeader from './SuperHeader.vue'
 import AdminHeader from './AdminHeader.vue'
 
 const route = useRoute()
 
-// 1. 判断是否处于学生端页面
 const isStudentSide = computed(() => route.path.startsWith('/student'))
-
-// 2. 判断是否处于管理员页面
 const isAdminSide = computed(() => route.path.startsWith('/admin'))
-
-// 2. 实际控制页面布局渲染的变量
 const renderFullscreen = ref(route.meta.hideSidebar === true)
-
-// 3. 暂存即将切换的状态（用于动画结束后的同步）
 let pendingLayoutState: boolean | null = null
 
-// 4. 监听路由 meta，处理全屏模式切换
 watch(
   () => route.meta.hideSidebar,
   (newVal) => {
@@ -65,7 +60,6 @@ watch(
   }
 )
 
-// 5. 动画钩子：确保旧页面彻底消失后再切换外层 Header/Sidebar，防止排版崩坏
 const applyLayoutChange = () => {
   if (pendingLayoutState !== null) {
     renderFullscreen.value = pendingLayoutState

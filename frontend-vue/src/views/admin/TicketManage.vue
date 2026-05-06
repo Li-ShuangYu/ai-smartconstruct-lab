@@ -62,8 +62,8 @@ const fbCols: DataTableColumns<Feedback> = [
 ]
 
 function onTicketFilter(){ticketPage.value=1;fetchTickets()}
-async function fetchTickets(){loading1.value=true;try{const r=await api.getTickets(ticketPage.value,ticketPS.value,ticketStatusFilter.value);if(r.code===200)ticketData.value=r.data!}catch{}finally{loading1.value=false}}
-async function fetchFbs(){loading2.value=true;try{const r=await api.getFeedbacks(fbPage.value,fbPS.value);if(r.code===200)fbData.value=r.data!}catch{}finally{loading2.value=false}}
+async function fetchTickets(){loading1.value=true;try{const r=await api.getTickets(ticketPage.value,ticketPS.value,ticketStatusFilter.value);if(r.code===200)ticketData.value=r.data!}catch(e:any){message.error(e?.response?.data?.message||'获取工单列表失败')}finally{loading1.value=false}}
+async function fetchFbs(){loading2.value=true;try{const r=await api.getFeedbacks(fbPage.value,fbPS.value);if(r.code===200)fbData.value=r.data!}catch(e:any){message.error(e?.response?.data?.message||'获取反馈列表失败')}finally{loading2.value=false}}
 async function doTicketStatus(row:Ticket,status:number){try{await api.updateTicketStatus(row.id!,status);message.success('已更新');await fetchTickets()}catch{message.error('失败')}}
 async function handleDelTicket(row:Ticket){try{await api.deleteTicket(row.id!);message.success('已删除');await fetchTickets()}catch{message.error('失败')}}
 async function handleDelFb(row:Feedback){try{await api.deleteFeedback(row.id!);message.success('已删除');await fetchFbs()}catch{message.error('失败')}}

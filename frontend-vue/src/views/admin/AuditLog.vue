@@ -53,7 +53,7 @@ const columns: DataTableColumns<OperationLog> = [
 
 function onFilter(){page.value=1;fetchData()}
 function resetFilter(){actionFilter.value=undefined;userIdFilter.value='';page.value=1;fetchData()}
-async function fetchData(){loading.value=true;try{const r=await api.getLogs(page.value,pageSize.value,actionFilter.value||undefined,userIdFilter.value?Number(userIdFilter.value):undefined);if(r.code===200)data.value=r.data!}catch{}finally{loading.value=false}}
+async function fetchData(){loading.value=true;try{const r=await api.getLogs(page.value,pageSize.value,actionFilter.value||undefined,userIdFilter.value?Number(userIdFilter.value):undefined);if(r.code===200)data.value=r.data!}catch(e:any){console.error('获取日志失败',e)}finally{loading.value=false}}
 onMounted(()=>fetchData())
 </script>
 <style scoped>.admin-page{padding:24px;background:#fff;border-radius:8px;min-height:100%}.page-header h1{font-size:20px;font-weight:800;color:#0F172A;margin:0 0 16px}</style>

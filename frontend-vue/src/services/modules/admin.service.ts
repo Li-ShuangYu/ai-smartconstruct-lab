@@ -4,7 +4,8 @@ import type {
   PageResult, Department, Major, AdminClass,
   Course, NodeDef, TrainingTemplate,
   QuestionBank, Question,
-  Ticket, Feedback, OperationLog
+  Ticket, Feedback, OperationLog,
+  Teacher, Student
 } from '@/services/types/admin.types'
 
 // ===== 教务中心 - 组织架构 =====
@@ -79,3 +80,17 @@ export const deleteFeedback = (id: number) => http.delete<ApiResult<void>>(`/api
 // ===== 系统中心 - 操作日志 =====
 export const getLogs = (page = 1, pageSize = 10, actionType?: string, userId?: number) =>
   http.get<ApiResult<PageResult<OperationLog>>>('/api/admin/logs', { params: { page, pageSize, actionType, userId } }).then(r => r.data)
+
+// ===== 用户中心 - 教师 =====
+export const getTeachers = (page = 1, pageSize = 10, keyword?: string) =>
+  http.get<ApiResult<PageResult<Teacher>>>('/api/admin/teachers', { params: { page, pageSize, keyword } }).then(r => r.data)
+export const addTeacher = (t: Teacher) => http.post<ApiResult<void>>('/api/admin/teachers', t).then(r => r.data)
+export const updateTeacher = (id: number, t: Teacher) => http.put<ApiResult<void>>(`/api/admin/teachers/${id}`, t).then(r => r.data)
+export const deleteTeacher = (id: number) => http.delete<ApiResult<void>>(`/api/admin/teachers/${id}`).then(r => r.data)
+
+// ===== 用户中心 - 学生 =====
+export const getStudents = (page = 1, pageSize = 10, keyword?: string) =>
+  http.get<ApiResult<PageResult<Student>>>('/api/admin/students', { params: { page, pageSize, keyword } }).then(r => r.data)
+export const addStudent = (s: Student) => http.post<ApiResult<void>>('/api/admin/students', s).then(r => r.data)
+export const updateStudent = (id: number, s: Student) => http.put<ApiResult<void>>(`/api/admin/students/${id}`, s).then(r => r.data)
+export const deleteStudent = (id: number) => http.delete<ApiResult<void>>(`/api/admin/students/${id}`).then(r => r.data)

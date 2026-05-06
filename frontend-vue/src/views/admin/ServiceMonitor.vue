@@ -17,8 +17,5 @@ const columns = [
   { key: 'status', label: '运行状态', isTag: true }
 ]
 
-const tableData = [
-  { id: 1, nodeId: 'Machine-155', service: 'auth-0 鉴权容器', health: '12% / 45%', status: '运行中', statusType: 'active' },
-  { id: 2, nodeId: 'Machine-158', service: '实训调度引擎', health: '89% / 92%', status: '负载告警', statusType: 'warning' }
-]
+const tableData: any[] = []
 </script>

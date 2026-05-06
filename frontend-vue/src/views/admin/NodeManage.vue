@@ -42,7 +42,7 @@ const columns: DataTableColumns<NodeDef> = [
   ])}}
 ]
 
-async function fetchData(){loading.value=true;try{const r=await api.getNodes(page.value,pageSize.value);if(r.code===200)data.value=r.data!}catch{}finally{loading.value=false}}
+async function fetchData(){loading.value=true;try{const r=await api.getNodes(page.value,pageSize.value);if(r.code===200)data.value=r.data!}catch(e:any){message.error(e?.response?.data?.message||'获取节点列表失败')}finally{loading.value=false}}
 function openModal(row:NodeDef|null){editingId.value=row?.id??null;if(row){form.nodeCode=row.nodeCode;form.nodeName=row.nodeName;form.isActive=row.isActive}else{form.nodeCode='';form.nodeName='';form.isActive=1};showModal.value=true}
 async function save(){if(!form.nodeCode.trim()||!form.nodeName.trim()){message.warning('请填写完整');return};saving.value=true;try{editingId.value?await api.updateNode(editingId.value,{...form}):await api.addNode({...form});message.success('成功');showModal.value=false;await fetchData()}catch{message.error('失败')}finally{saving.value=false}}
 async function handleDelete(row:NodeDef){try{await api.deleteNode(row.id!);message.success('已删除');await fetchData()}catch{message.error('失败')}}

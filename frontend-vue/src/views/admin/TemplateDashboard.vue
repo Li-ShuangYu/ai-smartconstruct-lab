@@ -34,7 +34,7 @@ const columns: DataTableColumns<TrainingTemplate> = [
 ]
 
 function onFilter(){page.value=1;fetchData()}
-async function fetchData(){loading.value=true;try{const r=await api.getTemplates(page.value,pageSize.value,aiStatus.value);if(r.code===200)data.value=r.data!}catch{}finally{loading.value=false}}
+async function fetchData(){loading.value=true;try{const r=await api.getTemplates(page.value,pageSize.value,aiStatus.value);if(r.code===200)data.value=r.data!}catch(e:any){message.error(e?.response?.data?.message||'获取模板列表失败')}finally{loading.value=false}}
 async function handleDelete(row:TrainingTemplate){try{await api.deleteTemplate(row.id!);message.success('已删除');await fetchData()}catch{message.error('失败')}}
 onMounted(()=>fetchData())
 </script>

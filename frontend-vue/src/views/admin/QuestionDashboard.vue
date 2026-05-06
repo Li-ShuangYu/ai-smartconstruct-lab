@@ -95,7 +95,7 @@ const qCols: DataTableColumns<Question> = [
 ]
 
 // Bank CRUD
-async function fetchBanks(){loading1.value=true;try{const r=await api.getQuestionBanks(bankPage.value,bankPS.value);if(r.code===200)bankData.value=r.data!}catch{}finally{loading1.value=false}}
+async function fetchBanks(){loading1.value=true;try{const r=await api.getQuestionBanks(bankPage.value,bankPS.value);if(r.code===200)bankData.value=r.data!}catch(e:any){message.error(e?.response?.data?.message||'获取题库列表失败')}finally{loading1.value=false}}
 function openBankModal(row:QuestionBank|null){editingBankId.value=row?.id??null;if(row){bankForm.bankName=row.bankName;bankForm.isPublic=row.isPublic}else{bankForm.bankName='';bankForm.isPublic=0};showBankModal.value=true}
 async function saveBank(){if(!bankForm.bankName.trim()){message.warning('请输入名称');return};saving.value=true;try{editingBankId.value?await api.updateQuestionBank(editingBankId.value,{...bankForm}):await api.addQuestionBank({...bankForm});message.success('成功');showBankModal.value=false;await fetchBanks()}catch{message.error('失败')}finally{saving.value=false}}
 async function handleDelBank(row:QuestionBank){try{await api.deleteQuestionBank(row.id!);message.success('已删除');await fetchBanks()}catch{message.error('失败')}}
@@ -103,7 +103,7 @@ async function doShare(row:QuestionBank){const ns=row.isPublic===1?0:1;try{await
 
 // Question CRUD
 function onQBankFilter(){qPage.value=1;fetchQuestions()}
-async function fetchQuestions(){loading2.value=true;try{const r=await api.getQuestions(qPage.value,qPS.value,qBankFilter.value);if(r.code===200)qData.value=r.data!}catch{}finally{loading2.value=false}}
+async function fetchQuestions(){loading2.value=true;try{const r=await api.getQuestions(qPage.value,qPS.value,qBankFilter.value);if(r.code===200)qData.value=r.data!}catch(e:any){message.error(e?.response?.data?.message||'获取题目列表失败')}finally{loading2.value=false}}
 function openQModal(row:Question|null){editingQId.value=row?.id??null;if(row){Object.assign(qForm,row)}else{Object.assign(qForm,{bankId:qBankFilter.value||0,questionType:1,content:'',standardAnswer:'',defaultScore:5,sortNum:0})};showQModal.value=true}
 async function saveQ(){if(!qForm.content.trim()){message.warning('请输入题目内容');return};saving.value=true;try{editingQId.value?await api.updateQuestion(editingQId.value,{...qForm}):await api.addQuestion({...qForm});message.success('成功');showQModal.value=false;await fetchQuestions()}catch{message.error('失败')}finally{saving.value=false}}
 async function handleDelQ(row:Question){try{await api.deleteQuestion(row.id!);message.success('已删除');await fetchQuestions()}catch{message.error('失败')}}
