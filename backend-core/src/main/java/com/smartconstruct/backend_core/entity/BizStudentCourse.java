@@ -8,17 +8,11 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("biz_course")
-public class BizCourse {
+@TableName("biz_student_course")
+public class BizStudentCourse {
     @TableId(type = IdType.AUTO)
     private Long id;
-    private String courseName;
-    private String courseCode;
-    private String description;
-    private Integer status;
-    private Integer needEnrollCode;
-    private String enrollCode;
-    private Long creatorId;
+    private Long studentId;
+    private Long courseId;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

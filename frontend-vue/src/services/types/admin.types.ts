@@ -31,8 +31,30 @@ export interface Course {
   status: number
   needEnrollCode?: number
   enrollCode?: string
+  creatorId?: number
   createdAt?: string
   updatedAt?: string
+}
+
+export interface AvailableCourse {
+  id: number
+  courseName: string
+  courseCode: string
+  description?: string
+  status: number
+  needEnrollCode: number
+  createdAt?: string
+  updatedAt?: string
+  isEnrolled: boolean
+}
+
+export interface EnrolledCourse {
+  id: number
+  courseName: string
+  courseCode: string
+  description?: string
+  status: number
+  createdAt?: string
 }
 
 export interface NodeDef {
