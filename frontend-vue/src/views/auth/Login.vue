@@ -98,7 +98,7 @@ const handleLogin = async () => {
     const res = await loginApi({
       username: account.value,
       password: password.value,
-      roleType: roleMap[currentRole.value]
+      roleType: roleMap[currentRole.value]!
     })
     if (res.code === 200 && res.data) {
       const { token, userId, username, roleType } = res.data
