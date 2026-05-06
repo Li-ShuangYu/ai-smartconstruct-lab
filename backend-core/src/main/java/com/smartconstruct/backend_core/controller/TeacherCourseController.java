@@ -6,7 +6,6 @@ import com.smartconstruct.backend_core.annotation.OperationLog;
 import com.smartconstruct.backend_core.dto.ApiResult;
 import com.smartconstruct.backend_core.dto.PageResult;
 import com.smartconstruct.backend_core.entity.BizCourse;
-import com.smartconstruct.backend_core.entity.SysUser;
 import com.smartconstruct.backend_core.service.ICourseService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -40,8 +39,8 @@ public class TeacherCourseController {
     @OperationLog(action = "教师新增课程")
     @PostMapping
     public ApiResult<Void> create(@RequestBody BizCourse course) {
-        SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        course.setCreatorId(user.getId());
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        course.setCreatorId(Long.parseLong(username));
         course.setStatus(0);
         course.setCreatedAt(LocalDateTime.now());
         course.setUpdatedAt(LocalDateTime.now());
