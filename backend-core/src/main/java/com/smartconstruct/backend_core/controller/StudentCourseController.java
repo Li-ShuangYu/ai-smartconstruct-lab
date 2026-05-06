@@ -7,6 +7,7 @@ import com.smartconstruct.backend_core.dto.ApiResult;
 import com.smartconstruct.backend_core.dto.PageResult;
 import com.smartconstruct.backend_core.entity.BizCourse;
 import com.smartconstruct.backend_core.entity.BizStudentCourse;
+import com.smartconstruct.backend_core.entity.SysUser;
 import com.smartconstruct.backend_core.service.ICourseService;
 import com.smartconstruct.backend_core.service.IStudentCourseService;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,12 +31,17 @@ public class StudentCourseController {
         this.studentCourseService = studentCourseService;
     }
 
+    private Long getCurrentUserId() {
+        SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return user.getId();
+    }
+
     @GetMapping("/available")
     public ApiResult<PageResult<Map<String, Object>>> available(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize,
             @RequestParam(required = false) String keyword) {
-        Long studentId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
+        Long studentId = getCurrentUserId();
 
         LambdaQueryWrapper<BizCourse> qw = new LambdaQueryWrapper<>();
         qw.eq(BizCourse::getStatus, 1);
@@ -75,7 +81,7 @@ public class StudentCourseController {
     @OperationLog(action = "学生选课")
     @PostMapping("/enroll/{courseId}")
     public ApiResult<Void> enroll(@PathVariable Long courseId, @RequestBody(required = false) Map<String, String> body) {
-        Long studentId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
+        Long studentId = getCurrentUserId();
 
         BizCourse course = courseService.getById(courseId);
         if (course == null) {
@@ -109,7 +115,7 @@ public class StudentCourseController {
     public ApiResult<PageResult<Map<String, Object>>> myCourses(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize) {
-        Long studentId = Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
+        Long studentId = getCurrentUserId();
 
         LambdaQueryWrapper<BizStudentCourse> scQw = new LambdaQueryWrapper<>();
         scQw.eq(BizStudentCourse::getStudentId, studentId);
