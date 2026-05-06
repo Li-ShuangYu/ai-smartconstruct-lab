@@ -46,9 +46,10 @@ const ticketCols: DataTableColumns<Ticket> = [
   {title:'内容',key:'content',ellipsis:{tooltip:true},width:300},
   {title:'状态',key:'status',width:90,render(row){const s=sm[row.status]||sm[0];return h(NTag,{type:s.type as any,size:'small'},{default:()=>s.label})}},
   {title:'提交时间',key:'createdAt',width:160},
-  {title:'操作',key:'actions',width:100,render(row){return h('div',{style:'display:flex;gap:6px'},[
+  {title:'操作',key:'actions',width:160,render(row){return h('div',{style:'display:flex;gap:6px'},[
     h(NButton,{size:'tiny',type:'success',onClick:()=>doTicketStatus(row,2),disabled:row.status===2},{default:()=>'解决'}),
-    h(NButton,{size:'tiny',onClick:()=>doTicketStatus(row,1),disabled:row.status===1},{default:()=>'处理'})
+    h(NButton,{size:'tiny',onClick:()=>doTicketStatus(row,1),disabled:row.status===1},{default:()=>'处理'}),
+    h(NButton,{size:'tiny',type:'error',onClick:()=>handleDelTicket(row)},{default:()=>'删除'})
   ])}}
 ]
 
@@ -64,6 +65,7 @@ function onTicketFilter(){ticketPage.value=1;fetchTickets()}
 async function fetchTickets(){loading1.value=true;try{const r=await api.getTickets(ticketPage.value,ticketPS.value,ticketStatusFilter.value);if(r.code===200)ticketData.value=r.data!}catch{}finally{loading1.value=false}}
 async function fetchFbs(){loading2.value=true;try{const r=await api.getFeedbacks(fbPage.value,fbPS.value);if(r.code===200)fbData.value=r.data!}catch{}finally{loading2.value=false}}
 async function doTicketStatus(row:Ticket,status:number){try{await api.updateTicketStatus(row.id!,status);message.success('已更新');await fetchTickets()}catch{message.error('失败')}}
+async function handleDelTicket(row:Ticket){try{await api.deleteTicket(row.id!);message.success('已删除');await fetchTickets()}catch{message.error('失败')}}
 async function handleDelFb(row:Feedback){try{await api.deleteFeedback(row.id!);message.success('已删除');await fetchFbs()}catch{message.error('失败')}}
 onMounted(async()=>{await fetchTickets();await fetchFbs()})
 </script>

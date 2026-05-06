@@ -67,6 +67,7 @@ export const deleteQuestion = (id: number) => http.delete<ApiResult<void>>(`/api
 // ===== 系统中心 - 工单 =====
 export const getTickets = (page = 1, pageSize = 10, status?: number) =>
   http.get<ApiResult<PageResult<Ticket>>>('/api/admin/tickets', { params: { page, pageSize, status } }).then(r => r.data)
+export const deleteTicket = (id: number) => http.delete<ApiResult<void>>(`/api/admin/tickets/${id}`).then(r => r.data)
 export const updateTicketStatus = (id: number, status: number) =>
   http.put<ApiResult<void>>(`/api/admin/tickets/${id}/status?status=${status}`).then(r => r.data)
 

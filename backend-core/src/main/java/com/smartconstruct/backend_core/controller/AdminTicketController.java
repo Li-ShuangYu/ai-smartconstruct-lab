@@ -48,4 +48,11 @@ public class AdminTicketController {
         ticketService.updateById(ticket);
         return ApiResult.ok();
     }
+
+    @OperationLog(action = "删除工单")
+    @DeleteMapping("/{id}")
+    public ApiResult<Void> delete(@PathVariable Long id) {
+        ticketService.removeById(id);
+        return ApiResult.ok();
+    }
 }

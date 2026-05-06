@@ -1,9 +1,19 @@
 {
   "permissions": {
     "allow": [
+      "Bash(*)",
+      "Update(//c/Dev/Projects/Work/ai-smartconstruct-lab/**)",
+      "Write(//c/Dev/Projects/Work/ai-smartconstruct-lab/**)",
+      "Read(//c/Dev/**)",
       "Bash(npm install *)",
       "Bash(npm config *)",
-      "Bash(npm ping *)"
+      "Bash(npm ping *)",
+      "Bash(/c/Dev/Envs/mysql/mysql-8.0.45-winx64/bin/mysql.exe *)",
+      "Bash(mvn compile *)",
+      "Read(//c/Dev/Envs//**)",
+      "Bash(where.exe mvn *)",
+      "Bash(./mvnw compile *)",
+      "Bash(npx vue-tsc *)"
     ]
   }
 }
