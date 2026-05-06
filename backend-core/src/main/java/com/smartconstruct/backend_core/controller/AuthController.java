@@ -14,8 +14,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -32,19 +30,12 @@ public class AuthController {
 
     @PostMapping("/register")
     public ApiResult<Void> register(@Validated @RequestBody RegisterRequest req) {
-        SysUser exist = sysUserService.getOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, req.getUsername()));
-        if (exist != null) {
-            return ApiResult.error("用户名已被注册");
+        try {
+            sysUserService.registerUser(req);
+            return ApiResult.ok();
+        } catch (RuntimeException e) {
+            return ApiResult.error(e.getMessage());
         }
-        SysUser user = new SysUser();
-        user.setUsername(req.getUsername());
-        user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
-        user.setRoleType(req.getRoleType() != null ? req.getRoleType() : 3);
-        user.setStatus(0);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
-        sysUserService.save(user);
-        return ApiResult.ok();
     }
 
     @PostMapping("/login")

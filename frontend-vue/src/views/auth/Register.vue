@@ -6,12 +6,12 @@
     </div>
 
     <div class="role-segment">
-      <div 
-        v-for="role in roles" 
+      <div
+        v-for="role in roles"
         :key="role.id"
         class="segment-item"
         :class="{ active: currentRole === role.id }"
-        @click="currentRole = role.id"
+        @click="switchRole(role.id)"
       >
         <div class="icon" v-html="role.icon"></div>
         <span>{{ role.label }}</span>
@@ -22,16 +22,50 @@
       <div class="input-group">
         <div class="input-field">
           <i class="fas fa-id-card input-icon"></i>
-          <input type="text" v-model="form.id" :placeholder="idPlaceholder" required />
+          <input type="text" v-model="form.username" :placeholder="idPlaceholder" required />
         </div>
       </div>
 
       <div class="input-group">
         <div class="input-field">
           <i class="fas fa-user input-icon"></i>
-          <input type="text" v-model="form.name" placeholder="请输入真实姓名" required />
+          <input type="text" v-model="form.realName" placeholder="请输入真实姓名" required />
         </div>
       </div>
+
+      <!-- 院系下拉 -->
+      <div class="input-group">
+        <div class="input-field">
+          <i class="fas fa-building input-icon"></i>
+          <select v-model="selectedDeptId" class="form-select">
+            <option value="" disabled>请选择院系</option>
+            <option v-for="d in deptList" :key="d.id" :value="d.id">{{ d.deptName }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 学生专属：专业 + 班级 -->
+      <template v-if="currentRole === 'student'">
+        <div class="input-group">
+          <div class="input-field">
+            <i class="fas fa-graduation-cap input-icon"></i>
+            <select v-model="selectedMajorId" class="form-select" :disabled="!selectedDeptId">
+              <option value="" disabled>请选择专业</option>
+              <option v-for="m in majorList" :key="m.id" :value="m.id">{{ m.majorName }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <div class="input-field">
+            <i class="fas fa-users input-icon"></i>
+            <select v-model="selectedClassId" class="form-select" :disabled="!selectedMajorId">
+              <option value="" disabled>请选择班级</option>
+              <option v-for="c in classList" :key="c.id" :value="c.id">{{ c.className }}</option>
+            </select>
+          </div>
+        </div>
+      </template>
 
       <div class="input-group">
         <div class="input-field">
@@ -53,7 +87,7 @@
       <button type="submit" class="submit-btn" :disabled="loading">
         {{ loading ? '注册中...' : '立即注册' }}
       </button>
-      
+
       <div class="login-prompt">
         已有账号？<router-link to="/auth/login">返回登录</router-link>
       </div>
@@ -62,9 +96,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { register as registerApi } from '@/services/modules/auth.service'
+import { getDepartments, getMajors, getClasses } from '@/services/modules/org.service'
+import type { Department, Major, AdminClass } from '@/services/types/org.types'
 
 const router = useRouter()
 const currentRole = ref('student')
@@ -72,34 +108,89 @@ const loading = ref(false)
 const errorMsg = ref('')
 const successMsg = ref('')
 
-const roleMap: Record<string, number> = { student: 3, teacher: 2, admin: 1 }
+const roleMap: Record<string, number> = { student: 3, teacher: 2 }
 
 const form = reactive({
-  id: '',
-  name: '',
+  username: '',
+  realName: '',
   password: '',
   confirmPassword: ''
 })
 
+const selectedDeptId = ref<string | number>('')
+const selectedMajorId = ref<string | number>('')
+const selectedClassId = ref<string | number>('')
+
+const deptList = ref<Department[]>([])
+const majorList = ref<Major[]>([])
+const classList = ref<AdminClass[]>([])
+
 const roles = [
   { id: 'student', label: '学生', icon: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 10l-10-5-10 5 10 5 10-5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>' },
-  { id: 'teacher', label: '教师', icon: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h20v14H2z"></path><path d="M12 17v4M8 21h8"></path></svg>' },
-  { id: 'admin', label: '管理', icon: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>' }
+  { id: 'teacher', label: '教师', icon: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h20v14H2z"></path><path d="M12 17v4M8 21h8"></path></svg>' }
 ]
 
 const idPlaceholder = computed(() => {
-  if (currentRole.value === 'student') return '请输入学号'
-  if (currentRole.value === 'teacher') return '请输入工号'
-  return '管理员账号'
+  return currentRole.value === 'student' ? '请输入学号' : '请输入工号'
+})
+
+function switchRole(roleId: string) {
+  currentRole.value = roleId
+  selectedDeptId.value = ''
+  selectedMajorId.value = ''
+  selectedClassId.value = ''
+  majorList.value = []
+  classList.value = []
+}
+
+// 级联：院系 → 专业
+watch(selectedDeptId, async (val) => {
+  selectedMajorId.value = ''
+  selectedClassId.value = ''
+  majorList.value = []
+  classList.value = []
+  if (val) {
+    try {
+      const res = await getMajors(val as number)
+      if (res.code === 200) majorList.value = res.data || []
+    } catch { /* ignore */ }
+  }
+})
+
+// 级联：专业 → 班级
+watch(selectedMajorId, async (val) => {
+  selectedClassId.value = ''
+  classList.value = []
+  if (val) {
+    try {
+      const res = await getClasses(val as number)
+      if (res.code === 200) classList.value = res.data || []
+    } catch { /* ignore */ }
+  }
+})
+
+onMounted(async () => {
+  try {
+    const res = await getDepartments()
+    if (res.code === 200) deptList.value = res.data || []
+  } catch { /* ignore */ }
 })
 
 const handleRegister = async () => {
   errorMsg.value = ''
   successMsg.value = ''
 
-  if (!form.id || !form.password || !form.confirmPassword) {
+  if (!form.username || !form.realName || !form.password || !form.confirmPassword) {
     errorMsg.value = '请填写所有必填项'
     return
+  }
+  if (!selectedDeptId.value) {
+    errorMsg.value = '请选择所属院系'
+    return
+  }
+  if (currentRole.value === 'student') {
+    if (!selectedMajorId.value) { errorMsg.value = '请选择专业'; return }
+    if (!selectedClassId.value) { errorMsg.value = '请选择班级'; return }
   }
   if (form.password !== form.confirmPassword) {
     errorMsg.value = '两次输入的密码不一致'
@@ -113,15 +204,19 @@ const handleRegister = async () => {
   loading.value = true
   try {
     const res = await registerApi({
-      username: form.id,
+      username: form.username,
       password: form.password,
-      roleType: roleMap[currentRole.value]
+      roleType: roleMap[currentRole.value],
+      realName: form.realName,
+      deptId: selectedDeptId.value ? Number(selectedDeptId.value) : undefined,
+      majorId: selectedMajorId.value ? Number(selectedMajorId.value) : undefined,
+      classId: selectedClassId.value ? Number(selectedClassId.value) : undefined,
+      studentNo: currentRole.value === 'student' ? form.username : undefined,
+      employeeNo: currentRole.value === 'teacher' ? form.username : undefined
     })
     if (res.code === 200) {
       successMsg.value = '注册成功，即将跳转登录页...'
-      setTimeout(() => {
-        router.push('/auth/login')
-      }, 1500)
+      setTimeout(() => router.push('/auth/login'), 1500)
     } else {
       errorMsg.value = res.message || '注册失败'
     }
@@ -136,7 +231,7 @@ const handleRegister = async () => {
 <style scoped>
 .register-form-wrapper {
   width: 100%;
-  max-width: 320px;
+  max-width: 360px;
   padding: 0 10px;
 }
 
@@ -158,7 +253,6 @@ const handleRegister = async () => {
   margin: 0;
 }
 
-/* 角色分段控制器：注册页采用更紧凑的设计 */
 .role-segment {
   display: flex;
   gap: 8px;
@@ -192,11 +286,14 @@ const handleRegister = async () => {
   font-weight: 700;
 }
 
-/* 表单紧凑排列 */
 .register-form {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.input-group {
+  margin: 0;
 }
 
 .input-field {
@@ -210,9 +307,11 @@ const handleRegister = async () => {
   left: 14px;
   color: #94a3b8;
   font-size: 13px;
+  z-index: 1;
 }
 
-.input-field input {
+.input-field input,
+.form-select {
   width: 100%;
   padding: 11px 14px 11px 38px;
   border: 1px solid #e2e8f0;
@@ -222,15 +321,26 @@ const handleRegister = async () => {
   background-color: #fcfdfe;
   transition: all 0.2s;
   outline: none;
+  font-family: inherit;
 }
 
-.input-field input:focus {
+.form-select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.form-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input-field input:focus,
+.form-select:focus {
   border-color: #6366F1;
   background-color: #fff;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.06);
 }
 
-/* 按钮与跳转链接 */
 .submit-btn {
   width: 100%;
   padding: 12px;

@@ -40,6 +40,7 @@ public class SecurityConfig {
             .and()
             .authorizeRequests()
             .antMatchers("/api/auth/login", "/api/auth/register", "/api/auth/captcha").permitAll()
+            .antMatchers("/api/public/**").permitAll()
             .antMatchers("/api/**").authenticated()
             .anyRequest().permitAll()
             .and()
