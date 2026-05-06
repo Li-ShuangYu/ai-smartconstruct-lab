@@ -58,6 +58,11 @@ public class AuthController {
         return ApiResult.ok(resp);
     }
 
+    @PostMapping("/logout")
+    public ApiResult<Void> logout() {
+        return ApiResult.ok();
+    }
+
     @GetMapping("/userinfo")
     public ApiResult<AuthResponse> userinfo() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();

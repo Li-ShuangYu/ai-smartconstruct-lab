@@ -12,11 +12,15 @@
       <button class="icon-btn">
         <span class="icon">🔔</span>
       </button>
-      
-      <div class="user-profile" @click="loginout">
+
+      <div class="user-profile">
         <div class="avatar">管</div>
         <span class="user-name">Admin</span>
       </div>
+
+      <button class="logout-btn" @click="loginout" title="退出登录">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+      </button>
     </div>
   </header>
 </template>
@@ -24,10 +28,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/modules/auth.store'
 
 const route = useRoute()
 const router = useRouter()
-// 假设你在路由 meta 中定义了 title
+const authStore = useAuthStore()
 const currentRouteTitle = computed(() => route.meta.title || '工作台')
 
 const switchToAdmin = () => {
@@ -35,6 +40,7 @@ const switchToAdmin = () => {
 }
 
 const loginout = () => {
+  authStore.logout()
   router.push('/auth/login')
 }
 </script>
@@ -113,7 +119,6 @@ const loginout = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  cursor: pointer;
 }
 
 .avatar {
@@ -133,5 +138,23 @@ const loginout = () => {
   font-size: 14px;
   font-weight: 500;
   color: var(--text-primary, #111827);
+}
+
+.logout-btn {
+  background: none;
+  border: 1px solid #E5E7EB;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: pointer;
+  color: #6B7280;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  color: #DC2626;
+  border-color: #FECACA;
+  background: #FEF2F2;
 }
 </style>

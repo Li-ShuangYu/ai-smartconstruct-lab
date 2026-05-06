@@ -80,9 +80,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/modules/auth.store'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const switchToHome = () => {
   router.push('/student')
@@ -125,8 +127,8 @@ const handleAction = (path: string) => {
 // 退出登录逻辑
 const handleLogout = () => {
   isDropdownOpen.value = false
-  // 此处后续可补充清空 Token 或状态的逻辑
-  router.push('/auth/login') // 假设有登录页路由
+  authStore.logout()
+  router.push('/auth/login')
 }
 </script>
 

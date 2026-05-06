@@ -51,9 +51,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/modules/auth.store'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 // 假设你在路由 meta 中定义了 title
 const currentRouteTitle = computed(() => route.meta.title || '工作台')
@@ -94,8 +96,8 @@ const handleAction = (path: string) => {
 // 退出登录逻辑
 const handleLogout = () => {
   isDropdownOpen.value = false
-  // 此处后续可补充清空 Token 或状态的逻辑
-  router.push('/auth/login') 
+  authStore.logout()
+  router.push('/auth/login')
 }
 </script>
 
