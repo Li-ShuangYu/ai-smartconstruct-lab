@@ -20,6 +20,7 @@
 | Naive UI | Vue 3组件库 | 2.x |
 | Vue Flow | 流程图/节点编排组件 | 11.x |
 | NProgress | 路由进度条 | - |
+| Axios | HTTP客户端 | 1.x |
 
 ---
 
@@ -38,6 +39,11 @@ frontend-vue/
 │   │   │   ├── layout.css    # 全局布局规范
 │   │   │   ├── components.css # 通用组件样式
 │   │   │   └── base.css       # 基础样式
+│   │   ├── audio/             # 音频资源
+│   │   │   ├── 侧信道.mp3
+│   │   │   ├── 后量子算法.mp3
+│   │   │   ├── 抗重放.mp3
+│   │   │   └── 轻量级.mp3
 │   │   ├── AIZG-Logo.png      # 品牌Logo
 │   │   ├── auth-illustration.png # 登录页插图
 │   │   ├── logo.svg           # SVG图标
@@ -53,6 +59,10 @@ frontend-vue/
 │   │   └── layout/           # 布局组件
 │   │       ├── AuthLayout/   # 认证布局（登录/注册）
 │   │       │   └── index.vue
+│   │       ├── TrainingLayout/ # 实训布局
+│   │       │   ├── index.vue
+│   │       │   ├── StudentHeader.vue
+│   │       │   └── TeacherHeader.vue
 │   │       └── WorkbenchLayout/ # 工作台布局
 │   │           ├── index.vue         # 主布局入口
 │   │           ├── Sidebar.vue       # 通用侧边栏
@@ -86,13 +96,15 @@ frontend-vue/
 │   │   │   ├── auth.types.ts
 │   │   │   ├── user.types.ts
 │   │   │   ├── training.types.ts
-│   │   │   └── homework.types.ts
+│   │   │   ├── homework.types.ts
+│   │   │   └── org.types.ts
 │   │   └── modules/          # API服务
 │   │       ├── auth.service.ts
 │   │       ├── user.service.ts
 │   │       ├── training.service.ts
 │   │       ├── homework.service.ts
-│   │       └── assistant.service.ts
+│   │       ├── assistant.service.ts
+│   │       └── org.service.ts
 │   │
 │   ├── stores/                # 状态管理
 │   │   ├── index.ts          # Store入口
@@ -111,11 +123,13 @@ frontend-vue/
 │   │
 │   ├── views/                # 页面组件
 │   │   ├── auth/            # 认证页面
+│   │   │   ├── Login.vue    # 登录页
+│   │   │   └── Register.vue # 注册页
 │   │   ├── teacher/         # 教师端页面
 │   │   ├── student/         # 学生端页面
 │   │   ├── admin/           # 管理员端页面
 │   │   ├── homework/        # 作业页面
-│   │   ├── training/         # 实训页面
+│   │   ├── training/        # 实训页面
 │   │   └── common/          # 公共页面
 │   │
 │   ├── rules/               # 开发规范
@@ -135,6 +149,42 @@ frontend-vue/
 ├── index.html              # HTML入口
 ├── env.d.ts               # 环境声明
 └── README.md              # 项目说明
+```
+
+---
+
+## 🚀 快速开始
+
+### 环境要求
+
+- Node.js 18+
+- npm 9+
+
+### 安装依赖
+
+```bash
+cd frontend-vue
+npm install
+```
+
+### 开发模式
+
+```bash
+npm run dev
+```
+
+访问: http://localhost:5173
+
+### 构建生产版本
+
+```bash
+npm run build
+```
+
+### 预览生产版本
+
+```bash
+npm run preview
 ```
 
 ---
@@ -170,7 +220,14 @@ frontend-vue/
 │   ├── /student/my-class          # 我的班级
 │   ├── /student/courselist        # 课程列表
 │   ├── /student/notifications     # 消息通知
+│   ├── /student/my-homework       # 我的作业
+│   ├── /student/my-submission     # 我的提交
+│   ├── /student/my-training       # 我的实训
 │   └── /student/profile           # 个人中心
+│
+├── /training              # 实训模块
+│   ├── /training/theory           # 理论实训
+│   └── /training/code             # 代码实训
 │
 ├── /admin                 # 管理员后台
 │   ├── /admin/teacher     # 教师管理
@@ -195,6 +252,7 @@ frontend-vue/
 1. **进度条**：使用 NProgress 显示页面加载进度
 2. **角色注入**：根据路径自动注入 `meta.role`（student/teacher/admin/auth）
 3. **标题设置**：自动设置页面标题，格式为 `{页面标题} - AI学苑`
+4. **权限校验**：检查登录状态，未登录用户重定向到登录页
 
 ---
 
@@ -397,493 +455,90 @@ frontend-vue/
 - **UI特性**：
   - **背景效果**：动态光晕背景（bg-glow、radial-gradient）
   - **Hero区域**：品牌Logo + AI对话气泡 + 快捷建议标签（解释抗重放机制/SM4编程第一步/查看我的进度）
-  - **AI对话界面**：输入框 + 发送按钮，支持语音图标
-  - **玻璃态卡片**：backdrop-filter blur 毛玻璃效果，悬浮动画
-  - **Tab导航**：全部实训/进行中/已结束切换
-  - **实训卡片网格**：
-    - 课程标签（国密算法、密码学等）
-    - 状态指示器（ongoing/not_started/ended）
-    - 进度条（渐变色填充）
-    - 截止日期展示
-    - 继续/查看按钮
-  - **自定义分页**：融入玻璃态设计风格
-  - **底部状态栏**：版本信息 + 更新说明
-- **业务场景**：密码学多智能体协同实训教室，沉浸式学习体验
-
-#### StudentCabin.vue
-- **路径**：`/student/student-cabin/:id`
-- **功能**：沉浸式实训舱，WebIDE风格，左侧AI指导 + 右侧代码编辑
-- **技术实现**：
-  - 全屏深色主题布局（100vh）
-  - 左右分栏结构（flex）
-  - 聊天消息流渲染（v-for、动态class）
-  - 响应式高度计算
-- **UI特性**：
-  - **左侧AI助手面板**（白色背景，宽度400px）：
-    - Header：标题 "理论指导伙伴 (LangChain 驱动)"
-    - 聊天消息流：AI气泡（灰色背景）、用户气泡（紫色背景）、思考状态提示
-    - 输入区域：输入框 + 发送按钮
-  - **右侧IDE容器**（深色背景，flex: 1）：
-    - IDE Header：文件名显示 + 编译验证按钮（绿色）
-    - 代码编辑器区：等宽字体，预设代码模板（SM4时间戳校验）
-    - 底部终端区：暗黑色背景，绿色命令行风格输出
-- **布局**：ai-assistant (400px) + ide-container (flex: 1)
-- **业务场景**：无人机抗重放攻击的 SM4 密钥配置实训，AI 实时指导编程
-
-#### TrainingDetail.vue
-- **路径**：`/student/training-detail/:id`
-- **功能**：实训详情查看（只读模式）
-- **技术实现**：路由参数获取实训ID，详情数据展示
-
-#### MyClass.vue
-- **路径**：`/student/my-class`
-- **功能**：我的班级、班级成员查看
-- **UI特性**：班级信息卡片、成员列表展示
-
-#### CourseList.vue
-- **路径**：`/student/courselist`
-- **功能**：选修课程列表，搜索 + 分页
-- **技术实现**：
-  - Vue 3 Composition API + `<script setup>`
-  - 计算属性过滤（filteredList）
-  - 分页状态管理（currentPage、pageSize）
-  - Pagination 组件集成
-- **UI特性**：
-  - **页头**：标题 + 搜索框（实时过滤课程名或教师名）
-  - **卡片网格**：每张卡片显示课程代码、类型标签、名称、教师、学分
-  - **操作按钮**：进入课程区
-  - **空状态**：无匹配数据显示友好提示
-- **业务场景**：密码系统设计、UAV通信加密专论等课程选修
-
-#### MyTraining.vue
-- **路径**：`/student/my-training`
-- **功能**：我的实训记录，学习历程追踪
-- **UI特性**：实训历史列表、时间线展示
-
-#### MyHomework.vue
-- **路径**：`/student/my-homework`
-- **功能**：我的作业列表，提交状态查看
-- **UI特性**：作业列表、批改状态标签
-
-#### MySubmission.vue
-- **路径**：`/student/my-submission`
-- **功能**：我的提交记录，代码和答案追踪
-- **UI特性**：提交历史、版本对比
-
-#### Notifications.vue
-- **路径**：`/student/notifications`
-- **功能**：系统通知、个人消息中心
-- **UI特性**：消息列表、时间轴、未读标记
-
-#### UserProfile.vue
-- **路径**：`/student/profile`
-- **功能**：个人中心，信息编辑
-- **UI特性**：个人信息展示、编辑表单
-
-### 管理员端 (admin)
-
-#### TeacherManage.vue
-- **路径**：`/admin/teacher`
-- **功能**：教师账号管理（增删改查）
-- **技术实现**：
-  - 复用 AdminStandardPage 通用组件
-  - TypeScript 列定义接口
-  - 模拟数据列表
-- **UI特性**：
-  - **表格列**：教职工号、姓名、所属院系、账号状态
-  - **状态标签**：账号状态标签（正常/禁用等）
-  - **操作按钮**：编辑、删除
-- **布局**：使用 AdminStandardPage 统一后台管理页面样式
-
-#### StudentManage.vue
-- **路径**：`/admin/student`
-- **功能**：学生账号管理
-- **技术实现**：AdminStandardPage 组件复用，数据类型定义
-- **UI特性**：学生表格、批量操作支持
-
-#### OrgManage.vue
-- **路径**：`/admin/org`
-- **功能**：组织机构管理（学校/院系）
-- **技术实现**：树形数据结构、递归组件渲染
-- **UI特性**：树形结构展示、增删改操作
-
-#### CourseManage.vue
-- **路径**：`/admin/course`
-- **功能**：课程模板管理
-- **技术实现**：CRUD 操作、数据持久化模拟
-- **UI特性**：课程列表、类型标签
-
-#### MenuManage.vue
-- **路径**：`/admin/menu`
-- **功能**：系统菜单配置
-- **技术实现**：菜单树编辑、层级关系管理
-- **UI特性**：菜单树编辑界面、拖拽排序
-
-#### NodeManage.vue
-- **路径**：`/admin/node`
-- **功能**：节点/题库管理，实训原子组件配置
-- **技术实现**：节点类型定义、配置界面
-- **UI特性**：节点列表、属性编辑
-
-#### TemplateDashboard.vue
-- **路径**：`/admin/template`
-- **功能**：实训模板管理
-- **技术实现**：模板列表、分类管理
-- **UI特性**：模板卡片、操作按钮
-
-#### QuestionDashboard.vue
-- **路径**：`/admin/question`
-- **功能**：题目管理
-- **技术实现**：题目 CRUD、分类标签
-- **UI特性**：题目编辑、题目库列表
-
-#### TicketManage.vue
-- **路径**：`/admin/ticket`
-- **功能**：工单/问题反馈处理
-- **技术实现**：工单状态流转、处理流程
-- **UI特性**：工单列表、状态标签
-
-#### ServiceMonitor.vue
-- **路径**：`/admin/monitor`
-- **功能**：系统服务监控
-- **技术实现**：状态指标采集、前端可视化
-- **UI特性**：状态指示、图表展示
-
-#### AuditLog.vue
-- **路径**：`/admin/audit`
-- **功能**：操作审计日志
-- **技术实现**：日志查询、时间范围筛选
-- **UI特性**：日志列表、时间线
-
-#### AdminStandardPage.vue
-- **路径**：（通用组件，被各管理页面复用）
-- **功能**：统一后台管理页面模板，减少重复代码
-- **技术实现**：
-  - Vue 3 defineProps 接收配置参数
-  - 搜索过滤（filteredData computed）
-  - 分页状态管理
-  - defineEmits 定义事件
-  - CSS Grid 布局
-- **Props配置**：
-  - title：页面标题
-  - columns：列定义数组（key, label, isTag）
-  - data：数据源数组
-  - gridLayout：表格列宽布局
-- **Events**：
-  - add：新增数据
-  - edit：编辑数据
-  - delete：删除数据
-- **UI特性**：
-  - **工具栏**：搜索框 + 新增按钮
-  - **表头行**：Grid 布局，列定义
-  - **数据行**：v-for 渲染，支持状态标签
-  - **操作列**：编辑/删除按钮
-  - **空状态**：无数据显示友好提示
-  - **分页组件**：Pagination 复用
-
-### 作业模块 (homework)
-
-#### ExamPage.vue
-- **路径**：`/homework/exam`
-- **功能**：在线考试页面
-- **技术实现**：
-  - 计时器功能（setInterval）
-  - 题目状态管理
-  - 答案暂存机制
-- **UI特性**：考试界面、进度显示、计时器
-
-#### HomeworkDetail.vue
-- **路径**：`/homework/detail`
-- **功能**：作业详情查看与批改
-- **UI特性**：作业内容展示、批改状态
-
-#### MindMapPractice.vue
-- **路径**：`/homework/mindmap`
-- **功能**：思维导图练习
-- **技术实现**：
-  - Vue Flow 封装实现思维导图
-  - 节点编辑、连线
-- **UI特性**：节点可视化、拖拽编辑
-
-### 实训模块 (training)
-
-#### CodeTraining.vue
-- **路径**：`/training/code`
-- **功能**：编码实训舱
-- **技术实现**：代码编辑器集成
-- **UI特性**：Monaco Editor 或类似编辑器
-
-#### TheoryTraining.vue
-- **路径**：`/training/theory`
-- **功能**：理论实训（选择题/填空题）
-- **UI特性**：题目展示、答题卡
-
-### 学生实训流程 (studentTraining)
-
-#### StudentGroupChoose.vue
-- **路径**：`/training/student-training/group-choose`
-- **功能**：课题攻坚方向选择，学生组队入口
-- **技术实现**：
-  - Vue 3 Composition API + Transition 动画组件
-  - 响应式状态管理（selectedGroupId、isLoading）
-  - 本地存储操作（getColorFromStorage）
-  - 路由编程式导航（goToTaskSelect）
-- **UI特性**：
-  - **页头区域**：标题 + 确认按钮（根据选择状态动态启用/禁用）
-  - **小组卡片网格**：4宫格玻璃态卡片，支持 hover 效果和选中状态
-  - **卡片内容**：组号标签（带主题色）、算法名称、人物画像、性格标签、做事风格描述
-  - **选中状态**：卡片边框高亮 + 对勾图标显示
-  - **成功弹窗**：组队成功后展示模态框，显示团队成员列表
-  - **动画效果**：fade-in、fade-up、transition-group 列表动画
-- **业务场景**：密码学研究方向选择（低功耗优化/侧信道防护/抗重放攻击/后量子算法）
-
-#### StudentTaskSelect.vue
-- **路径**：`/training/student-training/task-select`
-- **功能**：需求分析 - 任务接收与选择
-- **技术实现**：
-  - Toast 提示组件（transition + v-if）
-  - 等待接收动画状态管理（isReceiving）
-  - 任务选择状态管理（selectedGroupId、hoveredGroup）
-- **UI特性**：
-  - **顶部Toast**：任务确认成功提示，带勾号图标
-  - **状态指示器**：根据选择状态显示不同颜色
-  - **等待接收遮罩**：加载动画 + 调试跳过按钮
-  - **主线任务横幅**：玻璃态卡片展示核心任务描述
-  - **支线任务4宫格**：可选择的任务方向卡片，带 AI 助教分析
-  - **确认按钮**：根据选择状态动态变化
-- **业务场景**：无人机通信加密系统全流程设计任务分配
-
-#### StudentAiGenerate.vue
-- **路径**：`/training/student-training/ai-generate`
-- **功能**：AI 辅助代码生成控制台
-- **技术实现**：
-  - VSCode 风格布局（header + sidebar + editor + terminal）
-  - 模拟硬件遥测数据（mockCpu、mockRam）
-  - 雷达扫描动画效果
-  - 代码高亮展示
-  - 终端日志实时输出
-- **UI特性**：
-  - **顶部状态栏**：设备连接状态指示（ONLINE/WAITING）
-  - **左侧面板**：
-    - AI 任务下发控制台：显示当前提示词，一键生成 ROS 代码
-    - 环境与硬件遥测：CPU/内存进度条、雷达扫描动画
-  - **右侧面板**：
-    - 代码编辑器：仿 VSCode 标签页，显示 Python ROS 代码
-    - 终端面板：命令行风格输出日志
-  - **模态遮罩**：AI 诊断中显示加载动画
-- **业务场景**：冰达 NanoCar 智能调试，一键生成巡线与图传代码
-
-#### StudentDebug.vue
-- **路径**：`/training/student-training/debug`
-- **功能**：代码调试与闭环验证
-- **技术实现**：
-  - 代码差异高亮（diffType: added/removed）
-  - 多标签页编辑器（仿 VSCode）
-  - 终端日志实时滚动
-  - 错误提示与修复建议
-- **UI特性**：
-  - **顶部提示条**：成功/错误状态提示（fade-down 动画）
-  - **编辑器主体**：
-    - Mac 风格窗口控制按钮
-    - 面包屑导航路径
-    - 代码差异条（接受/拒绝变更）
-    - 行号 + 差异标记（绿色新增/红色删除）
-  - **终端面板**：多标签（问题/输出/调试控制台/终端）
-- **业务场景**：ROS 代码调试，处理权限错误、订阅失败等问题
-
-#### StudentSchemeUpload.vue
-- **路径**：`/training/student-training/scheme-upload`
-- **功能**：方案文档上传与提交
-- **技术实现**：文件上传、进度追踪、提交确认
-
-#### StudentSchemeDetail.vue
-- **路径**：`/training/student-training/scheme-detail`
-- **功能**：各组方案互评详情
-- **技术实现**：
-  - 多组方案切换（prevGroup/nextGroup）
-  - 评分状态管理（allReviewsSubmitted）
-  - 动态主题色获取（getHexColor）
-- **UI特性**：
-  - **12列栅格布局**：基础信息(3列) + 架构展示(5列) + 互评面板(4列)
-  - **左侧信息卡**：方案代号、副标题、目标硬件、核心算法列表
-  - **中间架构区**：系统架构层级展示、安全流程图
-  - **右侧互评区**：评分表单、评语输入、提交状态
-- **业务场景**：学生小组方案互评打分
-
-#### StudentTaskSplit.vue
-- **路径**：`/training/student-training/task-split`
-- **功能**：任务分工与协作
-- **技术实现**：任务分配、角色分工、进度跟踪
-
-#### StudentRobotDebug.vue
-- **路径**：`/training/student-training/robot-debug`
-- **功能**：机器人调试界面
-- **技术实现**：硬件状态监控、调试工具集成
-
-#### StudentDeploy.vue
-- **路径**：`/training/student-training/deploy`
-- **功能**：代码部署到硬件
-- **技术实现**：部署流程、状态反馈
-
-#### StudentMyScoreResult.vue
-- **路径**：`/training/student-training/score-result`
-- **功能**：成绩与评价结果查看
-- **技术实现**：成绩展示、评价详情
-
-### 教师实训流程 (teacherTraining)
-
-#### TeacherDemandSplit.vue
-- **路径**：`/training/teacher-training/demand-split`
-- **功能**：需求分析与分组展示（教师端）
-- **技术实现**：
-  - 4组并行展示（2x2 网格布局）
-  - 加载进度模拟（progress + delay）
-  - 响应式状态管理（reactive）
-- **UI特性**：
-  - **2x2 卡片网格**：每组一个玻璃态卡片，顶部彩色边框区分
-  - **加载动画**：AI 需求深度推演中进度条
-  - **卡片内容**：
-    - 主线需求：通信加密设计
-    - 支线需求：各组专项方向
-    - AI 需求分类与资料推送
-    - 预选方案与分工说明
-- **业务场景**：教师查看各组需求分析结果，确认任务分配
-
-#### TeacherTaskSplit.vue
-- **路径**：`/training/teacher-training/task-split`
-- **功能**：教师任务分配与队歌生成
-- **技术实现**：
-  - 队歌生成状态管理（isGeneratingSongs、allSongsGenerated）
-  - 音乐播放控制（playMusic）
-  - 音频可视化效果（music-wave-container）
-- **UI特性**：
-  - **生成按钮**：状态切换（生成中/已完成）
-  - **音乐播放**：各组独立播放/暂停按钮
-  - **音乐波形动画**：播放时显示跳动柱状图
-- **业务场景**：教师为各组生成队歌，增强团队凝聚力
-
-#### TeacherSchemeSplit.vue
-- **路径**：`/training/teacher-training/scheme-split`
-- **功能**：方案分屏评审（教师端）
-- **技术实现**：
-  - 上传状态监听（uploadedStates）
-  - 自动监听机制
-  - 方案导出功能
-- **UI特性**：
-  - **等待上传状态**：加载动画 + 逐字显示文字
-  - **已上传状态**：方案文档展示、文件预览
-  - **架构评审 Agent 按钮**：等待所有组上传后启用
-  - **自动监听提示**：显示监听中状态
-- **业务场景**：教师实时监控学生方案提交状态
-
-#### TeacherAiEvaluate.vue
-- **路径**：`/training/teacher-training/ai-evaluate`
-- **功能**：方案 AI 评估（教师端）
-- **技术实现**：
-  - 深色主题布局（darkBg、panelBg）
-  - AI 评估进度模拟（progress + scan-line 动画）
-  - 悬停交互效果（hoveredGroup）
-- **UI特性**：
-  - **深色主题**：类似专业 IDE 的暗色风格
-  - **四象限布局**：4个小组的评估报告卡片
-  - **AI 推演动画**：扫描线效果 + 进度条
-  - **评分展示**：AI 综合评分、各项指标
-- **业务场景**：AI 专家系统对各组方案进行深度评估
-
-#### TeacherSchemeDetail.vue
-- **路径**：`/training/teacher-training/scheme-detail`
-- **功能**：方案详情查看（教师端）
-- **技术实现**：方案详情展示、评分管理
-
-#### TeacherSimulation.vue
-- **路径**：`/training/teacher-training/simulation`
-- **功能**：仿真验证（教师端）
-- **技术实现**：仿真参数配置、结果展示
-
-#### TeacherStudentGroup.vue
-- **路径**：`/training/teacher-training/student-group`
-- **功能**：学生分组管理（教师端）
-- **技术实现**：分组配置、成员管理
-
-#### TeacherTaskPublish.vue
-- **路径**：`/training/teacher-training/task-publish`
-- **功能**：任务发布（教师端）
-- **技术实现**：任务配置、发布流程
-
-#### TeacherDemandSummary.vue
-- **路径**：`/training/teacher-training/demand-summary`
-- **功能**：需求汇总（教师端）
-- **技术实现**：需求整理、报告生成
-
-#### TeacherGroupScoreOverview.vue
-- **路径**：`/training/teacher-training/group-score-overview`
-- **功能**：各组成绩总览（教师端）
-- **技术实现**：成绩统计、可视化展示
-
-#### StudentTaskReceive.vue
-- **路径**：`/training/teacher-training/student-task-receive`
-- **功能**：学生任务接收状态监控（教师端）
-- **技术实现**：实时状态监控、进度追踪
 
 ---
 
-## 🔧 开发命令
+## 🔧 配置说明
 
-```bash
-# 安装依赖
-npm install
+### 后端接口配置
 
-# 开发服务器
-npm run dev
+前端默认连接后端地址：`http://localhost:8080`
 
-# 类型检查
-npm run type-check
+如需修改后端地址，请编辑 `src/services/api.ts`：
 
-# 构建生产版本
-npm run build
-
-# 预览生产构建
-npm run preview
+```typescript
+const http: AxiosInstance = axios.create({
+  baseURL: 'http://localhost:8080', // 修改此地址
+  timeout: 15000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+})
 ```
+
+### 跨域配置
+
+后端已配置允许以下前端域名访问：
+- http://localhost:5173
+- http://localhost:5174
+- http://localhost:3000
 
 ---
 
-## 📐 代码规范
+## 📖 开发指南
 
-### 组件规范
+### 添加新页面
 
-1. **使用 `<script setup lang="ts">`** 语法
-2. **类型定义使用 interface**，不使用 type
-3. **组件引用使用 PascalCase**
-4. **Props 使用 defineProps 泛型定义**
+1. 在 `src/views/` 目录创建页面组件
+2. 在 `src/router/modules/` 目录添加路由配置
+3. 在 `src/services/modules/` 添加对应的 API 服务（如需要）
+4. 在 `src/stores/modules/` 添加状态管理（如需要）
 
-### 样式规范
+### 代码规范
 
-1. **使用 CSS 变量**：通过 `var(--xxx)` 引用全局变量
-2. **Scoped CSS**：组件样式使用 `scoped` 属性
-3. **禁止行内样式**：除动态计算值外
-
-### 文件命名
-
-| 类型 | 规范 | 示例 |
-|------|------|------|
-| Vue组件 | PascalCase | `TrainingCreate.vue` |
-| TypeScript文件 | camelCase | `training.service.ts` |
-| 样式文件 | kebab-case | `reset.css` |
-
-### 四层架构
-
-```
-View (.vue) → Store (.store.ts) → Service (.service.ts) → Types (.types.ts)
-```
-
-- **View**：UI渲染、表单校验、调用Store
-- **Store**：状态管理、loading状态、调用Service
-- **Service**：网络请求、返回Promise
-- **Types**：类型定义、接口契约
+- 使用 Vue 3 Composition API + `<script setup>` 语法
+- 使用 TypeScript 进行类型检查
+- 使用 Pinia 进行状态管理
+- 使用 Axios 进行 HTTP 请求
+- 组件命名使用 PascalCase
+- 文件命名使用 kebab-case
 
 ---
 
-## 📄 许可证
+## ❓ 常见问题
 
-MIT License
+### 1. 登录时报"网络错误，请稍后重试"
+
+**问题描述**: 输入正确账号密码后提示网络错误
+
+**原因分析**: 通常是跨域问题或后端服务未启动
+
+**解决方案**:
+1. 确认后端服务正在运行（端口 8080）
+2. 确认前端运行端口已添加到后端 CORS 配置
+3. 使用命令检查端口状态：`netstat -ano | findstr ":8080"`
+
+### 2. 页面显示空白
+
+**问题描述**: 页面加载后显示空白
+
+**排查步骤**:
+1. 打开浏览器开发者工具（F12）
+2. 检查 Console 面板是否有错误
+3. 检查 Network 面板是否有请求失败
+4. 确认路由配置正确
+
+### 3. 构建失败
+
+**问题描述**: `npm run build` 失败
+
+**排查步骤**:
+1. 检查是否有 TypeScript 类型错误
+2. 检查依赖是否安装完整
+3. 尝试删除 `node_modules` 后重新安装
+
+---
+
+## 📞 联系方式
+
+如有问题请联系开发团队。
