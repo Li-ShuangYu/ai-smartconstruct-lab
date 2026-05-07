@@ -98,7 +98,7 @@ async function loadInfo() {
             currentNodeId.value = r.data.currentNodeId
           } else if (info.value.status === 1 && orderedSeq.value.length > 0) {
             // 状态为进行中但无当前节点时，默认取有序序列第一个节点
-            currentNodeId.value = orderedSeq.value[0].node_id
+            currentNodeId.value = orderedSeq.value[0]?.node_id ?? null
           }
         }
     } else message.error(r.message || '加载失败')
