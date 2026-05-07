@@ -89,15 +89,18 @@ async function loadInfo() {
       info.value = r.data
       const json = r.data.templateJson
       if (json) {
-        const payload = typeof json === 'string' ? JSON.parse(json) : json
-        allNodes.value = payload.nodes || []
-        allEdges.value = payload.edges || []
-        orderedSeq.value = buildOrderedSequence(allNodes.value, allEdges.value)
-        // 恢复当前节点（字符串 node_id）
-        if (r.data.currentNodeId) {
-          currentNodeId.value = r.data.currentNodeId
+          const payload = typeof json === 'string' ? JSON.parse(json) : json
+          allNodes.value = payload.nodes || []
+          allEdges.value = payload.edges || []
+          orderedSeq.value = buildOrderedSequence(allNodes.value, allEdges.value)
+          // 恢复当前节点（字符串 node_id）
+          if (r.data.currentNodeId) {
+            currentNodeId.value = r.data.currentNodeId
+          } else if (info.value.status === 1 && orderedSeq.value.length > 0) {
+            // 状态为进行中但无当前节点时，默认取有序序列第一个节点
+            currentNodeId.value = orderedSeq.value[0].node_id
+          }
         }
-      }
     } else message.error(r.message || '加载失败')
   } catch { message.error('加载实训数据失败') } finally { loading.value = false }
 }

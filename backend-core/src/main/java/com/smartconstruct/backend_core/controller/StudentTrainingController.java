@@ -129,11 +129,6 @@ public class StudentTrainingController {
     @PostMapping("/training-tasks/{participationId}/next")
     public ApiResult<Map<String, Object>> next(@PathVariable Long participationId,
                                                 @RequestBody Map<String, Object> body) {
-        WfStudentActivityState state = activityStateService.getOne(
-                new LambdaQueryWrapper<WfStudentActivityState>()
-                        .eq(WfStudentActivityState::getParticipationId, participationId));
-        if (state == null) return ApiResult.error("实训状态不存在");
-
         String nextNodeId = body.get("nextNodeId") != null ? body.get("nextNodeId").toString() : null;
         boolean isEnd = body.get("isEnd") != null && Boolean.TRUE.equals(body.get("isEnd"));
 
@@ -141,8 +136,38 @@ public class StudentTrainingController {
             return ApiResult.error("缺少下一节点ID");
         }
 
+        BizTrainingParticipation pt = participationService.getById(participationId);
+        if (pt == null) return ApiResult.error("实训参与记录不存在");
+
+        // 兜底：如果 state 记录不存在（之前因类型不匹配写入失败），自动创建
+        WfStudentActivityState state = activityStateService.getOne(
+                new LambdaQueryWrapper<WfStudentActivityState>()
+                        .eq(WfStudentActivityState::getParticipationId, participationId));
+        if (state == null) {
+            log.warn("活动状态缺失，自动创建 participationId={}", participationId);
+            state = new WfStudentActivityState();
+            state.setParticipationId(participationId);
+            state.setCurrentNodeId(nextNodeId);
+            state.setUpdatedAt(LocalDateTime.now());
+            activityStateService.save(state);
+
+            // 同步修正 participation 状态（如果之前 start 只改了一半）
+            if (pt.getStatus() == null || pt.getStatus() == 0) {
+                pt.setStatus(1);
+                pt.setUpdatedAt(LocalDateTime.now());
+                participationService.updateById(pt);
+            }
+
+            if (isEnd) {
+                pt.setStatus(2);
+                pt.setUpdatedAt(LocalDateTime.now());
+                participationService.updateById(pt);
+                return ApiResult.ok(Map.of("completed", true, "currentNodeId", nextNodeId));
+            }
+            return ApiResult.ok(Map.of("currentNodeId", nextNodeId, "completed", false));
+        }
+
         if (isEnd) {
-            BizTrainingParticipation pt = participationService.getById(participationId);
             pt.setStatus(2);
             pt.setUpdatedAt(LocalDateTime.now());
             participationService.updateById(pt);
