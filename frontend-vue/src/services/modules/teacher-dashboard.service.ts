@@ -18,6 +18,11 @@ export const updateProfile = (data: Partial<TeacherProfile>) =>
 export const updatePassword = (data: PasswordUpdate) =>
   http.put<ApiResult<void>>('/api/teacher/password', data).then(r => r.data)
 
-export interface CreateTaskParams { templateId: number; taskName: string; dispatchTargetId: number }
+export interface CreateTaskParams { templateId: number; taskName: string; dispatchScope: number; dispatchTargetId: number }
 export const createTrainingTask = (data: CreateTaskParams) =>
   http.post<ApiResult<{ taskId: number; studentCount: number }>>('/api/teacher/training-tasks', data).then(r => r.data)
+
+export const getClassStudents = (classId: number, keyword?: string) =>
+  http.get<ApiResult<{ userId: number; studentNo: string; realName: string; username: string }[]>>(`/api/teacher/classes/${classId}/students`, { params: { keyword } }).then(r => r.data)
+export const getCourseStudents = (courseId: number, keyword?: string) =>
+  http.get<ApiResult<{ userId: number; studentNo: string; realName: string; username: string }[]>>(`/api/teacher/courses/${courseId}/students`, { params: { keyword } }).then(r => r.data)

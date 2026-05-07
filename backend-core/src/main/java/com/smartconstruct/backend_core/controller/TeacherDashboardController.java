@@ -23,16 +23,24 @@ public class TeacherDashboardController {
     private final SysUserService sysUserService;
     private final ITeacherService teacherService;
     private final IDepartmentService departmentService;
+    private final IStudentService studentService;
+    private final IStudentCourseService studentCourseService;
+    private final IAdminClassService adminClassService;
     private final PasswordEncoder passwordEncoder;
 
     public TeacherDashboardController(ITrainingTaskService trainingTaskService, ICourseService courseService,
                                        SysUserService sysUserService, ITeacherService teacherService,
-                                       IDepartmentService departmentService, PasswordEncoder passwordEncoder) {
+                                       IDepartmentService departmentService, IStudentService studentService,
+                                       IStudentCourseService studentCourseService, IAdminClassService adminClassService,
+                                       PasswordEncoder passwordEncoder) {
         this.trainingTaskService = trainingTaskService;
         this.courseService = courseService;
         this.sysUserService = sysUserService;
         this.teacherService = teacherService;
         this.departmentService = departmentService;
+        this.studentService = studentService;
+        this.studentCourseService = studentCourseService;
+        this.adminClassService = adminClassService;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -123,6 +131,55 @@ public class TeacherDashboardController {
         user.setUpdatedAt(LocalDateTime.now());
         sysUserService.updateById(user);
         return ApiResult.ok();
+    }
+
+    @GetMapping("/classes/{id}/students")
+    public ApiResult<List<Map<String, Object>>> classStudents(@PathVariable Long id, @RequestParam(required = false) String keyword) {
+        LambdaQueryWrapper<BizStudent> qw = new LambdaQueryWrapper<BizStudent>().eq(BizStudent::getClassId, id);
+        List<BizStudent> students = studentService.list(qw);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (BizStudent s : students) {
+            SysUser u = sysUserService.getById(s.getUserId());
+            if (u == null) continue;
+            if (keyword != null && !keyword.isBlank()) {
+                String kw = keyword.toLowerCase();
+                if (!(s.getRealName() != null && s.getRealName().toLowerCase().contains(kw))
+                    && !(s.getStudentNo() != null && s.getStudentNo().toLowerCase().contains(kw))) continue;
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("userId", s.getUserId());
+            m.put("studentNo", s.getStudentNo());
+            m.put("realName", s.getRealName());
+            m.put("username", u.getUsername());
+            list.add(m);
+        }
+        return ApiResult.ok(list);
+    }
+
+    @GetMapping("/courses/{id}/students")
+    public ApiResult<List<Map<String, Object>>> courseStudents(@PathVariable Long id, @RequestParam(required = false) String keyword) {
+        List<BizStudentCourse> scList = studentCourseService.list(
+                new LambdaQueryWrapper<BizStudentCourse>().eq(BizStudentCourse::getCourseId, id));
+        List<Long> studentIds = scList.stream().map(BizStudentCourse::getStudentId).collect(java.util.stream.Collectors.toList());
+        if (studentIds.isEmpty()) return ApiResult.ok(List.of());
+        List<BizStudent> students = studentService.list(new LambdaQueryWrapper<BizStudent>().in(BizStudent::getUserId, studentIds));
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (BizStudent s : students) {
+            SysUser u = sysUserService.getById(s.getUserId());
+            if (u == null) continue;
+            if (keyword != null && !keyword.isBlank()) {
+                String kw = keyword.toLowerCase();
+                if (!(s.getRealName() != null && s.getRealName().toLowerCase().contains(kw))
+                    && !(s.getStudentNo() != null && s.getStudentNo().toLowerCase().contains(kw))) continue;
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("userId", s.getUserId());
+            m.put("studentNo", s.getStudentNo());
+            m.put("realName", s.getRealName());
+            m.put("username", u.getUsername());
+            list.add(m);
+        }
+        return ApiResult.ok(list);
     }
 
     @OperationLog(action = "教师修改密码")

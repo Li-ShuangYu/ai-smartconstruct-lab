@@ -2,6 +2,7 @@ import http from '@/services/api'
 import type { ApiResult } from '@/services/types/auth.types'
 import type { PageResult } from '@/services/types/admin.types'
 import type { StudentTrainingTask, StudentProfile, Classmate, PasswordUpdate } from '@/services/types/dashboard.types'
+import type { EnrolledCourse } from '@/services/types/admin.types'
 
 export const getStudentTrainingTasks = (page = 1, pageSize = 10, status?: number) =>
   http.get<ApiResult<PageResult<StudentTrainingTask>>>('/api/student/training-tasks', { params: { page, pageSize, status } }).then(r => r.data)
@@ -31,3 +32,9 @@ export const startTraining = (participationId: number) =>
 
 export const nextTraining = (participationId: number) =>
   http.post<ApiResult<{ currentNodeIndex: number; completed?: boolean }>>(`/api/student/training-tasks/${participationId}/next`).then(r => r.data)
+
+export const getClassTrainingTasks = () =>
+  http.get<ApiResult<StudentTrainingTask[]>>('/api/student/my-class/training-tasks').then(r => r.data)
+
+export const getMyCourses = (page = 1, pageSize = 10) =>
+  http.get<ApiResult<PageResult<EnrolledCourse>>>('/api/student/courses/my', { params: { page, pageSize } }).then(r => r.data)

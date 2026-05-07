@@ -25,7 +25,7 @@
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/></svg>
           </div>
           <div class="action-info">
-            <h3>创建实训</h3>
+            <h3>创建实训模板</h3>
             <p>通过图形化拖拽，编排新的教学实训模板</p>
           </div>
         </div>

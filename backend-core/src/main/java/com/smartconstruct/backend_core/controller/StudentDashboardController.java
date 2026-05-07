@@ -93,6 +93,31 @@ public class StudentDashboardController {
         return ApiResult.ok(new PageResult<>(records, p.getTotal(), p.getCurrent(), p.getSize()));
     }
 
+    @GetMapping("/my-class/training-tasks")
+    public ApiResult<List<Map<String, Object>>> classTrainingTasks() {
+        Long userId = getCurrentUserId();
+        BizStudent self = studentService.getOne(new LambdaQueryWrapper<BizStudent>().eq(BizStudent::getUserId, userId));
+        if (self == null || self.getClassId() == null) return ApiResult.ok(List.of());
+
+        List<BizTrainingTask> tasks = trainingTaskService.list(
+                new LambdaQueryWrapper<BizTrainingTask>().eq(BizTrainingTask::getDispatchScope, 1)
+                        .eq(BizTrainingTask::getDispatchTargetId, self.getClassId())
+                        .orderByDesc(BizTrainingTask::getCreatedAt));
+
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (BizTrainingTask t : tasks) {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", t.getId());
+            m.put("taskName", t.getTaskName());
+            m.put("status", t.getStatus());
+            m.put("startTime", t.getStartTime());
+            m.put("endTime", t.getEndTime());
+            m.put("createdAt", t.getCreatedAt());
+            list.add(m);
+        }
+        return ApiResult.ok(list);
+    }
+
     @GetMapping("/my-class/classmates")
     public ApiResult<List<Map<String, Object>>> classmates() {
         Long userId = getCurrentUserId();

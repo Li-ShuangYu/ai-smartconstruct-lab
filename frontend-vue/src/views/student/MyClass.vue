@@ -55,7 +55,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { NSpin } from 'naive-ui'
-import { getClassmates, getProfile, getStudentTrainingTasks } from '@/services/modules/student-dashboard.service'
+import { getClassmates, getProfile, getClassTrainingTasks } from '@/services/modules/student-dashboard.service'
 import type { StudentProfile, Classmate, StudentTrainingTask } from '@/services/types/dashboard.types'
 
 const taskLoading = ref(false)
@@ -88,8 +88,8 @@ onMounted(async () => {
 
   taskLoading.value = true
   try {
-    const res = await getStudentTrainingTasks(1, 10)
-    if (res.code === 200) tasks.value = res.data.records
+    const res = await getClassTrainingTasks()
+    if (res.code === 200) tasks.value = res.data
   } finally {
     taskLoading.value = false
   }

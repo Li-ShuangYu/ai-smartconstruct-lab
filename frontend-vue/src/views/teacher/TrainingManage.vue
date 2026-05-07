@@ -91,8 +91,14 @@
         <n-form-item label="任务名称" path="taskName">
           <n-input v-model:value="publishForm.taskName" placeholder="请输入实训任务名称" />
         </n-form-item>
-        <n-form-item label="目标班级" path="dispatchTargetId">
-          <n-select v-model:value="publishForm.dispatchTargetId" :options="classOptions" placeholder="请选择下发班级" />
+        <n-form-item label="下发范围">
+          <n-radio-group v-model:value="publishForm.dispatchScope">
+            <n-radio :value="1">按班级下发</n-radio>
+            <n-radio :value="2">按课程下发</n-radio>
+          </n-radio-group>
+        </n-form-item>
+        <n-form-item :label="publishForm.dispatchScope === 1 ? '目标班级' : '目标课程'" path="dispatchTargetId">
+          <n-select v-model:value="publishForm.dispatchTargetId" :options="targetOptions" :placeholder="publishForm.dispatchScope === 1 ? '请选择下发班级' : '请选择下发课程'" />
         </n-form-item>
       </n-form>
       <template #footer>
@@ -104,15 +110,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { NButton, NPagination, NSpin, NTag, NModal, NForm, NFormItem, NInput, NSelect, useMessage } from 'naive-ui'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { NButton, NPagination, NSpin, NTag, NModal, NForm, NFormItem, NInput, NSelect, NRadioGroup, NRadio, useMessage } from 'naive-ui'
 import type { FormRules, FormInst } from 'naive-ui'
 import { getTemplates, deleteTemplate } from '@/services/modules/teacher-template.service'
 import { getTrainingTasks, createTrainingTask } from '@/services/modules/teacher-dashboard.service'
 import { getClasses } from '@/services/modules/admin.service'
+import { getTeacherCourses } from '@/services/modules/teacher.service'
 import type { TrainingTemplate } from '@/services/types/template.types'
 import type { TrainingTaskItem } from '@/services/types/dashboard.types'
-import type { AdminClass } from '@/services/types/admin.types'
+import type { AdminClass, Course } from '@/services/types/admin.types'
 
 const message = useMessage(); const loading = ref(false)
 const mainTab = ref('template')
@@ -147,20 +154,31 @@ function handleEndTask(_:TrainingTaskItem) { message.info('结束实训功能待
 // 发布任务
 const showPublish = ref(false); const publishing = ref(false)
 const publishFormRef = ref<FormInst|null>(null)
-const publishForm = ref({ taskName:'', dispatchTargetId:null as number|null, templateId:0 })
-const publishRules: FormRules = { taskName:[{required:true,message:'请输入任务名称'}], dispatchTargetId:[{required:true,message:'请选择目标班级',type:'number'}] }
-const classOptions = ref<{label:string,value:number}[]>([])
+const publishForm = ref({ taskName:'', dispatchTargetId:null as number|null, templateId:0, dispatchScope:1 })
+const publishRules: FormRules = { taskName:[{required:true,message:'请输入任务名称'}], dispatchTargetId:[{required:true,message:'请选择目标',type:'number'}] }
+const targetOptions = ref<{label:string,value:number}[]>([])
 
 async function openPublish(tpl: TrainingTemplate) {
-  publishForm.value = { taskName: tpl.templateName, dispatchTargetId: null, templateId: tpl.id! }
-  try { const r = await getClasses(); if(r.code===200) classOptions.value = r.data.map((c:AdminClass)=>({label:c.className,value:c.id})) } catch{/* */ }
+  publishForm.value = { taskName: tpl.templateName, dispatchTargetId: null, templateId: tpl.id!, dispatchScope: 1 }
+  try { const r = await getClasses(); if(r.code===200) targetOptions.value = r.data.map((c:AdminClass)=>({label:c.className,value:c.id})) } catch{/* */ }
   showPublish.value = true
 }
+
+// 当下发范围切换时重新加载下拉选项
+watch(() => publishForm.value.dispatchScope, async (scope) => {
+  publishForm.value.dispatchTargetId = null
+  if (scope === 1) {
+    try { const r = await getClasses(); if(r.code===200) targetOptions.value = r.data.map((c:AdminClass)=>({label:c.className,value:c.id})) } catch{/* */}
+  } else {
+    try { const r = await getTeacherCourses(1, 100); if(r.code===200) targetOptions.value = r.data.records.map((c:Course)=>({label:c.courseName,value:c.id!})) } catch{/* */}
+  }
+})
+
 async function confirmPublish() {
   try { await publishFormRef.value?.validate() } catch { return }
   publishing.value = true
   try {
-    const r = await createTrainingTask({ templateId: publishForm.value.templateId, taskName: publishForm.value.taskName, dispatchTargetId: publishForm.value.dispatchTargetId! })
+    const r = await createTrainingTask({ templateId: publishForm.value.templateId, taskName: publishForm.value.taskName, dispatchScope: publishForm.value.dispatchScope, dispatchTargetId: publishForm.value.dispatchTargetId! })
     if (r.code === 200) { message.success(`任务已下发，共 ${r.data.studentCount} 名学生`); showPublish.value = false; switchMainTab('task') }
     else message.error(r.message||'下发失败')
   } catch { message.error('操作失败') } finally { publishing.value = false }

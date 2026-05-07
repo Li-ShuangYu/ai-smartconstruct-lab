@@ -249,21 +249,23 @@ const publishRules: FormRules = { templateName: [{ required: true, message: '请
 // 转换为标准 JSON 结构
 function buildCanvasData(): CanvasData {
   const orchId = 'orch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)
-  const nodes: OrchestrationNode[] = store.nodes.map(n => ({
-    node_id: n.id,
-    node_type: (n.data.type as string).toUpperCase().replace(/_/g, '_'),
-    name: (n.data.label as string) || '',
-    config: extractConfig(n.data)
-  }))
-  const edges: OrchestrationEdge[] = store.edges.map(e => ({
-    source: e.source,
-    target: e.target
-  }))
-  return { orchestration_id: orchId, nodes, edges }
+  const resultNodes: any[] = []
+  for (const n of store.nodes) {
+    resultNodes.push({
+      node_id: n.id,
+      node_type: (n.data.type as string).toUpperCase(),
+      name: (n.data.label as string) || '',
+      config: extractConfig(n.data)
+    })
+  }
+  const resultEdges: any[] = []
+  for (const e of store.edges) {
+    resultEdges.push({ source: e.source, target: e.target })
+  }
+  return { orchestration_id: orchId, nodes: resultNodes, edges: resultEdges }
 }
 
-type NodeTypeConfigKeys = Record<string, string[]>
-const configKeysMap: NodeTypeConfigKeys = {
+const configKeysMap: Record<string, any[]> = {
   grouping: ['groupCount', 'groupMethod'],
   resource_read: ['resourceName', 'resourceId'],
   task_distribute: ['taskTitle', 'taskDesc'],
