@@ -40,14 +40,10 @@ public class StudentTrainingController {
         return user.getId();
     }
 
-    /**
-     * 获取学生参与实训的完整详情（单表查询组合，避免 MyBatis JOIN JSON TypeHandler 问题）
-     */
     @GetMapping("/training-tasks/{taskId}/participation")
     public ApiResult<ParticipationDetailVO> getParticipation(@PathVariable Long taskId) {
         Long studentId = getCurrentUserId();
 
-        // Step 1: 查参与记录
         BizTrainingParticipation pt;
         try {
             pt = participationService.getOne(
@@ -58,22 +54,17 @@ public class StudentTrainingController {
             log.error("查询参与记录失败 taskId={} studentId={}", taskId, studentId, e);
             return ApiResult.error("查询参与记录失败");
         }
-        if (pt == null) {
-            return ApiResult.error("您未参与该实训任务");
-        }
+        if (pt == null) return ApiResult.error("您未参与该实训任务");
 
         ParticipationDetailVO vo = new ParticipationDetailVO();
         vo.setParticipationId(pt.getId());
         vo.setTaskId(taskId);
         vo.setStatus(pt.getStatus());
 
-        // Step 2: 查任务详情
         try {
             BizTrainingTask task = trainingTaskService.getById(taskId);
             if (task != null) {
                 vo.setTaskName(task.getTaskName());
-
-                // Step 3: 查模板 JSON（单表查询）
                 if (task.getTemplateId() != null) {
                     try {
                         WfTrainingTemplate template = templateService.getById(task.getTemplateId());
@@ -88,18 +79,18 @@ public class StudentTrainingController {
         } catch (Exception e) {
             log.error("查询任务详情失败 taskId={}", taskId, e);
         }
-
         if (vo.getTaskName() == null) vo.setTaskName("未知实训");
 
-        // Step 4: 查活动状态
+        // 查活动状态 — 返回字符串 node_id
         try {
             WfStudentActivityState state = activityStateService.getOne(
                     new LambdaQueryWrapper<WfStudentActivityState>()
                             .eq(WfStudentActivityState::getParticipationId, pt.getId()));
-            vo.setCurrentNodeIndex(state != null && state.getCurrentNodeIndex() != null ? state.getCurrentNodeIndex() : -1);
+            if (state != null && state.getCurrentNodeId() != null) {
+                vo.setCurrentNodeId(state.getCurrentNodeId());
+            }
         } catch (Exception e) {
             log.warn("查询活动状态失败 participationId={}", pt.getId(), e);
-            vo.setCurrentNodeIndex(-1);
         }
 
         return ApiResult.ok(vo);
@@ -107,10 +98,16 @@ public class StudentTrainingController {
 
     @OperationLog(action = "学生开始实训")
     @PostMapping("/training-tasks/{participationId}/start")
-    public ApiResult<Map<String, Object>> start(@PathVariable Long participationId) {
+    public ApiResult<Map<String, Object>> start(@PathVariable Long participationId,
+                                                 @RequestBody Map<String, Object> body) {
         if (participationId == null || participationId <= 0) {
             return ApiResult.error("无效的参与记录ID");
         }
+        String startNodeId = body.get("startNodeId") != null ? body.get("startNodeId").toString() : null;
+        if (startNodeId == null || startNodeId.isBlank()) {
+            return ApiResult.error("缺少起始节点ID");
+        }
+
         BizTrainingParticipation pt = participationService.getById(participationId);
         if (pt == null) return ApiResult.error("实训参与记录不存在");
         if (pt.getStatus() != null && pt.getStatus() != 0) return ApiResult.error("实训已经开启");
@@ -121,35 +118,41 @@ public class StudentTrainingController {
 
         WfStudentActivityState state = new WfStudentActivityState();
         state.setParticipationId(participationId);
-        state.setCurrentNodeIndex(0);
+        state.setCurrentNodeId(startNodeId);
         state.setUpdatedAt(LocalDateTime.now());
         activityStateService.save(state);
 
-        return ApiResult.ok(Map.of("currentNodeIndex", 0));
+        return ApiResult.ok(Map.of("currentNodeId", startNodeId));
     }
 
     @OperationLog(action = "学生实训下一步")
     @PostMapping("/training-tasks/{participationId}/next")
-    public ApiResult<Map<String, Object>> next(@PathVariable Long participationId, @RequestBody Map<String, Object> body) {
+    public ApiResult<Map<String, Object>> next(@PathVariable Long participationId,
+                                                @RequestBody Map<String, Object> body) {
         WfStudentActivityState state = activityStateService.getOne(
-                new LambdaQueryWrapper<WfStudentActivityState>().eq(WfStudentActivityState::getParticipationId, participationId));
+                new LambdaQueryWrapper<WfStudentActivityState>()
+                        .eq(WfStudentActivityState::getParticipationId, participationId));
         if (state == null) return ApiResult.error("实训状态不存在");
 
-        int nextIndex = body.get("nextNodeIndex") != null ? Integer.parseInt(body.get("nextNodeIndex").toString()) : 0;
+        String nextNodeId = body.get("nextNodeId") != null ? body.get("nextNodeId").toString() : null;
         boolean isEnd = body.get("isEnd") != null && Boolean.TRUE.equals(body.get("isEnd"));
+
+        if (nextNodeId == null || nextNodeId.isBlank()) {
+            return ApiResult.error("缺少下一节点ID");
+        }
 
         if (isEnd) {
             BizTrainingParticipation pt = participationService.getById(participationId);
             pt.setStatus(2);
             pt.setUpdatedAt(LocalDateTime.now());
             participationService.updateById(pt);
-            return ApiResult.ok(Map.of("completed", true, "currentNodeIndex", nextIndex));
+            return ApiResult.ok(Map.of("completed", true, "currentNodeId", nextNodeId));
         }
 
-        state.setCurrentNodeIndex(nextIndex);
+        state.setCurrentNodeId(nextNodeId);
         state.setUpdatedAt(LocalDateTime.now());
         activityStateService.updateById(state);
 
-        return ApiResult.ok(Map.of("currentNodeIndex", nextIndex, "completed", false));
+        return ApiResult.ok(Map.of("currentNodeId", nextNodeId, "completed", false));
     }
 }

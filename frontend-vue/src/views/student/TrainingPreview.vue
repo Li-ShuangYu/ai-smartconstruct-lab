@@ -5,25 +5,20 @@
         <h1>{{ info.taskName }}</h1>
         <p>实训流程预览 — 共 {{ orderedNodes.length }} 个节点</p>
       </header>
-
       <main class="timeline-area">
         <n-timeline v-if="orderedNodes.length > 0">
           <n-timeline-item v-for="(node, idx) in orderedNodes" :key="node.node_id"
             :type="idx === 0 ? 'success' : idx === orderedNodes.length - 1 ? 'warning' : 'info'"
             :title="`${idx + 1}. ${node.name || node.node_id}`"
-            :time="nodeLabel(node.node_type)"
-          >
+            :time="nodeLabel(node.node_type)">
             <p class="node-config">{{ formatConfig(node.config) }}</p>
           </n-timeline-item>
         </n-timeline>
         <n-empty v-else description="无法解析实训流程" />
       </main>
-
       <footer class="preview-footer">
         <n-button @click="$router.back()">返回</n-button>
-        <n-button type="primary" size="large" :loading="starting" @click="handleStart">
-          开始实训
-        </n-button>
+        <n-button type="primary" size="large" :loading="starting" @click="handleStart">开始实训</n-button>
       </footer>
     </n-spin>
   </div>
@@ -35,21 +30,21 @@ import { useRoute, useRouter } from 'vue-router'
 import { NButton, NSpin, NTimeline, NTimelineItem, NEmpty, useMessage } from 'naive-ui'
 import { getParticipation, startTraining } from '@/services/modules/student-dashboard.service'
 import type { ParticipationInfo } from '@/services/modules/student-dashboard.service'
-import { buildOrderedSequence } from '@/utils/training-flow'
+import { buildOrderedSequence, findStartNodeId } from '@/utils/training-flow'
 
 const route = useRoute(); const router = useRouter(); const message = useMessage()
 const loading = ref(false); const starting = ref(false)
 const info = ref<ParticipationInfo>({ participationId: 0, taskId: 0, status: 0, taskName: '' })
 const orderedNodes = ref<any[]>([])
-
+const startNodeId = ref<string | null>(null)
 const taskId = Number(route.query.taskId) || 0
 
 const nodeTypeLabels: Record<string, string> = {
-  start: '流程起点', end: '流程终点',
-  grouping: '学生分组', resource_read: '资源阅读', theory_class: '理论实训', coding_class: '编码实训',
-  task_distribute: '任务下发', req_upload: '需求上传', plan_upload: '方案上传', solution_upload: '方案上传',
-  homework: '课后作业', exam: '考核考试',
-  mindmap_preview: '思维导图预习', mindmap_draw: '思维导图绘制', knowledge_eval: '知识评价',
+  start: '流程起点', end: '流程终点', grouping: '学生分组', resource_read: '资源阅读',
+  theory_class: '理论实训', coding_class: '编码实训', task_distribute: '任务下发',
+  req_upload: '需求上传', plan_upload: '方案上传', solution_upload: '方案上传',
+  homework: '课后作业', exam: '考核考试', mindmap_preview: '思维导图预习',
+  mindmap_draw: '思维导图绘制', knowledge_eval: '知识评价',
   student_peer_review: '学生互评', inter_group_review: '组间互评', teacher_eval: '教师总评'
 }
 function nodeLabel(t: string) { return nodeTypeLabels[t] || t }
@@ -75,7 +70,10 @@ onMounted(async () => {
       const json = r.data.templateJson
       if (json) {
         const payload = typeof json === 'string' ? JSON.parse(json) : json
-        orderedNodes.value = buildOrderedSequence(payload.nodes || [], payload.edges || [])
+        const nodes = payload.nodes || []
+        const edges = payload.edges || []
+        orderedNodes.value = buildOrderedSequence(nodes, edges)
+        startNodeId.value = findStartNodeId(nodes)
       }
     } else message.error(r.message || '加载失败')
   } catch { message.error('加载实训数据失败') } finally { loading.value = false }
@@ -83,9 +81,10 @@ onMounted(async () => {
 
 async function handleStart() {
   if (!info.value.participationId) { message.error('参与记录加载失败，请刷新重试'); return }
+  if (!startNodeId.value) { message.error('未找到起始节点'); return }
   starting.value = true
   try {
-    const r = await startTraining(info.value.participationId)
+    const r = await startTraining(info.value.participationId, startNodeId.value)
     if (r.code === 200) {
       router.replace({ path: '/student/training-execute', query: { taskId } })
     } else message.error(r.message || '启动失败')

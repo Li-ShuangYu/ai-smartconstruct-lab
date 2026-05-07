@@ -13,5 +13,5 @@ public class ParticipationDetailVO {
     private String taskName;
     private Integer status;
     private Object templateJson;
-    private Integer currentNodeIndex;
+    private String currentNodeId;
 }

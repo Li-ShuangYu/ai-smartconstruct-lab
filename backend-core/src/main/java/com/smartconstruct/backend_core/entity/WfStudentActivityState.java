@@ -13,6 +13,6 @@ public class WfStudentActivityState {
     @TableId(type = IdType.AUTO)
     private Long id;
     private Long participationId;
-    private Integer currentNodeIndex;
+    private String currentNodeId;
     private LocalDateTime updatedAt;
 }
