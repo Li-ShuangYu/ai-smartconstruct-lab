@@ -216,3 +216,47 @@ CREATE TABLE sys_operation_log (
   ip_address VARCHAR(64) COMMENT 'IP地址',
   created_at DATETIME COMMENT '时间'
 ) COMMENT='系统操作日志表';
+
+
+-- 1. 思维导图主记录表 (直接存储JSON结构，解决读写性能瓶颈)
+CREATE TABLE biz_mindmap_record (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+  participation_id BIGINT NOT NULL COMMENT '关联个人实训参与表ID',
+  node_id BIGINT NOT NULL COMMENT '编排节点ID(区分是预习还是绘制节点)',
+  map_topology_json JSON COMMENT '思维导图完整拓扑结构(前端画板直出)',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_part_node (participation_id, node_id)
+) COMMENT='思维导图实训产出表';
+
+-- 2. 思维导图知识点评级明细表 (针对节点13：难度评价)
+CREATE TABLE biz_mindmap_eval_detail (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+  participation_id BIGINT NOT NULL COMMENT '关联个人实训参与表ID',
+  map_node_uid VARCHAR(64) NOT NULL COMMENT '前端导图节点生成的唯一UID',
+  node_text VARCHAR(255) COMMENT '节点文本内容(冗余展示)',
+  difficulty_level TINYINT COMMENT '难度评级: 1-易 2-中 3-难',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) COMMENT='知识点难度评级明细表';
+
+-- 3. AI实训问答记录表 (针对节点4：理论实训)
+CREATE TABLE biz_training_chat_log (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+  participation_id BIGINT NOT NULL COMMENT '关联个人参与ID',
+  role_type VARCHAR(16) COMMENT '角色: user / assistant',
+  content TEXT COMMENT '对话内容',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) COMMENT='AI理论对练日志表';
+
+-- 4. 课后作业与考试答题记录表 (针对节点9、10：作业与考核)
+CREATE TABLE biz_training_exam_record (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
+  participation_id BIGINT NOT NULL COMMENT '关联个人参与ID',
+  node_id BIGINT NOT NULL COMMENT '编排节点ID',
+  answers_json JSON COMMENT '学生提交的答案包(题号与答案映射)',
+  score DECIMAL(5,2) COMMENT '客观题机评分数',
+  time_spent_seconds INT COMMENT '作答耗时(秒)',
+  is_submitted TINYINT DEFAULT 0 COMMENT '0-暂存 1-已交卷',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) COMMENT='作业与考核答题记录表';
