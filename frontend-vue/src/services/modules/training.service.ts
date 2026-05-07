@@ -1,13 +1,18 @@
-import type { CreateReq, Training } from '@/services/types/training.types'
+import http from '@/services/api'
+import type { ApiResult } from '@/services/types/auth.types'
 
-export const TrainingService = {
-  createTraining: async (payload: CreateReq): Promise<Training> => {
-    // TODO: 实现实际的 API 调用
-    return {
-      id: Date.now(),
-      name: payload.name,
-      description: payload.description,
-      createdAt: new Date().toISOString()
-    }
-  }
+export interface TrainingState {
+  participationId: number; currentNodeId: string; nodeType: string; nodeName: string
+  config: Record<string, any>; allNodes: any[]; allEdges: any[]
 }
+export const getCurrentState = (participationId: number) =>
+  http.get<ApiResult<TrainingState>>(`/api/student/training/${participationId}/current-state`).then(r => r.data)
+
+export const proceedNextNode = (participationId: number, currentNodeId: string) =>
+  http.post<ApiResult<TrainingState>>(`/api/student/training/${participationId}/next-node`, { currentNodeId }).then(r => r.data)
+
+export const submitMindmap = (participationId: number, nodeId: string, payload: any) =>
+  http.post<ApiResult<void>>(`/api/student/training/${participationId}/action/mindmap`, { nodeId, payload }).then(r => r.data)
+
+export const submitExam = (participationId: number, nodeId: string, answers: any) =>
+  http.post<ApiResult<void>>(`/api/student/training/${participationId}/action/exam`, { nodeId, answers }).then(r => r.data)

@@ -1,16 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { TrainingService } from '@/services/modules/training.service'
-import type { CreateReq } from '@/services/types/training.types'
 
 export const useTrainingStore = defineStore('training', () => {
   const isSubmitting = ref(false)
 
-  const createNewTask = async (payload: CreateReq) => {
+  const createNewTask = async (payload: { name: string; description?: string }) => {
     isSubmitting.value = true
     try {
-      const res = await TrainingService.createTraining(payload)
-      return res
+      // placeholder - actual creation is done via TeacherTemplateController
+      return { id: Date.now(), name: payload.name, description: payload.description, createdAt: new Date().toISOString() }
     } finally {
       isSubmitting.value = false
     }
