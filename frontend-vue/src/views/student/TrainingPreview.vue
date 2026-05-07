@@ -82,6 +82,7 @@ onMounted(async () => {
 })
 
 async function handleStart() {
+  if (!info.value.participationId) { message.error('参与记录加载失败，请刷新重试'); return }
   starting.value = true
   try {
     const r = await startTraining(info.value.participationId)

@@ -22,7 +22,7 @@ export const updatePassword = (data: PasswordUpdate) =>
 // 实训流转
 export interface ParticipationInfo {
   participationId: number; taskId: number; status: number; taskName: string
-  templateId?: number; templateJson?: any; currentNodeIndex?: number
+  templateJson?: any; currentNodeIndex?: number
 }
 export const getParticipation = (taskId: number) =>
   http.get<ApiResult<ParticipationInfo>>(`/api/student/training-tasks/${taskId}/participation`).then(r => r.data)
