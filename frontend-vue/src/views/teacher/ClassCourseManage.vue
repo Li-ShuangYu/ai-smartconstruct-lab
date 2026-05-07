@@ -2,7 +2,7 @@
   <div class="page-container">
     <div class="page-header">
       <h1 class="page-title">课程管理</h1>
-      <n-button type="primary" @click="showCreateModal = true">新增课程</n-button>
+      <n-button type="primary" @click="handleCreate">新增课程</n-button>
     </div>
 
     <n-data-table
@@ -16,38 +16,48 @@
       @update:page-size="handlePageSizeChange"
     />
 
-    <n-modal v-model:show="showCreateModal" :title="editingId ? '编辑课程' : '新增课程'">
-      <n-form ref="formRef" :model="form" :rules="rules" label-placement="left">
+    <n-modal
+      v-model:show="showModal"
+      preset="card"
+      :title="editingId ? '编辑课程' : '新增课程'"
+      style="width: 560px"
+      :mask-closable="false"
+    >
+      <n-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-placement="left"
+        label-width="100"
+        require-mark-placement="right-hanging"
+      >
         <n-form-item label="课程名称" path="courseName">
           <n-input v-model:value="form.courseName" placeholder="请输入课程名称" />
         </n-form-item>
-        <n-form-item label="课程代码" path="courseCode">
-          <n-input v-model:value="form.courseCode" placeholder="请输入课程代码" />
+        <n-form-item label="课程简介" path="description">
+          <n-input v-model:value="form.description" type="textarea" placeholder="请输入课程简介" :autosize="{ minRows: 3, maxRows: 5 }" />
         </n-form-item>
-        <n-form-item label="课程简介">
-          <n-input v-model:value="form.description" type="textarea" placeholder="请输入课程简介" />
-        </n-form-item>
-        <n-form-item label="需要选课码">
+        <n-form-item label="需要选课码" path="needEnrollCode">
           <n-switch v-model:value="form.needEnrollCode" :checked-value="1" :unchecked-value="0" />
         </n-form-item>
-        <n-form-item v-if="form.needEnrollCode === 1" label="选课授权码">
+        <n-form-item v-if="form.needEnrollCode === 1" label="选课授权码" path="enrollCode">
           <n-input v-model:value="form.enrollCode" placeholder="请输入选课授权码" />
         </n-form-item>
       </n-form>
       <template #footer>
-        <n-space justify="end">
-          <n-button @click="showCreateModal = false">取消</n-button>
+        <div class="modal-footer">
+          <n-button @click="showModal = false">取消</n-button>
           <n-button type="primary" :loading="submitting" @click="handleSubmit">保存</n-button>
-        </n-space>
+        </div>
       </template>
     </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, h, onMounted } from 'vue'
+import { ref, h, reactive, onMounted, nextTick } from 'vue'
 import { NButton, NDataTable, NModal, NForm, NFormItem, NInput, NSwitch, NSpace, NTag, useMessage } from 'naive-ui'
-import type { DataTableColumn, PaginationProps, FormRules } from 'naive-ui'
+import type { DataTableColumn, PaginationProps, FormRules, FormInst } from 'naive-ui'
 import type { Course } from '@/services/types/admin.types'
 import { getTeacherCourses, createCourse, updateCourse, deleteCourse, toggleCourseStatus } from '@/services/modules/teacher.service'
 
@@ -55,9 +65,9 @@ const message = useMessage()
 const loading = ref(false)
 const submitting = ref(false)
 const courses = ref<Course[]>([])
-const showCreateModal = ref(false)
+const showModal = ref(false)
 const editingId = ref<number | null>(null)
-const formRef = ref()
+const formRef = ref<FormInst | null>(null)
 
 const pagination = ref<PaginationProps>({
   page: 1,
@@ -68,7 +78,7 @@ const pagination = ref<PaginationProps>({
   prefix: ({ itemCount }) => `共 ${itemCount} 条`
 })
 
-const defaultForm = (): Course => ({
+const form = reactive<Course>({
   courseName: '',
   courseCode: '',
   description: '',
@@ -77,11 +87,8 @@ const defaultForm = (): Course => ({
   enrollCode: ''
 })
 
-const form = ref<Course>(defaultForm())
-
 const rules: FormRules = {
-  courseName: [{ required: true, message: '请输入课程名称' }],
-  courseCode: [{ required: true, message: '请输入课程代码' }]
+  courseName: [{ required: true, message: '请输入课程名称', trigger: 'blur' }]
 }
 
 const columns: DataTableColumn<Course>[] = [
@@ -110,28 +117,51 @@ const columns: DataTableColumn<Course>[] = [
     key: 'actions',
     width: 260,
     render(row) {
-      const buttons = [
-        h(NButton, {
-          size: 'small',
-          type: row.status === 1 ? 'warning' : 'success',
-          style: { marginRight: '8px' },
-          onClick: () => handleToggleStatus(row)
-        }, { default: () => row.status === 1 ? '下线' : '发布' }),
-        h(NButton, {
-          size: 'small',
-          style: { marginRight: '8px' },
-          onClick: () => openEdit(row)
-        }, { default: () => '编辑' }),
-        h(NButton, {
-          size: 'small',
-          type: 'error',
-          onClick: () => handleDelete(row)
-        }, { default: () => '删除' })
-      ]
-      return h('div', buttons)
+      return h(NSpace, { wrap: false }, {
+        default: () => [
+          h(NButton, {
+            size: 'small',
+            type: row.status === 1 ? 'warning' : 'success',
+            onClick: () => handleToggleStatus(row)
+          }, { default: () => row.status === 1 ? '下线' : '发布' }),
+          h(NButton, {
+            size: 'small',
+            onClick: () => openEdit(row)
+          }, { default: () => '编辑' }),
+          h(NButton, {
+            size: 'small',
+            type: 'error',
+            onClick: () => handleDelete(row)
+          }, { default: () => '删除' })
+        ]
+      })
     }
   }
 ]
+
+function resetForm() {
+  form.courseName = ''
+  form.description = ''
+  form.status = 0
+  form.needEnrollCode = 0
+  form.enrollCode = ''
+  editingId.value = null
+}
+
+function handleCreate() {
+  resetForm()
+  showModal.value = true
+}
+
+function openEdit(row: Course) {
+  editingId.value = row.id ?? null
+  form.courseName = row.courseName
+  form.description = row.description ?? ''
+  form.status = row.status
+  form.needEnrollCode = row.needEnrollCode ?? 0
+  form.enrollCode = row.enrollCode ?? ''
+  showModal.value = true
+}
 
 async function loadCourses() {
   loading.value = true
@@ -157,37 +187,22 @@ function handlePageSizeChange(size: number) {
   loadCourses()
 }
 
-function openEdit(row: Course) {
-  editingId.value = row.id ?? null
-  form.value = {
-    courseName: row.courseName,
-    courseCode: row.courseCode,
-    description: row.description ?? '',
-    status: row.status,
-    needEnrollCode: row.needEnrollCode ?? 0,
-    enrollCode: row.enrollCode ?? ''
-  }
-  showCreateModal.value = true
-}
-
 async function handleSubmit() {
   try {
-    await formRef.value.validate()
+    await formRef.value?.validate()
   } catch {
     return
   }
   submitting.value = true
   try {
     if (editingId.value) {
-      await updateCourse(editingId.value, form.value)
+      await updateCourse(editingId.value, { ...form })
       message.success('课程已更新')
     } else {
-      await createCourse(form.value)
+      await createCourse({ ...form })
       message.success('课程已创建')
     }
-    showCreateModal.value = false
-    form.value = defaultForm()
-    editingId.value = null
+    showModal.value = false
     loadCourses()
   } catch {
     message.error('操作失败')
@@ -235,5 +250,10 @@ onMounted(() => loadCourses())
   font-weight: 800;
   color: #0F172A;
   margin: 0;
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>

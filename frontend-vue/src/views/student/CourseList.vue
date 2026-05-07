@@ -55,17 +55,23 @@
       />
     </div>
 
-    <n-modal v-model:show="enrollModal.show" title="输入选课码">
-      <n-form ref="enrollFormRef" :model="enrollModal" :rules="enrollRules">
+    <n-modal
+      v-model:show="enrollModal.show"
+      preset="card"
+      title="输入选课码"
+      style="width: 420px"
+      :mask-closable="false"
+    >
+      <n-form ref="enrollFormRef" :model="enrollModal" :rules="enrollRules" label-placement="left" label-width="80">
         <n-form-item label="选课码" path="code">
           <n-input v-model:value="enrollModal.code" placeholder="请输入选课授权码" />
         </n-form-item>
       </n-form>
       <template #footer>
-        <n-space justify="end">
+        <div class="modal-footer">
           <n-button @click="enrollModal.show = false">取消</n-button>
           <n-button type="primary" :loading="enrolling" @click="confirmEnroll">确认加入</n-button>
-        </n-space>
+        </div>
       </template>
     </n-modal>
   </div>
@@ -191,5 +197,10 @@ onMounted(() => loadCourses())
   display: flex;
   justify-content: flex-end;
   margin-top: 24px;
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>

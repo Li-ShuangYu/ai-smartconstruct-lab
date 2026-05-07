@@ -43,6 +43,7 @@ public class TeacherCourseController {
         SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         course.setCreatorId(user.getId());
         course.setStatus(0);
+        course.setCourseCode("C-" + System.currentTimeMillis());
         course.setCreatedAt(LocalDateTime.now());
         course.setUpdatedAt(LocalDateTime.now());
         courseService.save(course);

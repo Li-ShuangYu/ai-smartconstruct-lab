@@ -4,4 +4,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.smartconstruct.backend_core.entity.WfTrainingTemplate;
 
 public interface ITrainingTemplateService extends IService<WfTrainingTemplate> {
+    void processTemplateMockAi(Long templateId, Object canvasData);
 }
