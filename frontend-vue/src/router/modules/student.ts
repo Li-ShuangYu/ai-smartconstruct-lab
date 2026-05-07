@@ -42,6 +42,12 @@ const studentRoutes = [
         meta: { title: '消息通知' }
       },
       {
+        path: 'training-preview',
+        name: 'StudentTrainingPreview',
+        component: () => import('@/views/student/TrainingPreview.vue'),
+        meta: { title: '实训预览' }
+      },
+      {
         path: 'training-execute',
         name: 'StudentTrainingExecute',
         component: () => import('@/views/student/TrainingExecute.vue'),

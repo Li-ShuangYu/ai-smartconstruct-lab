@@ -42,9 +42,7 @@ public class StudentTrainingController {
                 new LambdaQueryWrapper<BizTrainingParticipation>()
                         .eq(BizTrainingParticipation::getTaskId, taskId)
                         .eq(BizTrainingParticipation::getStudentId, studentId));
-        if (pt == null) {
-            return ApiResult.error("未找到实训参与记录");
-        }
+        if (pt == null) return ApiResult.error("未找到实训参与记录");
 
         BizTrainingTask task = trainingTaskService.getById(taskId);
         Map<String, Object> data = new LinkedHashMap<>();
@@ -54,22 +52,17 @@ public class StudentTrainingController {
         data.put("taskName", task != null ? task.getTaskName() : "");
         data.put("templateId", task != null ? task.getTemplateId() : null);
 
-        // get template JSON
         if (task != null && task.getTemplateId() != null) {
             WfTrainingTemplate template = templateService.getById(task.getTemplateId());
             if (template != null) {
-                data.put("templateJson", template.getStandardPayloadJson());
+                Object payload = template.getStandardPayloadJson();
+                data.put("templateJson", payload != null ? payload : Map.of());
             }
         }
 
-        // get current activity state
         WfStudentActivityState state = activityStateService.getOne(
                 new LambdaQueryWrapper<WfStudentActivityState>().eq(WfStudentActivityState::getParticipationId, pt.getId()));
-        if (state != null) {
-            data.put("currentNodeIndex", state.getCurrentNodeIndex());
-        } else {
-            data.put("currentNodeIndex", -1);
-        }
+        data.put("currentNodeIndex", state != null ? (state.getCurrentNodeIndex() != null ? state.getCurrentNodeIndex() : -1) : -1);
 
         return ApiResult.ok(data);
     }
@@ -96,28 +89,16 @@ public class StudentTrainingController {
 
     @OperationLog(action = "学生实训下一步")
     @PostMapping("/training-tasks/{participationId}/next")
-    public ApiResult<Map<String, Object>> next(@PathVariable Long participationId) {
+    public ApiResult<Map<String, Object>> next(@PathVariable Long participationId, @RequestBody Map<String, Object> body) {
         WfStudentActivityState state = activityStateService.getOne(
                 new LambdaQueryWrapper<WfStudentActivityState>().eq(WfStudentActivityState::getParticipationId, participationId));
-        if (state == null) return ApiResult.error("实训状态不存在，请先开始实训");
+        if (state == null) return ApiResult.error("实训状态不存在");
 
-        BizTrainingParticipation pt = participationService.getById(participationId);
-        BizTrainingTask task = trainingTaskService.getById(pt.getTaskId());
-        WfTrainingTemplate template = templateService.getById(task.getTemplateId());
-        Object payloadObj = template.getStandardPayloadJson();
+        int nextIndex = body.get("nextNodeIndex") != null ? Integer.parseInt(body.get("nextNodeIndex").toString()) : 0;
+        boolean isEnd = body.get("isEnd") != null && Boolean.TRUE.equals(body.get("isEnd"));
 
-        // parse nodes count from template JSON
-        int totalNodes = 0;
-        if (payloadObj instanceof Map) {
-            Map<?, ?> payloadMap = (Map<?, ?>) payloadObj;
-            Object nodesObj = payloadMap.get("nodes");
-            if (nodesObj instanceof List) totalNodes = ((List<?>) nodesObj).size();
-        }
-
-        int nextIndex = (state.getCurrentNodeIndex() != null ? state.getCurrentNodeIndex() : 0) + 1;
-
-        if (nextIndex >= totalNodes) {
-            // reached end
+        if (isEnd) {
+            BizTrainingParticipation pt = participationService.getById(participationId);
             pt.setStatus(2);
             pt.setUpdatedAt(LocalDateTime.now());
             participationService.updateById(pt);

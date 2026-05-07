@@ -30,8 +30,8 @@ export const getParticipation = (taskId: number) =>
 export const startTraining = (participationId: number) =>
   http.post<ApiResult<{ currentNodeIndex: number }>>(`/api/student/training-tasks/${participationId}/start`).then(r => r.data)
 
-export const nextTraining = (participationId: number) =>
-  http.post<ApiResult<{ currentNodeIndex: number; completed?: boolean }>>(`/api/student/training-tasks/${participationId}/next`).then(r => r.data)
+export const nextTraining = (participationId: number, nextNodeIndex: number, isEnd = false) =>
+  http.post<ApiResult<{ currentNodeIndex: number; completed?: boolean }>>(`/api/student/training-tasks/${participationId}/next`, { nextNodeIndex, isEnd }).then(r => r.data)
 
 export const getClassTrainingTasks = () =>
   http.get<ApiResult<StudentTrainingTask[]>>('/api/student/my-class/training-tasks').then(r => r.data)
