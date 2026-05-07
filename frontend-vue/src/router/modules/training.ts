@@ -1,131 +1,127 @@
 const trainingRoutes = [
-  // 1. 常规带侧边栏的工作台路由组
   {
     path: '/training',
     name: 'TrainingRoot',
-    // 外层容器：负责渲染毛玻璃白板和 Header
     component: () => import('@/components/layout/TrainingLayout/index.vue'),
     children: [
       {
-        // 直接将路径写全，去掉中间那层没有意义的嵌套
         path: 'student-training/student-group-choose',
         name: 'StudentGroupChoose',
-        // 直接渲染具体业务页面，不要再夹杂 Header 了
-        component: () => import('@/views/training/studentTraining/StudentGroupChoose.vue'),
+        component: () => import('@/views/training/studentTraining/StartPortal.vue'),
         meta: { title: '选择实训组别' }
       },
       {
         path: 'student-training/student-my-score-result',
         name: 'StudentMyScoreResult',
-        component: () => import('@/views/training/studentTraining/StudentMyScoreResult.vue'),
+        component: () => import('@/views/training/studentTraining/TrainingEngine.vue'),
         meta: { title: '我的实训成绩' }
       },
       {
         path: 'student-training/student-scheme-detail',
         name: 'StudentSchemeDetail',
-        component: () => import('@/views/training/studentTraining/StudentSchemeDetail.vue'),    
+        component: () => import('@/views/training/studentTraining/GroupBuilder.vue'),
         meta: { title: '实训方案详情' }
       },
       {
         path: 'student-training/student-scheme-upload',
         name: 'StudentSchemeUpload',
-        component: () => import('@/views/training/studentTraining/StudentSchemeUpload.vue'),    
+        component: () => import('@/views/training/studentTraining/PlanUpload.vue'),
         meta: { title: '上传实训方案' }
       },
       {
         path: 'student-training/student-task-select',
         name: 'StudentTaskSelect',
-        component: () => import('@/views/training/studentTraining/StudentTaskSelect.vue'),    
+        component: () => import('@/views/training/studentTraining/TaskBoard.vue'),
         meta: { title: '选择实训任务' }
       },
       {
         path: 'student-training/student-task-split',
         name: 'StudentTaskSplit',
-        component: () => import('@/views/training/studentTraining/StudentTaskSplit.vue'),    
+        component: () => import('@/views/training/studentTraining/HomeworkEngine.vue'),
         meta: { title: '提交实训任务' }
       },
       {
         path: 'student-training/student-ai-generate',
         name: 'StudentAiGenerate',
-        component: () => import('@/views/training/studentTraining/StudentAiGenerate.vue'),    
+        component: () => import('@/views/training/studentTraining/AIStudyCard.vue'),
         meta: { title: '实训任务生成' }
       },
       {
         path: 'student-training/student-debug',
         name: 'StudentDebug',
-        component: () => import('@/views/training/studentTraining/StudentDebug.vue'),    
+        component: () => import('@/views/training/studentTraining/SimulatedIDE.vue'),
         meta: { title: '调试机器人' }
       },
       {
         path: 'student-training/student-deploy',
         name: 'StudentDeploy',
-        component: () => import('@/views/training/studentTraining/StudentDeploy.vue'),    
+        component: () => import('@/views/training/studentTraining/ResourceViewer.vue'),
         meta: { title: '部署机器人' }
       },
       {
         path: 'student-training/student-robot-debug',
         name: 'StudentRobotDebug',
-        component: () => import('@/views/training/studentTraining/StudentRobotDebug.vue'),    
+        component: () => import('@/views/training/studentTraining/SimulatedIDE.vue'),
         meta: { title: '调试机器人' }
       },
       {
         path: 'teacher-training/teacher-scheme-split',
         name: 'TeacherSchemeSplit',
-        component: () => import('@/views/training/teacherTraining/TeacherSchemeSplit.vue'),    
+        component: () => import('@/views/training/teacherTraining/TaskMonitor.vue'),
         meta: { title: '拆分实训任务' }
       },
       {
         path: 'teacher-training/teacher-simulation',
         name: 'TeacherSimulation',
-        component: () => import('@/views/training/teacherTraining/TeacherSimulation.vue'),    
+        component: () => import('@/views/training/teacherTraining/StartMonitor.vue'),
         meta: { title: '模拟实训任务' }
       },
       {
         path: 'teacher-training/teacher-group-choose',
         name: 'TeacherGroupChoose',
-        component: () => import('@/views/training/teacherTraining/TeacherStudentGroup.vue'),    
+        component: () => import('@/views/training/teacherTraining/GroupMonitor.vue'),
         meta: { title: '选择实训组别' }
       },
       {
         path: 'teacher-training/teacher-task-publish',
         name: 'TeacherTaskPublish',
-        component: () => import('@/views/training/teacherTraining/TeacherTaskPublish.vue'),    
+        component: () => import('@/views/training/teacherTraining/TeacherEvalDashboard.vue'),
         meta: { title: '发布实训任务' }
       },
       {
         path: 'teacher-training/teacher-task-split',
         name: 'TeacherTaskSplit',
-        component: () => import('@/views/training/teacherTraining/TeacherTaskSplit.vue'),    
+        component: () => import('@/views/training/teacherTraining/HomeworkMonitor.vue'),
         meta: { title: '拆分实训任务' }
       },
       {
         path: 'teacher-training/teacher-ai-evaluate',
         name: 'TeacherAiEvaluate',
-        component: () => import('@/views/training/teacherTraining/TeacherAiEvaluate.vue'),    
+        component: () => import('@/views/training/teacherTraining/ExamMonitor.vue'),
         meta: { title: '评估实训任务结果' }
       },
       {
         path: 'teacher-training/teacher-demand-split',
         name: 'TeacherDemandSplit',
-        component: () => import('@/views/training/teacherTraining/TeacherDemandSplit.vue'),    
+        component: () => import('@/views/training/teacherTraining/RequirementMonitor.vue'),
         meta: { title: '拆分实训任务需求' }
       },
       {
         path: 'teacher-training/teacher-demand-summary',
         name: 'TeacherDemandSummary',
-        component: () => import('@/views/training/teacherTraining/TeacherDemandSummary.vue'),    
+        component: () => import('@/views/training/teacherTraining/SummaryReportMonitor.vue'),
         meta: { title: '实训任务需求总结' }
       },
       {
         path: 'teacher-training/teacher-group-score-overview',
         name: 'TeacherGroupScoreOverview',
-        component: () => import('@/views/training/teacherTraining/TeacherGroupScoreOverview.vue'),    
+        component: () => import('@/views/training/teacherTraining/GroupReviewMonitor.vue'),
         meta: { title: '实训成绩总览' }
       },
       {
         path: 'teacher-training/teacher-scheme-detail',
         name: 'TeacherSchemeDetail',
-        component: () => import('@/views/training/teacherTraining/TeacherSchemeDetail.vue'),    
+        component: () => import('@/views/training/teacherTraining/TeacherEvalDashboard.vue'),
         meta: { title: '实训方案详情' }
       },
     ]

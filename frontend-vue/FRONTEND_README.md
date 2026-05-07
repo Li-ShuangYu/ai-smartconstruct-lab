@@ -540,6 +540,246 @@ const http: AxiosInstance = axios.create({
 
 ---
 
-## 📞 联系方式
+## � 核心状态管理与数据字典
+
+### Pinia Store - useTrainingStore (核心)
+**文件位置**: `stores/modules/training.store.ts`
+
+```typescript
+export const useTrainingStore = defineStore('training', () => {
+  // 1. Vue Flow 实例 (使用 shallowRef 避免响应式劫持导致的性能问题)
+  const flowInstance = shallowRef<any>(null)
+  
+  // 2. 画布节点数组 (Vue Flow 直接使用)
+  const nodes = ref<Node[]>([])
+  
+  // 3. 画布连线数组 (Vue Flow 直接使用)
+  const edges = ref<Edge[]>([])
+  
+  // 4. 节点业务配置映射表 (key: node_id, value: 配置对象)
+  const nodeConfigMap = ref<Record<string, any>>({})
+  
+  // 5. 当前选中的节点 ID
+  const selectedNodeId = ref<string | null>(null)
+  
+  // Action: 更新节点配置
+  const updateNodeConfig = (id: string, config: any) => { ... }
+  
+  return { flowInstance, nodes, edges, nodeConfigMap, selectedNodeId, updateNodeConfig }
+})
+```
+
+**使用场景**：
+- TrainingCreate.vue (教师编排实训流程)
+- 其他需要访问编排数据的组件
+
+### TrainingCreate.vue 组件内部响应式对象
+**文件位置**: `views/teacher/TrainingCreate.vue`
+
+| 对象名 | 类型 | 用途 |
+|--------|------|------|
+| historyStack | ref&lt;string[]&gt; | 撤销历史栈，存储 JSON.stringify 的画布状态 |
+| redoStack | ref&lt;string[]&gt; | 重做栈，存储被撤销的画布状态 |
+| isSidebarCollapsed | ref&lt;boolean&gt; | 左侧节点库侧边栏折叠状态 |
+| expandedCats | ref&lt;string[]&gt; | 已展开的节点分类列表 |
+| selectedNode | ref&lt;any&gt; | 当前选中的节点对象 (用于右侧配置面板) |
+| showPublishModal | ref&lt;boolean&gt; | 发布模板弹窗显示状态 |
+| publishForm | ref&lt;object&gt; | 发布表单数据 { templateName: string } |
+| publishing | ref&lt;boolean&gt; | 发布中加载状态 |
+
+---
+
+## 🔧 核心业务实现穿透
+
+### TrainingCreate.vue - 可视化编排器
+
+#### 1. 图形节点 → JSON 拓扑结构转换
+**核心函数**: `buildCanvasData()` (L250-266)
+
+```typescript
+function buildCanvasData(): CanvasData {
+  const orchId = 'orch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)
+  const resultNodes: any[] = []
+  
+  // 遍历所有 Vue Flow 节点
+  for (const n of store.nodes) {
+    resultNodes.push({
+      node_id: n.id,
+      node_type: (n.data.type as string).toUpperCase(), // 转换为大写
+      name: (n.data.label as string) || '',
+      config: extractConfig(n.data) // 提取业务配置
+    })
+  }
+  
+  const resultEdges: any[] = []
+  // 遍历所有连线，只保留 source 和 target
+  for (const e of store.edges) {
+    resultEdges.push({ source: e.source, target: e.target })
+  }
+  
+  return { orchestration_id: orchId, nodes: resultNodes, edges: resultEdges }
+}
+```
+
+**配置提取**: `extractConfig()` (L288-302)
+- 根据节点类型从 `configKeysMap` 中读取对应的配置字段
+- 特殊处理 homework 节点的兼容性逻辑
+- 返回纯净的配置对象，不含 Vue Flow 内部属性
+
+**配置映射表** (L268-286):
+```typescript
+configKeysMap = {
+  grouping: ['groupCount', 'groupMethod'],
+  resource_read: ['resourceName', 'resourceId'],
+  task_distribute: ['taskTitle', 'taskDesc'],
+  homework: ['time_limit_mins', 'source_mode', ...],
+  // ... 其他节点类型
+}
+```
+
+**关键代码位置**: `views/teacher/TrainingCreate.vue:250-302`
+
+---
+
+#### 2. 撤销/重做 (Undo/Redo) 实现机制
+**核心原理**: 基于双栈结构 + JSON 序列化
+
+```typescript
+// 两个关键栈
+const historyStack = ref<string[]>([])  // 撤销栈
+const redoStack = ref<string[]>([])     // 重做栈
+const canUndo = computed(() => historyStack.value.length > 0)
+const canRedo = computed(() => redoStack.value.length > 0)
+
+// 记录历史 (节点拖拽、连线、配置修改时调用)
+const recordHistory = () => {
+  historyStack.value.push(JSON.stringify(toObject())) // toObject() 是 Vue Flow 提供的方法
+  if (historyStack.value.length > 30) historyStack.value.shift() // 最多保留 30 步
+  redoStack.value = [] // 清空重做栈
+}
+
+// 撤销
+const undo = () => {
+  if (!canUndo.value) return
+  redoStack.value.push(JSON.stringify(toObject())) // 当前状态压入重做栈
+  const s = JSON.parse(historyStack.value.pop()!)  // 从撤销栈弹出上一个状态
+  store.nodes = s.nodes
+  store.edges = s.edges
+}
+
+// 重做
+const redo = () => {
+  if (!canRedo.value) return
+  historyStack.value.push(JSON.stringify(toObject())) // 当前状态压入撤销栈
+  const s = JSON.parse(redoStack.value.pop()!)        // 从重做栈弹出状态
+  store.nodes = s.nodes
+  store.edges = s.edges
+}
+```
+
+**触发历史记录的时机**:
+- 节点拖拽停止: `@node-drag-stop="recordHistory"`
+- 节点连接完成: `@connect="onConnect"` (内部调用 recordHistory)
+- 节点拖入画布: `onDrop()` (内部调用 recordHistory)
+
+**关键代码位置**: `views/teacher/TrainingCreate.vue:189-210`
+
+---
+
+#### 3. 节点拖拽与画布交互
+```typescript
+// 拖拽开始 - 保存节点模板数据
+const onDragStart = (event: DragEvent, item: any) => {
+  event.dataTransfer?.setData('application/vueflow', JSON.stringify(item))
+}
+
+// 拖放 - 创建新节点
+const onDrop = (event: DragEvent) => {
+  const data = event.dataTransfer?.getData('application/vueflow')
+  if (!data) return
+  recordHistory() // 先记录历史
+  const item = JSON.parse(data)
+  const position = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
+  const newNode = {
+    id: 'node_' + Date.now(),
+    type: 'standard',
+    position,
+    data: { type: item.type, label: item.label, icon: item.icon, ...item.defaultData }
+  }
+  store.nodes.push(newNode)
+}
+
+// 连接校验 - 防止自环
+const checkValidConnection = (connection: any) => {
+  if (connection.source === connection.target) return false
+  if (connection.sourceHandle === 'target' || connection.targetHandle === 'source') return false
+  return true
+}
+```
+
+---
+
+## 📚 自定义工具库说明
+
+### src/utils 目录
+#### 1. training-flow.ts - 工作流工具
+**文件位置**: `utils/training-flow.ts`
+
+| 函数 | 签名 | 用途 |
+|------|------|------|
+| getNextNodeId | `(currentNodeId: string, edges: FlowEdge[]): string \| null` | 从 edges 中查找下一个节点 |
+| findStartNodeId | `(nodes: FlowNode[]): string \| null` | 查找 START 类型的节点 |
+| checkIsEndNode | `(node: FlowNode): boolean` | 检查节点是否为 END 类型 |
+| buildOrderedSequence | `(nodes: FlowNode[], edges: FlowEdge[]): FlowNode[]` | 从 START 开始 DFS 遍历构建有序节点序列 |
+| normalizeType | `(t: string): string` | 标准化节点类型 (转大写，替换特殊字符) |
+
+**使用场景**: TrainingExecute.vue 中解析实训模板 JSON，确定节点执行顺序
+
+#### 2. storage.ts - 本地存储工具
+**未发现具体实现内容**
+
+#### 3. validate.ts - 校验工具
+**未发现具体实现内容**
+
+#### 4. format.ts - 格式化工具
+**未发现具体实现内容**
+
+#### 5. telemetry.ts - 埋点工具
+**未发现具体实现内容**
+
+---
+
+### src/hooks 目录
+#### 1. useAuth.ts - 认证 Hook
+**文件位置**: `hooks/useAuth.ts`
+
+**用途**: 未发现具体实现内容
+
+#### 2. useTraining.ts - 实训 Hook
+**文件位置**: `hooks/useTraining.ts`
+
+**用途**: 未发现具体实现内容
+
+#### 3. useStepProgress.ts - 步进流程 Hook
+**文件位置**: `hooks/useStepProgress.ts`
+
+**用途**: 未发现具体实现内容
+
+#### 4. useTelemetry.ts - 埋点 Hook
+**文件位置**: `hooks/useTelemetry.ts`
+
+**状态**: 文件存在但内容为空 (0 行)
+- 无任何埋点上报逻辑
+- 无数据格式定义
+- 仅作为占位符存在
+
+#### 5. useAssistant.ts - 智能助手 Hook
+**文件位置**: `hooks/useAssistant.ts`
+
+**用途**: 未发现具体实现内容
+
+---
+
+## �📞 联系方式
 
 如有问题请联系开发团队。

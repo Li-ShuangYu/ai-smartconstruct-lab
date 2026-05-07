@@ -278,6 +278,150 @@ MIT License
 
 ---
 
+## 🔗 系统流转真实链路
+
+### 1. 实训任务发布链路
+```
+前端 (TrainingCreate.vue) 
+  → buildCanvasData() 构建 { orchestration_id, nodes, edges }
+  → createTemplate() 调用 POST /api/teacher/templates
+  → 后端 TeacherTemplateController.create() 
+     → 保存 WfTrainingTemplate (rawCanvasJson 字段)
+     → templateService.processTemplateMockAi() 模拟AI处理
+     → 返回模板 ID
+  → 前端跳转到 /teacher/training-manage
+```
+
+**交互契约**：
+- 请求体: `{ templateName: string, canvasData: CanvasData }`
+- CanvasData 结构:
+  ```typescript
+  {
+    orchestration_id: string,
+    nodes: Array<{ node_id: string, node_type: string, name: string, config: object }>,
+    edges: Array<{ source: string, target: string }>
+  }
+  ```
+- 响应: `{ code: 200, message: "success", data: { id: number, aiStatus: 1 } }`
+
+**关键代码位置**：
+- 前端: `frontend-vue/src/views/teacher/TrainingCreate.vue:250-334`
+- 后端: `backend-core/src/main/java/com/smartconstruct/backend_core/controller/TeacherTemplateController.java:41-61`
+
+### 2. 实训节点流转链路
+```
+学生访问 /student/training-execute?taskId={taskId}
+  → 前端调用 GET /api/student/training-tasks/{taskId}/participation
+  → 后端 StudentTrainingController.getParticipation()
+     → 查询 BizTrainingParticipation
+     → 查询 BizTrainingTask → 获取 templateId
+     → 查询 WfTrainingTemplate → 获取 standardPayloadJson
+     → 查询 WfStudentActivityState → 获取 currentNodeId
+  → 前端渲染当前节点 (TrainingExecute.vue)
+  → 学生完成后调用 POST /api/student/training-tasks/{participationId}/next
+  → 后端更新 WfStudentActivityState.currentNodeId
+  → 若为 END 节点，更新 BizTrainingParticipation.status=2
+```
+
+**交互契约**：
+- 开始实训: `POST /api/student/training-tasks/{participationId}/start`
+  - 请求体: `{ startNodeId: string }`
+- 下一节点: `POST /api/student/training-tasks/{participationId}/next`
+  - 请求体: `{ nextNodeId: string, isEnd?: boolean }`
+
+**关键代码位置**：
+- 前端: `frontend-vue/src/views/student/TrainingExecute.vue`
+- 后端: `backend-core/src/main/java/com/smartconstruct/backend_core/controller/StudentTrainingController.java`
+
+### 3. AI 引擎调用链路
+**未在代码中发现具体实现**
+- AI 引擎 (FastAPI) 仅提供了健康检查接口: `GET /api/health`
+- 后端无任何 HTTP 客户端调用 AI 引擎的代码
+- 仅在模板创建时有 `processTemplateMockAi()` 模拟方法
+
+---
+
+## 🚨 第三方依赖与非预期设计排雷
+
+### 前端依赖 (package.json)
+| 依赖包 | 版本 | 用途 | 引入位置 |
+|--------|------|------|----------|
+| @vue-flow/core | ^1.48.2 | 流程图编排核心 | TrainingCreate.vue |
+| @vue-flow/background | ^1.3.2 | 流程图背景网格 | TrainingCreate.vue |
+| @vue-flow/controls | ^1.1.3 | 流程图缩放/平移控件 | TrainingCreate.vue |
+| naive-ui | ^2.44.1 | UI 组件库 | 全局 |
+| nprogress | ^0.2.0 | 路由进度条 | router/guard.ts |
+| echarts | ^6.0.0 | 数据可视化 | 能力分析页面 |
+
+**非预期发现**：
+- 使用 `@vue-flow/*` 系列实现可视化编排，而非自定义 Canvas
+- 使用 `naive-ui` 作为 UI 组件库
+- 埋点相关 hook `useTelemetry.ts` 存在但为空实现
+
+### 后端依赖 (pom.xml)
+| 依赖包 | 版本 | 用途 |
+|--------|------|------|
+| mybatis-plus-boot-starter | 3.5.5 | ORM 增强 |
+| jjwt-api/jjwt-impl/jjwt-jackson | 0.12.5 | JWT 认证 |
+| hutool-all | 5.8.26 | 工具库 |
+| spring-boot-starter-webflux | 2.7.18 | WebFlux (未实际使用) |
+| spring-boot-starter-websocket | 2.7.18 | WebSocket (未实际使用) |
+
+**非预期发现**：
+- 同时引入 JPA 和 MyBatis-Plus，但实际仅使用 MyBatis-Plus
+- WebFlux 和 WebSocket 依赖已引入但无相关实现代码
+- `@OperationLog` 注解已定义，但功能未完全实现
+
+### AI 引擎依赖 (requirements.txt)
+| 依赖包 | 版本 | 用途 |
+|--------|------|------|
+| fastapi | 0.115.0 | Web 框架 |
+| uvicorn | 0.32.0 | ASGI 服务器 |
+| langgraph | 0.2.0 | LangGraph (未实际使用) |
+| langchain-openai | 0.2.0 | LangChain OpenAI (未实际使用) |
+
+**非预期发现**：
+- LangGraph 和 LangChain-OpenAI 已引入，但 AI 引擎仅实现健康检查接口
+- 无实际的 AI 评分或辅导逻辑
+
+---
+
+## ⚠️ 客观架构隐患预警
+
+### 1. 高并发 AI 调用
+**问题**：
+- 后端无任何调用 AI 引擎的代码，因此无相关并发控制
+- 即使实现，当前设计是同步阻塞调用模式，无超时/熔断/降级机制
+- 无请求队列或批量处理机制
+
+**风险等级**：高 (一旦接入真实 AI 服务)
+
+### 2. 数据一致性
+**问题**：
+- `StudentTrainingController.next()` 中更新 `BizTrainingParticipation` 和 `WfStudentActivityState` 无事务保护
+- 若中途失败可能导致状态不一致
+- 无分布式锁机制，并发更新同一学生状态可能产生竞态条件
+
+**关键代码**：`backend-core/src/main/java/com/smartconstruct/backend_core/controller/StudentTrainingController.java:129-182`
+
+**风险等级**：中
+
+### 3. 长连接状态同步
+**问题**：
+- WebSocket 依赖已引入但无相关实现
+- 教师端实时监控学生进度需轮询实现，无推送机制
+- 无心跳保活和断线重连机制
+
+**风险等级**：低 (当前轮询可满足基本需求)
+
+### 4. 其他隐患
+- 前端 API 请求超时固定 15 秒，无动态调整机制
+- 后端 CORS 配置允许 `*` 通配符，生产环境有安全风险
+- 无数据库连接池监控和告警机制
+- 模板 JSON 直接存储为 TEXT 字段，无版本管理和迁移机制
+
+---
+
 ## 📧 联系我们
 
 如有问题或建议，请提交 Issue 或联系开发团队。

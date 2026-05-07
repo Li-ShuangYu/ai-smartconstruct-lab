@@ -29,6 +29,7 @@ public class StudentTrainingFlowController {
     private final IMindmapRecordService mindmapRecordService;
     private final ITrainingExamRecordService examRecordService;
     private final ITrainingChatLogService chatLogService;
+    private final IGlobalActivityStateService globalStateService;
 
     public StudentTrainingFlowController(ITrainingParticipationService participationService,
                                           ITrainingTaskService trainingTaskService,
@@ -36,7 +37,8 @@ public class StudentTrainingFlowController {
                                           IStudentActivityStateService activityStateService,
                                           IMindmapRecordService mindmapRecordService,
                                           ITrainingExamRecordService examRecordService,
-                                          ITrainingChatLogService chatLogService) {
+                                          ITrainingChatLogService chatLogService,
+                                          IGlobalActivityStateService globalStateService) {
         this.participationService = participationService;
         this.trainingTaskService = trainingTaskService;
         this.templateService = templateService;
@@ -44,6 +46,7 @@ public class StudentTrainingFlowController {
         this.mindmapRecordService = mindmapRecordService;
         this.examRecordService = examRecordService;
         this.chatLogService = chatLogService;
+        this.globalStateService = globalStateService;
     }
 
     /** 获取当前节点与配置 */
@@ -238,5 +241,46 @@ public class StudentTrainingFlowController {
         if (existing != null) examRecordService.updateById(record);
         else { record.setCreatedAt(LocalDateTime.now()); examRecordService.save(record); }
         return ApiResult.ok();
+    }
+
+    /** 学生端获取课中实训的全局当前状态（用于初始化或断线重连对齐） */
+    @GetMapping("/in-class/{taskId}/current-state")
+    public ApiResult<Map<String, Object>> getInClassState(@PathVariable Long taskId) {
+        WfGlobalActivityState state = globalStateService.getOne(
+                new LambdaQueryWrapper<WfGlobalActivityState>().eq(WfGlobalActivityState::getTaskId, taskId));
+        if (state == null) return ApiResult.error("课中实训尚未初始化，等待教师推进");
+
+        BizTrainingTask task = trainingTaskService.getById(taskId);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("taskId", taskId);
+        data.put("taskName", task != null ? task.getTaskName() : "");
+        data.put("currentNodeId", state.getCurrentNodeId());
+
+        // 尝试从模板 JSON 中找到对应节点信息
+        if (task != null && task.getTemplateId() != null) {
+            WfTrainingTemplate template = templateService.getById(task.getTemplateId());
+            if (template != null && template.getStandardPayloadJson() != null) {
+                try {
+                    JsonNode root = om.valueToTree(template.getStandardPayloadJson());
+                    data.put("allNodes", root.get("nodes"));
+                    data.put("allEdges", root.get("edges"));
+                    JsonNode nodes = root.get("nodes");
+                    if (nodes != null && nodes.isArray()) {
+                        for (JsonNode n : nodes) {
+                            if (state.getCurrentNodeId().equals(n.has("node_id") ? n.get("node_id").asText() : "")) {
+                                data.put("nodeType", n.has("node_type") ? n.get("node_type").asText() : "");
+                                data.put("nodeName", n.has("name") ? n.get("name").asText() : "");
+                                data.put("config", n.has("config") ? om.treeToValue(n.get("config"), Object.class) : null);
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("解析全局状态模板JSON失败 taskId={}", taskId, e);
+                }
+            }
+        }
+
+        return ApiResult.ok(data);
     }
 }
