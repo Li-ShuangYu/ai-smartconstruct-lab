@@ -12,13 +12,14 @@
 
 | 技术 | 说明 | 版本 |
 |------|------|------|
-| Vue 3 | 渐进式JavaScript框架 | 3.4+ |
+| Vue 3 | 渐进式JavaScript框架 | 3.5+ |
 | TypeScript | JavaScript超集 | 5.x |
 | Vite | 新一代前端构建工具 | 8.x |
-| Vue Router | Vue官方路由管理 | 4.x |
-| Pinia | Vue状态管理 | 2.x |
+| Vue Router | Vue官方路由管理 | 5.x |
+| Pinia | Vue状态管理 | 3.x |
 | Naive UI | Vue 3组件库 | 2.x |
-| Vue Flow | 流程图/节点编排组件 | 11.x |
+| Vue Flow | 流程图/节点编排组件 | 1.x |
+| ECharts | 数据可视化图表库 | 6.x |
 | NProgress | 路由进度条 | - |
 | Axios | HTTP客户端 | 1.x |
 
@@ -157,7 +158,7 @@ frontend-vue/
 
 ### 环境要求
 
-- Node.js 18+
+- Node.js 20.19+ 或 >=22.12.0
 - npm 9+
 
 ### 安装依赖
