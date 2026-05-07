@@ -17,3 +17,7 @@ export const updateProfile = (data: Partial<TeacherProfile>) =>
 
 export const updatePassword = (data: PasswordUpdate) =>
   http.put<ApiResult<void>>('/api/teacher/password', data).then(r => r.data)
+
+export interface CreateTaskParams { templateId: number; taskName: string; dispatchTargetId: number }
+export const createTrainingTask = (data: CreateTaskParams) =>
+  http.post<ApiResult<{ taskId: number; studentCount: number }>>('/api/teacher/training-tasks', data).then(r => r.data)

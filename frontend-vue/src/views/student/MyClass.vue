@@ -28,7 +28,7 @@
               </div>
               <div class="task-meta">
                 <span class="task-time">{{ formatTime(task.startTime) }}</span>
-                <button class="text-btn" @click="$router.push(`/training/student-training/welcome?taskId=${task.id}`)">进入实训</button>
+                <button class="text-btn" @click="$router.push(`/student/training-execute?taskId=${task.id}`)">进入实训</button>
               </div>
             </div>
             <div v-if="!taskLoading && tasks.length === 0" class="empty-text">暂无实训任务</div>

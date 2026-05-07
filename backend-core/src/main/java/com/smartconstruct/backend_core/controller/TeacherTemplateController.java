@@ -5,7 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smartconstruct.backend_core.annotation.OperationLog;
 import com.smartconstruct.backend_core.dto.ApiResult;
 import com.smartconstruct.backend_core.dto.PageResult;
+import com.smartconstruct.backend_core.entity.BizTrainingTask;
 import com.smartconstruct.backend_core.entity.WfTrainingTemplate;
+import com.smartconstruct.backend_core.service.ITrainingTaskService;
 import com.smartconstruct.backend_core.service.ITrainingTemplateService;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,9 +19,11 @@ import java.util.Map;
 public class TeacherTemplateController {
 
     private final ITrainingTemplateService templateService;
+    private final ITrainingTaskService trainingTaskService;
 
-    public TeacherTemplateController(ITrainingTemplateService templateService) {
+    public TeacherTemplateController(ITrainingTemplateService templateService, ITrainingTaskService trainingTaskService) {
         this.templateService = templateService;
+        this.trainingTaskService = trainingTaskService;
     }
 
     @GetMapping
@@ -54,5 +58,17 @@ public class TeacherTemplateController {
         templateService.processTemplateMockAi(template.getId(), canvasData);
 
         return ApiResult.ok(Map.of("id", template.getId(), "aiStatus", 1));
+    }
+
+    @OperationLog(action = "删除实训模板")
+    @DeleteMapping("/{id}")
+    public ApiResult<Void> delete(@PathVariable Long id) {
+        long usageCount = trainingTaskService.count(
+                new LambdaQueryWrapper<BizTrainingTask>().eq(BizTrainingTask::getTemplateId, id));
+        if (usageCount > 0) {
+            return ApiResult.error("该模板已被用于实训任务，无法直接删除");
+        }
+        templateService.removeById(id);
+        return ApiResult.ok();
     }
 }

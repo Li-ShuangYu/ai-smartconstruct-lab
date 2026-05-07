@@ -2,7 +2,6 @@ const studentRoutes = [
   {
     path: '/student',
     name: 'studentRoot',
-    // 确保这里的路径指向我们刚才修改好的包含过渡动画的 index.vue
     component: () => import('@/components/layout/WorkbenchLayout/index.vue'),
     redirect: '/student/workbench',
     children: [
@@ -13,46 +12,46 @@ const studentRoutes = [
         meta: { title: '学生工作台' }
       },
       {
-        // 关键配置 1：加上 /:id，用于传递实训任务 ID
         path: 'student-cabin/:id',
         name: 'StudentCabin',
         component: () => import('@/views/student/StudentCabin.vue'),
-        meta: { title: '学生舱位'}
+        meta: { title: '学生舱位' }
       },
       {
-        // 关键配置 2：实训详情（只读态）
         path: 'training-detail/:id',
         name: 'StudentTrainingDetail',
-        component: () => import('@/views/student/TrainingDetail.vue'), // 需新建此文件
-        meta: { title: '实训详情'}
+        component: () => import('@/views/student/TrainingDetail.vue'),
+        meta: { title: '实训详情' }
       },
       {
-        // 占位：我的班级
         path: 'my-class',
         name: 'StudentMyClass',
-        component: () => import('@/views/student/MyClass.vue'), // 需新建此文件
-        meta: { title: '我的班级'}
+        component: () => import('@/views/student/MyClass.vue'),
+        meta: { title: '我的班级' }
       },
       {
-        // 占位：我的课程
         path: 'courselist',
         name: 'StudentCourseList',
-        component: () => import('@/views/student/CourseList.vue'), // 需新建此文件
-        meta: { title: '我的课程'}
+        component: () => import('@/views/student/CourseList.vue'),
+        meta: { title: '我的课程' }
       },
       {
-        // 占位：通知
         path: 'notifications',
         name: 'StudentNotifications',
-        component: () => import('@/views/student/Notifications.vue'), // 需新建此文件
-        meta: { title: '消息通知'}
+        component: () => import('@/views/student/Notifications.vue'),
+        meta: { title: '消息通知' }
       },
       {
-        // 占位：个人中心
+        path: 'training-execute',
+        name: 'StudentTrainingExecute',
+        component: () => import('@/views/student/TrainingExecute.vue'),
+        meta: { title: '实训执行' }
+      },
+      {
         path: 'profile',
         name: 'StudentProfile',
-        component: () => import('@/views/student/UserProfile.vue'), // 需新建此文件
-        meta: { title: '个人中心'}
+        component: () => import('@/views/student/UserProfile.vue'),
+        meta: { title: '个人中心' }
       }
     ]
   }

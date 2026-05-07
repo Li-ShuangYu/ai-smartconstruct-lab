@@ -17,3 +17,17 @@ export const updateProfile = (data: Partial<StudentProfile>) =>
 
 export const updatePassword = (data: PasswordUpdate) =>
   http.put<ApiResult<void>>('/api/student/password', data).then(r => r.data)
+
+// 实训流转
+export interface ParticipationInfo {
+  participationId: number; taskId: number; status: number; taskName: string
+  templateId?: number; templateJson?: any; currentNodeIndex?: number
+}
+export const getParticipation = (taskId: number) =>
+  http.get<ApiResult<ParticipationInfo>>(`/api/student/training-tasks/${taskId}/participation`).then(r => r.data)
+
+export const startTraining = (participationId: number) =>
+  http.post<ApiResult<{ currentNodeIndex: number }>>(`/api/student/training-tasks/${participationId}/start`).then(r => r.data)
+
+export const nextTraining = (participationId: number) =>
+  http.post<ApiResult<{ currentNodeIndex: number; completed?: boolean }>>(`/api/student/training-tasks/${participationId}/next`).then(r => r.data)

@@ -29,7 +29,7 @@
             <h3 class="card-title">{{ item.taskName }}</h3>
             <footer class="card-actions">
               <span class="deadline">⏱️ {{ formatTime(item.startTime) }}</span>
-              <button class="mini-btn" @click="$router.push(`/training/student-training/welcome?taskId=${item.id}`)">
+              <button class="mini-btn" @click="$router.push(`/student/training-execute?taskId=${item.id}`)">
                 {{ item.status === 1 ? '继续' : (item.status === 0 ? '开始' : '查看') }}
               </button>
             </footer>
