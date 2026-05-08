@@ -73,31 +73,79 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 教师工作台页面
+ * 
+ * 教师端主页面，提供以下功能：
+ * - 显示教师个人欢迎信息和统计数据
+ * - 快捷入口（创建实训、实训管理、课程管理）
+ * - 近期实训任务列表
+ * 
+ * @component Workbench.vue
+ */
 import { ref, onMounted } from 'vue'
 import { NSpin } from 'naive-ui'
 import { getDashboardStats, getProfile, getTrainingTasks } from '@/services/modules/teacher-dashboard.service'
 import type { TeacherStats, TeacherProfile, TrainingTaskItem } from '@/services/types/dashboard.types'
 
+// === 响应式状态 ===
+
+/** 加载状态 */
 const loading = ref(false)
+
+/** 教师统计数据 */
 const stats = ref<TeacherStats>({ ongoingTasks: 0, totalCourses: 0, totalTasks: 0 })
+
+/** 教师个人资料 */
 const profile = ref<TeacherProfile>({ userId: 0, username: '' })
+
+/** 近期实训任务列表 */
 const recentTasks = ref<TrainingTaskItem[]>([])
 
+// === 辅助方法 ===
+
+/**
+ * 获取状态标签文本
+ * 
+ * @param s 状态码：0=未开始，1=进行中，2=已结束
+ * @returns 状态文本
+ */
 function statusLabel(s: number) {
   if (s === 0) return '未开始'
   if (s === 1) return '进行中'
   return '已结束'
 }
+
+/**
+ * 获取状态样式类名
+ * 
+ * @param s 状态码
+ * @returns CSS类名
+ */
 function statusClass(s: number) {
   if (s === 0) return 'default'
   if (s === 1) return 'warning'
   return 'active'
 }
+
+/**
+ * 格式化时间显示
+ * 
+ * @param t 时间字符串
+ * @returns 格式化后的时间文本
+ */
 function formatTime(t?: string) {
   if (!t) return ''
   return '更新于 ' + t.slice(0, 16).replace('T', ' ')
 }
 
+// === 生命周期 ===
+
+/**
+ * 组件挂载时加载数据
+ * 
+ * 并行请求统计数据、个人资料和近期任务列表
+ */
 onMounted(async () => {
   loading.value = true
   try {
