@@ -42,6 +42,7 @@ const adminMenus = ref([
     title: '用户中心',
     expanded: true, // 默认展开
     children: [
+      { name: '临时测试', path: '/admin/training-test', icon: 'fas fa-user-tie' },
       { name: '教师管理', path: '/admin/teacher', icon: 'fas fa-user-tie' },
       { name: '学生统管', path: '/admin/student', icon: 'fas fa-user-graduate' },
       { name: '菜单权限', path: '/admin/menu', icon: 'fas fa-list' }
