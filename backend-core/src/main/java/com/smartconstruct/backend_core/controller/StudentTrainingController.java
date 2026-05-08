@@ -14,15 +14,34 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
+/**
+ * 学生实训控制器
+ * 
+ * 负责处理学生端实训相关的所有API请求，包括：
+ * - 获取实训参与详情
+ * - 开始实训
+ * - 推进实训节点（下一节点）
+ * 
+ * @author SmartConstruct
+ * @version 1.0.0
+ */
 @RestController
 @RequestMapping("/api/student")
 public class StudentTrainingController {
 
+    /** 日志记录器 */
     private static final Logger log = LoggerFactory.getLogger(StudentTrainingController.class);
 
+    /** 实训参与服务 - 管理学生参与实训的记录 */
     private final ITrainingParticipationService participationService;
+    
+    /** 实训任务服务 - 管理实训任务信息 */
     private final ITrainingTaskService trainingTaskService;
+    
+    /** 实训模板服务 - 管理实训流程模板 */
     private final ITrainingTemplateService templateService;
+    
+    /** 学生活动状态服务 - 管理学生在实训中的当前节点状态 */
     private final IStudentActivityStateService activityStateService;
 
     public StudentTrainingController(ITrainingParticipationService participationService,
@@ -35,11 +54,29 @@ public class StudentTrainingController {
         this.activityStateService = activityStateService;
     }
 
+    /**
+     * 获取当前登录用户ID
+     * 
+     * 从Spring Security上下文获取当前认证用户的ID
+     * 
+     * @return 当前用户ID
+     */
     private Long getCurrentUserId() {
         SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return user.getId();
     }
 
+    /**
+     * 获取学生实训参与详情
+     * 
+     * 根据任务ID和当前登录学生ID，获取实训参与记录详情，包括：
+     * - 参与记录基本信息（状态、任务名称等）
+     * - 实训模板JSON（用于前端渲染流程）
+     * - 当前节点ID（学生当前所在的实训节点）
+     * 
+     * @param taskId 实训任务ID
+     * @return 参与详情VO
+     */
     @GetMapping("/training-tasks/{taskId}/participation")
     public ApiResult<ParticipationDetailVO> getParticipation(@PathVariable Long taskId) {
         Long studentId = getCurrentUserId();
@@ -96,6 +133,15 @@ public class StudentTrainingController {
         return ApiResult.ok(vo);
     }
 
+    /**
+     * 学生开始实训
+     * 
+     * 将实训参与状态设置为进行中（status=1），并创建学生活动状态记录，记录当前节点ID。
+     * 
+     * @param participationId 参与记录ID
+     * @param body 请求体，包含 startNodeId（起始节点ID）
+     * @return 当前节点ID
+     */
     @OperationLog(action = "学生开始实训")
     @PostMapping("/training-tasks/{participationId}/start")
     public ApiResult<Map<String, Object>> start(@PathVariable Long participationId,
@@ -125,6 +171,18 @@ public class StudentTrainingController {
         return ApiResult.ok(Map.of("currentNodeId", startNodeId));
     }
 
+    /**
+     * 学生实训推进到下一节点
+     * 
+     * 更新学生活动状态，将当前节点ID更新为下一节点。
+     * 如果是结束节点（isEnd=true），则将实训参与状态设置为已完成（status=2）。
+     * 
+     * 注意：此方法包含兜底逻辑，若活动状态记录缺失会自动创建，并同步修正参与状态。
+     * 
+     * @param participationId 参与记录ID
+     * @param body 请求体，包含 nextNodeId（下一节点ID）和 isEnd（是否为结束节点）
+     * @return 当前节点ID和是否已完成
+     */
     @OperationLog(action = "学生实训下一步")
     @PostMapping("/training-tasks/{participationId}/next")
     public ApiResult<Map<String, Object>> next(@PathVariable Long participationId,

@@ -75,6 +75,219 @@ ai-smartconstruct-lab/
 
 ---
 
+## 🏗️ 核心类与架构
+
+### 后端核心类 (backend-core)
+
+#### 1. 认证模块 (Auth)
+
+**核心类**:
+- `AuthController` - 认证接口控制器，处理登录/注册/登出请求
+- `SysUserServiceImpl` - 用户服务实现，处理用户CRUD和认证逻辑
+- `JwtUtil` - JWT工具类，负责Token生成与验证
+- `JwtAuthenticationFilter` - JWT认证过滤器，拦截请求验证Token
+- `SecurityConfig` - 安全配置类，配置Spring Security策略
+
+**核心实体**:
+- `SysUser` - 系统用户实体，存储用户基本信息
+- `BizStudent` - 学生实体，扩展学生特有属性
+- `BizTeacher` - 教师实体，扩展教师特有属性
+
+**认证流程**:
+```
+1. 客户端发送登录请求 (username, password, roleType)
+   ↓
+2. AuthController.login() 接收请求
+   ↓
+3. SysUserServiceImpl.verifyUser() 验证用户
+   ↓
+4. JwtUtil.generateToken() 生成JWT Token
+   ↓
+5. 返回Token和用户信息给客户端
+   ↓
+6. 客户端在后续请求中携带 Authorization: Bearer <token>
+   ↓
+7. JwtAuthenticationFilter 验证Token有效性
+   ↓
+8. 将用户信息存入 SecurityContext
+```
+
+#### 2. 实训编排模块 (Training Orchestration)
+
+**核心类**:
+- `TeacherTemplateController` - 教师模板控制器，管理实训模板CRUD
+- `TrainingWebSocketHandler` - WebSocket处理器，处理实训实时通信
+- `TrainingHandshakeInterceptor` - WebSocket握手拦截器，验证连接身份
+- `WfTrainingTemplate` - 实训模板实体，存储流程图JSON数据
+- `WfNodeDefinition` - 节点定义实体，定义节点类型和配置
+
+**核心实体**:
+- `WfTrainingTemplate` - 实训模板
+- `WfNodeDefinition` - 节点定义
+- `WfEdgeDefinition` - 连线定义
+- `BizTrainingTask` - 实训任务
+- `BizTrainingParticipation` - 学生实训参与记录
+
+**实训编排流程**:
+```
+1. 教师创建实训模板
+   TeacherTemplateController.create()
+   ↓
+2. 解析画布数据，保存节点和连线
+   WfTrainingTemplate.rawCanvasJson
+   ↓
+3. AI引擎处理模板（模拟/真实）
+   templateService.processTemplateMockAi()
+   ↓
+4. 教师发布实训任务
+   TeacherTrainingTaskController.distribute()
+   ↓
+5. 生成学生参与记录
+   BizTrainingParticipation
+   ↓
+6. 学生开始实训，状态流转
+   StudentTrainingController.start() / next()
+```
+
+#### 3. 学生实训模块 (Student Training)
+
+**核心类**:
+- `StudentTrainingController` - 学生实训控制器
+- `StudentDashboardController` - 学生仪表盘控制器
+- `TrainingExecutionService` - 实训执行服务
+
+**核心实体**:
+- `WfStudentActivityState` - 学生活动状态，记录当前节点
+- `BizTrainingParticipation` - 实训参与记录
+- `WfNodeExecutionResult` - 节点执行结果
+
+**实训执行流程**:
+```
+1. 学生获取实训参与记录
+   GET /api/student/training-tasks/{taskId}/participation
+   ↓
+2. 查询当前活动状态
+   WfStudentActivityState.currentNodeId
+   ↓
+3. 渲染当前节点内容
+   前端 TrainingExecute.vue
+   ↓
+4. 学生完成节点任务
+   POST /api/student/training-tasks/{participationId}/next
+   ↓
+5. 更新活动状态到下一节点
+   WfStudentActivityState.currentNodeId = nextNodeId
+   ↓
+6. 若为结束节点，标记完成
+   BizTrainingParticipation.status = 2 (completed)
+```
+
+#### 4. 配置类
+
+**核心配置类**:
+- `SecurityConfig` - Spring Security安全配置
+  - 配置JWT无状态认证
+  - 配置CORS跨域支持
+  - 配置请求权限控制
+  
+- `WebSocketConfig` - WebSocket配置
+  - 注册WebSocket端点 `/ws/training`
+  - 配置握手拦截器
+  - 允许跨域连接
+
+- `MybatisPlusConfig` - MyBatis-Plus配置
+  - 配置分页插件
+  - 配置乐观锁插件
+  - 配置自动填充字段
+
+### 前端核心类 (frontend-vue)
+
+#### 1. 认证模块 (Auth)
+
+**核心组件**:
+- `Login.vue` - 登录页面组件
+- `Register.vue` - 注册页面组件
+- `AuthLayout/index.vue` - 认证页面布局
+
+**核心Store**:
+- `auth.store.ts` - 认证状态管理
+  - token: JWT Token
+  - userInfo: 用户信息
+  - login(): 登录方法
+  - logout(): 登出方法
+
+**核心Service**:
+- `auth.service.ts` - 认证API服务
+  - login(data): 登录请求
+  - register(data): 注册请求
+  - getCurrentUser(): 获取当前用户
+
+#### 2. 实训编排模块 (Training Orchestration)
+
+**核心组件**:
+- `TrainingCreate.vue` - 实训编排页面
+- `useTraining.ts` - 实训组合式函数
+
+**核心Store**:
+- `training.store.ts` - 实训状态管理
+  - nodes: 节点列表
+  - edges: 连线列表
+  - historyStack: 撤销栈
+  - redoStack: 重做栈
+  - addNode(): 添加节点
+  - undo(): 撤销
+  - redo(): 重做
+
+**核心类型**:
+```typescript
+interface TrainingNode {
+  id: string;
+  type: 'start' | 'end' | 'llm' | 'code' | 'condition' | 'knowledge';
+  position: { x: number; y: number };
+  data: { label: string; config?: object };
+}
+
+interface TrainingEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+```
+
+#### 3. 实训执行模块 (Training Execution)
+
+**核心组件**:
+- `TrainingExecute.vue` - 实训执行页面
+- `StudentCabin.vue` - 学生舱位页面
+
+**核心Hook**:
+- `useWebSocket.ts` - WebSocket连接管理
+  - connect(sessionId): 建立连接
+  - send(message): 发送消息
+  - disconnect(): 断开连接
+
+**执行流程**:
+```
+1. 加载实训流程图
+   trainingService.getTrainingDetail(id)
+   ↓
+2. 建立WebSocket连接
+   useWebSocket.connect(sessionId)
+   ↓
+3. 获取当前节点
+   GET /api/student/training-tasks/{taskId}/participation
+   ↓
+4. 渲染节点内容
+   根据节点类型显示不同UI
+   ↓
+5. 学生完成任务
+   POST /api/student/training-tasks/{participationId}/next
+   ↓
+6. 更新进度，高亮下一节点
+```
+
+---
+
 ## 🚀 快速开始
 
 ### 环境要求
@@ -178,7 +391,7 @@ npm run dev
 
 ---
 
-## 🎯 功能模块
+## 🎯 功能模块与流程
 
 ### 角色划分
 
@@ -189,23 +402,104 @@ npm run dev
 | 教师 | `/teacher` | 实训编排、班级管理、直播监控 |
 | 学生 | `/student` | 课程学习、作业提交、实训参与 |
 
-### 教师功能
+### 教师功能流程
 
-- 📋 **工作台概览** - 班级整体数据看板
-- 🔧 **实训编排** - 可视化流程设计（基于 Vue Flow）
-- 📚 **班级课程管理** - 班级与课程关联管理
-- 📊 **能力分析** - 学生能力画像分析（雷达图展示）
-- 🎥 **直播监控** - 实时监控学生实训状态
-- 📝 **实训发布** - 选择班级下发实训任务
+#### 1. 实训编排流程
+```
+登录系统
+  ↓
+进入工作台 (/teacher/workbench)
+  ↓
+点击"创建实训"
+  ↓
+进入编排页面 (/teacher/training-create)
+  ↓
+从左侧拖拽节点到画布
+  ↓
+连接节点形成流程
+  ↓
+配置节点属性（双击节点）
+  ↓
+保存草稿 / 发布实训
+  ↓
+跳转到实训管理页
+```
 
-### 学生功能
+#### 2. 实训发布流程
+```
+在实训管理页 (/teacher/training-manage)
+  ↓
+选择待发布的实训
+  ↓
+点击"发布"按钮
+  ↓
+选择目标班级
+  ↓
+选择学生（可选）
+  ↓
+设置截止时间
+  ↓
+确认发布
+  ↓
+学生收到实训任务通知
+```
 
-- 📖 **课程列表** - 选修课程查看
-- 📝 **我的作业** - 作业提交与批改查看
-- 💻 **实训中心** - 沉浸式实训环境（含 AI 辅导）
-- 🏠 **学习空间** - 个人学习数据汇总
-- 🔔 **消息通知** - 接收课程和实训通知
-- 📊 **实训详情** - 查看实训任务详情
+#### 3. 实时监控流程
+```
+进入直播监控页 (/teacher/live-monitor)
+  ↓
+选择正在进行的实训
+  ↓
+WebSocket连接建立
+  ↓
+实时接收学生进度更新
+  ↓
+查看学生当前节点状态
+  ↓
+可介入指导学生
+```
+
+### 学生功能流程
+
+#### 1. 实训参与流程
+```
+登录系统
+  ↓
+进入学习空间 (/student/workbench)
+  ↓
+查看待完成的实训任务
+  ↓
+点击"开始实训"
+  ↓
+进入实训执行页 (/training/execute/:id)
+  ↓
+WebSocket连接建立
+  ↓
+按节点顺序完成任务
+  ↓
+提交结果，进入下一节点
+  ↓
+完成所有节点
+  ↓
+生成实训报告
+```
+
+#### 2. 作业提交流程
+```
+进入我的作业页 (/student/my-homework)
+  ↓
+选择待完成的作业
+  ↓
+查看作业详情和要求
+  ↓
+完成作业内容
+  ↓
+提交作业
+  ↓
+等待教师批改
+  ↓
+查看成绩和评语
+```
 
 ### 管理员功能
 
@@ -240,41 +534,6 @@ npm run dev
 | 评分 | `/api/evaluate` | 量化评分引擎 |
 | 辅导 | `/api/tutor` | 苏格拉底式辅导 |
 | 健康检查 | `/health` | 服务状态检查 |
-
----
-
-## 🤝 贡献指南
-
-### 开发流程
-
-1. Fork 项目仓库
-2. 创建特性分支：`git checkout -b feature/xxx`
-3. 提交代码：`git commit -m "feat: xxx"`
-4. 推送到远程分支：`git push origin feature/xxx`
-5. 创建 Pull Request
-
-### 代码规范
-
-- **前端**：遵循 Vue 官方风格指南，使用 TypeScript
-- **后端**：遵循 Spring Boot 代码规范
-- **Python**：遵循 PEP 8 规范
-
-### 提交规范
-
-使用 Conventional Commits 格式：
-
-- `feat:` - 新增功能
-- `fix:` - 修复 Bug
-- `docs:` - 文档更新
-- `style:` - 代码格式
-- `refactor:` - 重构代码
-- `test:` - 测试用例
-
----
-
-## 📄 许可证
-
-MIT License
 
 ---
 
@@ -419,6 +678,48 @@ MIT License
 - 后端 CORS 配置允许 `*` 通配符，生产环境有安全风险
 - 无数据库连接池监控和告警机制
 - 模板 JSON 直接存储为 TEXT 字段，无版本管理和迁移机制
+
+---
+
+## 📚 详细文档
+
+- [后端详细文档](./backend-core/BACKEND_README.MD) - 后端核心类、API接口、数据库设计
+- [前端详细文档](./frontend-vue/FRONTEND_README.md) - 前端组件、状态管理、路由系统
+
+---
+
+## 🤝 贡献指南
+
+### 开发流程
+
+1. Fork 项目仓库
+2. 创建特性分支：`git checkout -b feature/xxx`
+3. 提交代码：`git commit -m "feat: xxx"`
+4. 推送到远程分支：`git push origin feature/xxx`
+5. 创建 Pull Request
+
+### 代码规范
+
+- **前端**：遵循 Vue 官方风格指南，使用 TypeScript
+- **后端**：遵循 Spring Boot 代码规范
+- **Python**：遵循 PEP 8 规范
+
+### 提交规范
+
+使用 Conventional Commits 格式：
+
+- `feat:` - 新增功能
+- `fix:` - 修复 Bug
+- `docs:` - 文档更新
+- `style:` - 代码格式
+- `refactor:` - 重构代码
+- `test:` - 测试用例
+
+---
+
+## 📄 许可证
+
+MIT License
 
 ---
 

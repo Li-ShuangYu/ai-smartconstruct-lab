@@ -62,40 +62,94 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 登录页面组件
+ * 
+ * 系统统一登录入口，支持三种角色登录：
+ * - 学生端（student）
+ * - 教师端（teacher）
+ * - 管理端（admin）
+ * 
+ * 功能特性：
+ * - 角色切换（分段控制器）
+ * - 表单验证
+ * - 记住我功能
+ * - 登录后自动跳转到对应工作台
+ * 
+ * @component Login.vue
+ */
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { login as loginApi } from '@/services/modules/auth.service'
 import { useAuthStore } from '@/stores/modules/auth.store'
 
+// === 路由与状态管理 ===
 const router = useRouter()
 const authStore = useAuthStore()
+
+// === 响应式状态 ===
+
+/** 当前选中的角色 */
 const currentRole = ref('student')
+
+/** 账号输入 */
 const account = ref('')
+
+/** 密码输入 */
 const password = ref('')
+
+/** 是否记住我 */
 const rememberMe = ref(true)
+
+/** 登录加载状态 */
 const loading = ref(false)
+
+/** 错误消息 */
 const errorMsg = ref('')
 
+// === 常量配置 ===
+
+/** 角色ID映射表 */
 const roleMap: Record<string, number> = { student: 3, teacher: 2, admin: 1 }
 
+/** 角色跳转路径映射表 */
 const routeMap: Record<string, string> = {
   student: '/student/workbench',
   teacher: '/teacher/workbench',
   admin: '/admin'
 }
 
+/** 角色列表配置 */
 const roles = [
   { id: 'student', label: '学生端', icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>' },
   { id: 'teacher', label: '教师端', icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h20v14H2z"></path><path d="M12 17v4M8 21h8"></path></svg>' },
   { id: 'admin', label: '管理端', icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>' }
 ]
 
+// === 计算属性 ===
+
+/**
+ * 账号输入框占位符
+ * 
+ * 根据当前角色返回不同的提示文本
+ */
 const accountPlaceholder = computed(() => {
   if (currentRole.value === 'student') return '请输入学生学号'
   if (currentRole.value === 'teacher') return '请输入教师工号'
   return '请输入管理员账号'
 })
 
+// === 核心方法 ===
+
+/**
+ * 处理登录提交
+ * 
+ * 登录流程：
+ * 1. 表单验证（账号和密码不能为空）
+ * 2. 调用登录API
+ * 3. 保存Token和用户信息到状态管理
+ * 4. 根据角色跳转到对应工作台
+ */
 const handleLogin = async () => {
   errorMsg.value = ''
   if (!account.value || !password.value) {

@@ -19,19 +19,51 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+/**
+ * 系统用户服务实现类
+ * 
+ * 实现用户管理核心功能：
+ * - 用户注册（学生/教师）
+ * - Spring Security用户认证加载
+ * - 密码加密存储
+ * 
+ * @author SmartConstruct
+ * @version 1.0.0
+ */
 @Service
 public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> implements SysUserService, UserDetailsService {
 
+    /** 密码编码器 - BCrypt加密 */
     private final PasswordEncoder passwordEncoder;
+    
+    /** 学生服务 - 创建学生记录 */
     private final IStudentService studentService;
+    
+    /** 教师服务 - 创建教师记录 */
     private final ITeacherService teacherService;
 
+    /**
+     * 构造函数 - 注入依赖服务
+     * 
+     * @param passwordEncoder 密码编码器
+     * @param studentService 学生服务
+     * @param teacherService 教师服务
+     */
     public SysUserServiceImpl(PasswordEncoder passwordEncoder, IStudentService studentService, ITeacherService teacherService) {
         this.passwordEncoder = passwordEncoder;
         this.studentService = studentService;
         this.teacherService = teacherService;
     }
 
+    /**
+     * 加载用户详情（Spring Security认证）
+     * 
+     * 根据用户名查询用户信息，用于Spring Security认证流程。
+     * 
+     * @param username 用户名
+     * @return 用户详情（继承UserDetails）
+     * @throws UsernameNotFoundException 用户不存在时抛出
+     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         SysUser user = getOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getUsername, username));
@@ -41,6 +73,18 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         return user;
     }
 
+    /**
+     * 用户注册
+     * 
+     * 注册流程：
+     * 1. 校验角色类型（禁止注册管理员）
+     * 2. 检查用户名是否已存在
+     * 3. 创建用户记录（密码BCrypt加密）
+     * 4. 根据角色创建对应的扩展记录（学生/教师）
+     * 
+     * @param request 注册请求，包含用户名、密码、角色类型等信息
+     * @throws RuntimeException 用户名已存在或角色非法时抛出
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void registerUser(RegisterRequest request) {
