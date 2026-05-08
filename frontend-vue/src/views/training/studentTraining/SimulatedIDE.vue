@@ -1,52 +1,159 @@
 <template>
-  <div class="ide-wrapper">
-    <div v-if="context?.isGrouped" class="team-bar"><n-tag v-for="m in mockMembers" :key="m.name" :type="m.online ? 'success' : 'default'" size="small">{{ m.name }}{{ m.online ? '●' : '○' }}</n-tag></div>
-    <div class="ide-layout">
-      <aside class="req-panel"><div class="panel-title">需求描述</div><div class="panel-body"><p>{{ config?.scenario || config?.desc || '请在右侧编辑器中编写代码，然后点击模拟运行验证。' }}</p></div></aside>
-      <section class="editor-column">
-        <div class="editor-header">
-          <div class="mac-dots"><span class="dot close" /><span class="dot min" /><span class="dot max" /></div>
-          <span class="file-tab">main.py</span>
+  <div class="page-wrapper flex items-center justify-center w-full h-full min-h-[calc(100vh-100px)]">
+    
+    <div class="glass-card w-full max-w-[1400px] p-6 flex flex-col lg:flex-row gap-6 z-10 h-[850px]">
+      
+      <div class="w-full lg:w-[380px] flex flex-col h-full bg-white/60 border border-gray-100 rounded-2xl p-6 shadow-sm overflow-y-auto custom-scrollbar">
+        <div class="mb-2 text-xs font-bold text-indigo-400 tracking-widest uppercase">Node: CODING_CLASS</div>
+        <h1 class="text-2xl font-bold mb-4 text-gradient-primary">{{ taskConfig.title }}</h1>
+        
+        <div class="prose prose-sm text-gray-600 mb-6 flex-1 space-y-4">
+          <p class="font-medium text-gray-800">任务背景：</p>
+          <p>{{ taskConfig.desc }}</p>
+          
+          <p class="font-medium text-gray-800 mt-4">编码要求：</p>
+          <ul class="list-disc pl-4 space-y-2 text-sm">
+            <li v-for="(req, index) in taskConfig.requirements" :key="index">{{ req }}</li>
+          </ul>
         </div>
-        <div class="editor-body"><pre><code v-html="highlightedCode"></code></pre></div>
-        <div class="terminal-bar"><span>模拟终端</span></div>
-        <div class="terminal-body"><div v-for="(l, i) in terminalLines" :key="i" :class="['term-line', l.type]">{{ l.text }}</div></div>
-      </section>
+
+        <div class="pt-4 border-t border-indigo-100/50 mt-auto">
+          <div v-if="isPassed" class="mb-4 flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-lg border border-green-100 animate-fade-in">
+            <svg style="width: 18px; height: 18px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>测试用例全部通过，满足下一步条件</span>
+          </div>
+          <button 
+            class="hero-send-btn w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all"
+            :class="{'opacity-50 cursor-not-allowed': codeStatus === 'running'}"
+            @click="submitCode"
+            :disabled="codeStatus === 'running'"
+          >
+            <svg v-if="codeStatus === 'running'" style="width: 18px; height: 18px; animation: spin 1s linear infinite;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            <svg v-else style="width: 18px; height: 18px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+            {{ codeStatus === 'running' ? '正在验证中...' : (isPassed ? '进入下一环节' : '提交验证') }}
+          </button>
+        </div>
+      </div>
+
+      <div class="flex-1 flex flex-col gap-4 h-full min-w-0">
+        
+        <div class="flex-[2] bg-[#1e1e1e] rounded-2xl border border-gray-700/50 flex flex-col overflow-hidden shadow-2xl relative group">
+          <div class="h-10 bg-[#2d2d2d] flex items-center px-4 justify-between border-b border-gray-700/50">
+            <div class="flex gap-2">
+              <div class="w-3 h-3 rounded-full bg-red-500"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div class="w-3 h-3 rounded-full bg-green-500"></div>
+            </div>
+            <div class="text-gray-400 text-xs font-mono flex items-center gap-2">
+               <svg style="width: 14px; height: 14px; flex-shrink: 0; color: #3b82f6;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+               sm4_round_function.py
+            </div>
+            <div class="w-12"></div> </div>
+          
+          <div class="flex-1 relative flex">
+            <div class="w-12 bg-[#1e1e1e] border-r border-gray-700/50 flex flex-col items-end py-4 pr-2 text-gray-600 font-mono text-sm select-none">
+              <span v-for="n in 15" :key="n">{{ n }}</span>
+            </div>
+            <textarea 
+              v-model="codeContent" 
+              class="flex-1 bg-transparent text-[#d4d4d4] font-mono text-sm p-4 outline-none resize-none custom-scrollbar leading-relaxed"
+              spellcheck="false"
+            ></textarea>
+          </div>
+          
+          <button @click="runCode" class="absolute bottom-6 right-6 bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-full shadow-lg transition-transform hover:scale-105" title="运行测试">
+            <svg style="width: 20px; height: 20px; flex-shrink: 0;" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" />
+            <!-- </path> -->
+          </svg>
+          </button>
+        </div>
+
+        <div class="flex-[1] bg-[#0d0d0d] rounded-2xl border border-gray-800 flex flex-col overflow-hidden shadow-inner">
+          <div class="h-8 bg-[#1a1a1a] flex items-center px-4 text-xs font-mono text-gray-400 uppercase tracking-wider">
+            Terminal / Console
+          </div>
+          <div class="flex-1 p-4 font-mono text-sm overflow-y-auto custom-scrollbar">
+            <div v-if="!consoleOutput" class="text-gray-600 italic">等待执行...</div>
+            <div v-else v-html="consoleOutput"></div>
+          </div>
+        </div>
+
+      </div>
+
     </div>
-    <div class="actions"><n-button type="primary" :disabled="!canProceed" @click="handleRun" :loading="running">模拟运行</n-button></div>
   </div>
 </template>
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-import { NButton, NTag } from 'naive-ui'
-defineProps<{ config?: Record<string, any>; context?: Record<string, any> }>()
-const emit = defineEmits<{ (e: 'step-complete'): void; (e: 'update-data', data: any): void }>()
-const runSuccess = ref(false); const running = ref(false); const terminalLines = ref<{ text: string; type: string }[]>([])
-const mockMembers = [{ name: '张三', online: true }, { name: '李四', online: true }, { name: '王五', online: false }]
-const canProceed = computed(() => runSuccess.value)
-const sampleCode = `def main():\n    print("模拟编码环境已就绪")\n    # 请在此处编写代码\n    pass\n\nif __name__ == "__main__":\n    main()`
-const highlightedCode = computed(() => sampleCode.replace(/\b(def|if|print|pass|import)\b/g, '<span style="color:#0000ff">$1</span>').replace(/(".*?")/g, '<span style="color:#a31515">$1</span>').replace(/(#.*)/g, '<span style="color:#008000">$1</span>'))
-function handleRun() {
-  running.value = true; terminalLines.value = [{ text: '$ python3 main.py', type: 'info' }]
-  setTimeout(() => { terminalLines.value.push({ text: '模拟编码环境已就绪', type: 'info' }) }, 400)
-  setTimeout(() => { terminalLines.value.push({ text: '>>> 模拟运行成功，输出符合预期', type: 'success' }); runSuccess.value = true; running.value = false; emit('step-complete'); emit('update-data', { runSuccess: true }) }, 1200)
+
+<script setup>
+import { ref } from 'vue'
+
+const taskConfig = ref({
+  title: 'SM4 轮函数非线性变换',
+  desc: '在 SM4 算法中，轮函数 F 是核心。请补全轮函数中的非线性变换 τ (Tau) 的代码。',
+  requirements: [
+    '接收一个 32 位的输入 A。',
+    '将 A 拆分为 4 个 8 位的字节。',
+    '查 S 盒 (Sbox) 得到对应的 4 个输出字节。',
+    '将 4 个输出字节拼接成 32 位的字并返回。'
+  ]
+})
+
+const codeContent = ref(`def tau_transform(a):
+    # a 是一个 32 位的整数
+    # 请在此处编写你的代码实现 S 盒替换
+    
+    
+    return result
+`)
+
+const consoleOutput = ref('')
+const codeStatus = ref('idle') // idle, running
+const isPassed = ref(false)
+
+const runCode = () => {
+  consoleOutput.value = `<span class="text-blue-400">> root@student-env:~$ python run_tests.py</span><br>`
+  setTimeout(() => {
+    consoleOutput.value += `<span class="text-yellow-400">[执行日志]</span> 正在编译并执行...<br>`
+    if (codeContent.value.includes('return result') && codeContent.value.length < 150) {
+      consoleOutput.value += `<span class="text-red-500">[ERROR]</span> 测试用例 1 失败：返回结果未定义或类型错误。<br>`
+    } else {
+      consoleOutput.value += `<span class="text-green-500">[SUCCESS]</span> 模拟运行通过，输出值符合预期。<br>`
+    }
+  }, 600)
+}
+
+const submitCode = () => {
+  if (isPassed.value) {
+    alert("流转到下一个节点")
+    return
+  }
+  
+  codeStatus.value = 'running'
+  consoleOutput.value = `<span class="text-indigo-400">> 正在向服务器提交校验...</span><br>`
+  
+  setTimeout(() => {
+    codeStatus.value = 'idle'
+    // 模拟一种通过情况
+    if (codeContent.value.length > 100) {
+      isPassed.value = true
+      consoleOutput.value += `<span class="text-green-500 font-bold">✔ 全部 5 个测试用例通过！</span><br>`
+    } else {
+      consoleOutput.value += `<span class="text-red-500">✘ 校验失败：逻辑未完成。</span><br>`
+    }
+  }, 1500)
 }
 </script>
+
 <style scoped>
-.ide-wrapper { display: flex; flex-direction: column; height: 100%; }
-.team-bar { display: flex; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #E2E8F0; background: #F8FAFC; }
-.ide-layout { display: flex; flex: 1; min-height: 0; }
-.req-panel { width: 240px; border-right: 1px solid #E2E8F0; display: flex; flex-direction: column; flex-shrink: 0; }
-.panel-title { padding: 12px; font-weight: 700; font-size: 13px; border-bottom: 1px solid #E2E8F0; background: #F1F5F9; }
-.panel-body { padding: 16px; font-size: 13px; color: #475569; line-height: 1.6; }
-.editor-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.editor-header { display: flex; align-items: center; gap: 12px; padding: 0 12px; height: 32px; background: #F3F3F3; border-bottom: 1px solid #E2E8F0; }
-.mac-dots { display: flex; gap: 6px; } .dot { width: 10px; height: 10px; border-radius: 50%; } .close { background: #FF5F56; } .min { background: #FFBD2E; } .max { background: #27C93F; }
-.file-tab { font-size: 12px; color: #333; background: #fff; padding: 2px 12px; border: 1px solid #E2E8F0; border-bottom: none; }
-.editor-body { flex: 1; overflow-y: auto; padding: 12px 16px; background: #fff; font-family: Consolas, monospace; font-size: 13px; line-height: 1.5; }
-.editor-body pre { margin: 0; white-space: pre-wrap; }
-.terminal-bar { padding: 6px 12px; font-size: 11px; color: #8A8A8A; background: #F3F3F3; border-top: 1px solid #E2E8F0; border-bottom: 1px solid #E2E8F0; }
-.terminal-body { height: 100px; overflow-y: auto; padding: 8px 12px; background: #fff; font-family: Consolas, monospace; font-size: 12px; }
-.term-line { margin-bottom: 2px; } .info { color: #333; } .success { color: #107c10; font-weight: bold; }
-.actions { display: flex; justify-content: center; padding: 16px; border-top: 1px solid #E2E8F0; }
+/* 针对深色背景定制的滚动条 */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+.custom-scrollbar:hover::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); }
+
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 </style>

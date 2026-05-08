@@ -35,6 +35,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
+// @ts-ignore
 import { NMessageProvider } from 'naive-ui'
 import Sidebar from './Sidebar.vue'
 import AdminSidebar from './AdminSidebar.vue'

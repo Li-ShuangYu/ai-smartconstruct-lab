@@ -40,13 +40,13 @@ a,
 }
 
 /* 适配深色模式的玻璃卡片 */
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) {
   .glass-card {
     background: rgba(30, 41, 59, 0.7);
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
   }
-}
+} */
 
 /* 2. 主品牌色渐变文字 */
 .text-gradient-primary {
@@ -142,6 +142,13 @@ a,
   overflow-y: auto;
 }
 
+
+/* 加上这个，深色模式下背景才会跟着变黑，就不会突兀了 */
+/* @media (prefers-color-scheme: dark) {
+  .vscode-editor-body, .terminal-body {
+    background: #0f172a; 
+  } 
+}*/
 /* 辅助图标约束 */
 .icon { width: 18px; height: 18px; flex-shrink: 0; }
 .icon-sm { width: 16px; height: 16px; }
