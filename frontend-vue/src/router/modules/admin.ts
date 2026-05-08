@@ -23,7 +23,10 @@ const adminRoutes = [
       // === 系统中心 ===
       { path: 'ticket', name: 'AdminTicket', component: () => import('@/views/admin/TicketManage.vue') },
       { path: 'monitor', name: 'AdminMonitor', component: () => import('@/views/admin/ServiceMonitor.vue') },
-      { path: 'audit', name: 'AdminAudit', component: () => import('@/views/admin/AuditLog.vue') }
+      { path: 'audit', name: 'AdminAudit', component: () => import('@/views/admin/AuditLog.vue') },
+      
+      // === 测试入口 ===
+      { path: 'training-test', name: 'AdminTrainingTest', component: () => import('@/views/admin/TrainingTestEntry.vue') }
     ]
   }
 ]
