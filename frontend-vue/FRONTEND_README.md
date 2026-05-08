@@ -154,38 +154,658 @@ frontend-vue/
 
 ---
 
-## 🚀 快速开始
+## 🏗️ 核心类与模块架构
 
-### 环境要求
+### 1. 认证模块 (Auth)
 
-- Node.js 20.19+ 或 >=22.12.0
-- npm 9+
+**核心类/组件**:
+- `Login.vue` - 登录页面组件
+- `Register.vue` - 注册页面组件
+- `AuthLayout/index.vue` - 认证页面布局组件
+- `useAuth.ts` - 认证相关组合式函数
+- `auth.store.ts` - 认证状态管理Store
+- `auth.service.ts` - 认证API服务
 
-### 安装依赖
+**核心类型定义**:
+```typescript
+// services/types/auth.types.ts
+interface LoginRequest {
+  username: string;      // 用户名/学号/工号
+  password: string;      // 密码
+  roleType: 'student' | 'teacher' | 'admin';  // 角色类型
+}
 
-```bash
-cd frontend-vue
-npm install
+interface LoginResponse {
+  token: string;         // JWT Token
+  user: UserInfo;        // 用户信息
+}
+
+interface UserInfo {
+  id: number;
+  username: string;
+  realName: string;
+  role: string;
+  avatar?: string;
+}
 ```
 
-### 开发模式
-
-```bash
-npm run dev
+**认证流程**:
+```
+1. 用户访问登录页 (/auth/login)
+   ↓
+2. 选择角色类型 (学生/教师/管理员)
+   ↓
+3. 输入账号密码，点击登录
+   ↓
+4. auth.service.login() 发送登录请求
+   ↓
+5. 后端验证成功返回 JWT Token
+   ↓
+6. auth.store.setToken() 存储Token到localStorage
+   ↓
+7. auth.store.setUserInfo() 存储用户信息
+   ↓
+8. 根据角色跳转到对应工作台
+   - 学生 → /student/workbench
+   - 教师 → /teacher/workbench
+   - 管理员 → /admin/dashboard
 ```
 
-访问: http://localhost:5173
-
-### 构建生产版本
-
-```bash
-npm run build
+**Token管理流程**:
+```
+1. 登录成功获取 Token
+   ↓
+2. 存储到 localStorage (key: 'token')
+   ↓
+3. 后续请求自动携带 (api.ts 拦截器)
+   ↓
+4. 路由守卫检查 Token 有效性
+   ↓
+5. Token过期/无效 → 清除存储 → 跳转登录页
 ```
 
-### 预览生产版本
+---
 
-```bash
-npm run preview
+### 2. 实训编排模块 (Training Orchestration)
+
+**核心类/组件**:
+- `TrainingCreate.vue` - 实训编排页面
+- `training.store.ts` - 实训状态管理
+- `useTraining.ts` - 实训相关组合式函数
+- `training.service.ts` - 实训API服务
+- `training.types.ts` - 实训类型定义
+
+**核心类型定义**:
+```typescript
+// services/types/training.types.ts
+interface TrainingNode {
+  id: string;                    // 节点唯一ID
+  type: NodeType;                // 节点类型
+  position: { x: number; y: number };  // 画布位置
+  data: {
+    label: string;               // 节点标签
+    description?: string;        // 节点描述
+    config?: Record<string, any>; // 节点配置
+  };
+}
+
+type NodeType = 
+  | 'llm'           // LLM调用节点
+  | 'code'          // 代码执行节点
+  | 'condition'     // 条件分支节点
+  | 'start'         // 开始节点
+  | 'end'           // 结束节点
+  | 'knowledge';    // 知识库节点
+
+interface TrainingEdge {
+  id: string;
+  source: string;                // 源节点ID
+  target: string;                // 目标节点ID
+  type?: 'default' | 'condition-true' | 'condition-false';
+}
+
+interface TrainingFlow {
+  id?: number;
+  name: string;                  // 实训名称
+  description?: string;          // 实训描述
+  nodes: TrainingNode[];         // 节点列表
+  edges: TrainingEdge[];         // 连线列表
+  status: 'draft' | 'published' | 'archived';
+}
+```
+
+**实训编排流程**:
+```
+1. 教师进入实训编排页 (/teacher/training-create)
+   ↓
+2. 从左侧组件库拖拽节点到画布
+   - Vue Flow 处理拖拽事件
+   - screenToFlowCoordinate 坐标转换
+   ↓
+3. 连接节点形成流程
+   - checkValidConnection 验证连接合法性
+   - 防止自环和类型不匹配连接
+   ↓
+4. 配置节点属性
+   - 双击节点打开配置面板
+   - 设置节点参数（LLM提示词、代码等）
+   ↓
+5. 保存草稿或发布实训
+   - 保存草稿: training.store.saveDraft()
+   - 发布: training.service.publishTraining()
+   ↓
+6. 发布后跳转到实训管理页
+```
+
+**撤销/重做机制**:
+```
+数据结构:
+- historyStack: 历史状态栈 (最大30步)
+- redoStack: 重做栈
+- currentState: 当前状态
+
+操作流程:
+1. 每次节点/连线变更
+   ↓
+2. 当前状态压入 historyStack
+   ↓
+3. 清空 redoStack
+   ↓
+4. 执行撤销: 
+   - historyStack.pop() → currentState
+   - 原状态压入 redoStack
+   ↓
+5. 执行重做:
+   - redoStack.pop() → currentState
+   - 原状态压入 historyStack
+```
+
+---
+
+### 3. 实训执行模块 (Training Execution)
+
+**核心类/组件**:
+- `TrainingExecute.vue` - 学生实训执行页面
+- `StudentCabin.vue` - 学生舱位页面
+- `TrainingDetail.vue` - 实训详情页面
+- `training.store.ts` - 实训状态管理
+- `useWebSocket.ts` - WebSocket连接管理
+
+**核心类型定义**:
+```typescript
+interface TrainingSession {
+  id: number;                    // 会话ID
+  trainingId: number;            // 实训ID
+  studentId: number;             // 学生ID
+  status: 'not_started' | 'in_progress' | 'completed' | 'abandoned';
+  currentNodeId?: string;        // 当前执行节点
+  progress: number;              // 进度百分比
+  startTime?: Date;
+  endTime?: Date;
+}
+
+interface NodeExecutionResult {
+  nodeId: string;
+  status: 'success' | 'error' | 'pending';
+  output?: any;
+  errorMessage?: string;
+  executionTime: number;
+}
+
+interface WebSocketMessage {
+  type: 'node_status' | 'progress_update' | 'completion' | 'error';
+  payload: any;
+  timestamp: number;
+}
+```
+
+**实训执行流程**:
+```
+1. 学生进入实训执行页 (/student/training-execute/:id)
+   ↓
+2. 初始化 WebSocket 连接
+   - 建立 /ws/training 连接
+   - 发送身份验证信息
+   ↓
+3. 加载实训流程图
+   - 获取节点和连线数据
+   - 渲染 Vue Flow 画布
+   ↓
+4. 从起始节点开始执行
+   ↓
+5. 节点执行循环:
+   ┌─────────────────────────────────────┐
+   │  a. 高亮当前节点                     │
+   │  b. 根据节点类型执行不同逻辑          │
+   │     - LLM节点: 调用AI接口           │
+   │     - 代码节点: 执行代码并返回结果    │
+   │     - 条件节点: 根据条件选择分支      │
+   │  c. 发送执行结果到WebSocket          │
+   │  d. 更新进度和状态                   │
+   │  e. 自动跳转到下一节点               │
+   └─────────────────────────────────────┘
+   ↓
+6. 到达结束节点，标记完成
+   ↓
+7. 生成实训报告
+```
+
+**WebSocket实时通信流程**:
+```
+连接建立:
+1. 学生进入实训页面
+   ↓
+2. useWebSocket.connect(trainingSessionId)
+   ↓
+3. 发送连接请求到 ws://localhost:8080/ws/training
+   ↓
+4. 后端 TrainingHandshakeInterceptor 验证身份
+   ↓
+5. TrainingWebSocketHandler 处理连接
+   ↓
+6. 连接成功，开始监听消息
+
+消息收发:
+- 学生端发送: { type: 'node_complete', nodeId: 'xxx', result: {...} }
+- 后端广播: { type: 'progress_update', studentId: 1, progress: 50 }
+- 教师监控端实时接收并展示
+```
+
+---
+
+### 4. 状态管理模块 (Pinia Stores)
+
+**核心Store类**:
+
+#### auth.store.ts - 认证状态管理
+```typescript
+interface AuthState {
+  token: string | null;          // JWT Token
+  userInfo: UserInfo | null;     // 用户信息
+  isLoggedIn: boolean;           // 登录状态
+}
+
+// Actions:
+- login(credentials): Promise<void>    // 登录
+- logout(): void                       // 登出
+- setToken(token): void                // 设置Token
+- setUserInfo(info): void              // 设置用户信息
+- clearAuth(): void                    // 清除认证信息
+```
+
+#### training.store.ts - 实训状态管理
+```typescript
+interface TrainingState {
+  currentTraining: TrainingFlow | null;  // 当前实训
+  nodes: TrainingNode[];                 // 节点列表
+  edges: TrainingEdge[];                 // 连线列表
+  historyStack: HistoryState[];          // 历史栈
+  redoStack: HistoryState[];             // 重做栈
+  selectedNode: TrainingNode | null;     // 选中节点
+}
+
+// Actions:
+- setNodes(nodes): void                // 设置节点
+- setEdges(edges): void                // 设置连线
+- addNode(node): void                  // 添加节点
+- updateNode(id, data): void           // 更新节点
+- removeNode(id): void                 // 删除节点
+- addEdge(edge): void                  // 添加连线
+- removeEdge(id): void                 // 删除连线
+- saveToHistory(): void                // 保存到历史
+- undo(): void                         // 撤销
+- redo(): void                         // 重做
+- clearCanvas(): void                  // 清空画布
+```
+
+#### app.store.ts - 应用状态管理
+```typescript
+interface AppState {
+  sidebarCollapsed: boolean;     // 侧边栏折叠状态
+  theme: 'light' | 'dark';       // 主题
+  language: string;              // 语言
+  loading: boolean;              // 全局加载状态
+}
+
+// Actions:
+- toggleSidebar(): void          // 切换侧边栏
+- setTheme(theme): void          // 设置主题
+- setLanguage(lang): void        // 设置语言
+- setLoading(status): void       // 设置加载状态
+```
+
+#### homework.store.ts - 作业状态管理
+```typescript
+interface HomeworkState {
+  homeworkList: Homework[];      // 作业列表
+  currentHomework: Homework | null;
+  submissions: Submission[];     // 提交记录
+}
+
+// Actions:
+- fetchHomeworkList(): Promise<void>
+- submitHomework(data): Promise<void>
+- fetchSubmissions(homeworkId): Promise<void>
+```
+
+---
+
+### 5. API服务模块 (Services)
+
+**核心服务类**:
+
+#### api.ts - Axios封装
+```typescript
+// 核心配置
+const http: AxiosInstance = axios.create({
+  baseURL: 'http://localhost:8080',
+  timeout: 15000,
+  headers: { 'Content-Type': 'application/json' }
+});
+
+// 请求拦截器
+http.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  }
+);
+
+// 响应拦截器
+http.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token过期，清除并跳转登录
+      authStore.logout();
+      router.push('/auth/login');
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+#### auth.service.ts - 认证服务
+```typescript
+class AuthService {
+  // 用户登录
+  async login(data: LoginRequest): Promise<LoginResponse>
+  
+  // 用户注册
+  async register(data: RegisterRequest): Promise<void>
+  
+  // 获取当前用户信息
+  async getCurrentUser(): Promise<UserInfo>
+  
+  // 修改密码
+  async changePassword(data: ChangePasswordRequest): Promise<void>
+  
+  // 登出
+  async logout(): Promise<void>
+}
+```
+
+#### training.service.ts - 实训服务
+```typescript
+class TrainingService {
+  // 获取实训列表
+  async getTrainingList(params: QueryParams): Promise<PageResult<TrainingFlow>>
+  
+  // 获取实训详情
+  async getTrainingDetail(id: number): Promise<TrainingFlow>
+  
+  // 创建实训
+  async createTraining(data: TrainingFlow): Promise<TrainingFlow>
+  
+  // 更新实训
+  async updateTraining(id: number, data: TrainingFlow): Promise<TrainingFlow>
+  
+  // 发布实训
+  async publishTraining(id: number): Promise<void>
+  
+  // 删除实训
+  async deleteTraining(id: number): Promise<void>
+  
+  // 开始实训会话
+  async startSession(trainingId: number): Promise<TrainingSession>
+  
+  // 提交节点执行结果
+  async submitNodeResult(sessionId: number, result: NodeExecutionResult): Promise<void>
+}
+```
+
+#### user.service.ts - 用户服务
+```typescript
+class UserService {
+  // 获取用户列表
+  async getUserList(params: QueryParams): Promise<PageResult<UserInfo>>
+  
+  // 更新用户信息
+  async updateUser(id: number, data: UpdateUserRequest): Promise<UserInfo>
+  
+  // 上传头像
+  async uploadAvatar(file: File): Promise<string>
+}
+```
+
+---
+
+### 6. 路由模块 (Router)
+
+**核心文件**:
+- `router/index.ts` - 路由入口配置
+- `router/guard.ts` - 路由守卫
+- `router/modules/*.ts` - 路由模块
+
+**路由守卫流程**:
+```typescript
+// guard.ts
+router.beforeEach((to, from, next) => {
+  // 1. 启动进度条
+  NProgress.start();
+  
+  // 2. 设置页面标题
+  document.title = `${to.meta.title} - AI学苑`;
+  
+  // 3. 注入角色信息
+  const role = to.path.split('/')[1];
+  to.meta.role = role;
+  
+  // 4. 权限校验
+  if (to.meta.requiresAuth) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      next('/auth/login');
+      return;
+    }
+    
+    // 校验角色权限
+    const userRole = authStore.userInfo?.role;
+    if (to.meta.allowedRoles && !to.meta.allowedRoles.includes(userRole)) {
+      next('/403');
+      return;
+    }
+  }
+  
+  next();
+});
+
+router.afterEach(() => {
+  // 结束进度条
+  NProgress.done();
+});
+```
+
+**路由模块结构**:
+```typescript
+// router/modules/teacher.ts
+const teacherRoutes = [
+  {
+    path: '/teacher',
+    component: WorkbenchLayout,
+    meta: { requiresAuth: true, allowedRoles: ['teacher'] },
+    children: [
+      { path: 'workbench', component: TeacherWorkbench },
+      { path: 'training-manage', component: TrainingManage },
+      { path: 'training-create', component: TrainingCreate, meta: { hideSidebar: true } },
+      { path: 'evaluation', component: EvaluationDashboard },
+    ]
+  }
+];
+```
+
+---
+
+### 7. 布局组件模块 (Layout Components)
+
+**核心布局组件**:
+
+#### AuthLayout - 认证布局
+```typescript
+// components/layout/AuthLayout/index.vue
+// 用途: 登录/注册页面布局
+// 结构:
+┌─────────────────────────────────────────────┐
+│  ┌──────────────┐  ┌──────────────────────┐ │
+│  │              │  │                      │ │
+│  │   品牌展示    │  │     表单区域          │ │
+│  │   (左侧)      │  │     (右侧)            │ │
+│  │              │  │                      │ │
+│  └──────────────┘  └──────────────────────┘ │
+└─────────────────────────────────────────────┘
+
+// Props: 无
+// Slots: default (表单内容)
+```
+
+#### WorkbenchLayout - 工作台布局
+```typescript
+// components/layout/WorkbenchLayout/index.vue
+// 用途: 教师/学生/管理员工作台
+// 结构:
+┌─────────────────────────────────────────────┐
+│  Header (根据角色显示不同导航)              │
+├─────────┬───────────────────────────────────┤
+│         │                                   │
+│ Sidebar │         Main Content              │
+│         │         (router-view)             │
+│         │                                   │
+└─────────┴───────────────────────────────────┘
+
+// Props:
+interface Props {
+  role: 'teacher' | 'student' | 'admin';
+  hideSidebar?: boolean;  // 沉浸式模式
+}
+```
+
+#### TrainingLayout - 实训布局
+```typescript
+// components/layout/TrainingLayout/index.vue
+// 用途: 实训执行页面
+// 特点: 全屏布局，无侧边栏，专注于实训内容
+```
+
+---
+
+### 8. 组合式函数模块 (Hooks)
+
+**核心Hooks**:
+
+#### useAuth.ts - 认证Hook
+```typescript
+export function useAuth() {
+  const store = useAuthStore();
+  const router = useRouter();
+  
+  // 登录
+  const login = async (credentials: LoginRequest) => {
+    await store.login(credentials);
+    redirectByRole(store.userInfo.role);
+  };
+  
+  // 登出
+  const logout = () => {
+    store.logout();
+    router.push('/auth/login');
+  };
+  
+  // 检查权限
+  const hasPermission = (permission: string) => {
+    return store.userInfo?.permissions?.includes(permission);
+  };
+  
+  return { login, logout, hasPermission, isLoggedIn: store.isLoggedIn };
+}
+```
+
+#### useTraining.ts - 实训Hook
+```typescript
+export function useTraining() {
+  const store = useTrainingStore();
+  
+  // 加载实训
+  const loadTraining = async (id: number) => {
+    const training = await trainingService.getTrainingDetail(id);
+    store.setNodes(training.nodes);
+    store.setEdges(training.edges);
+  };
+  
+  // 保存实训
+  const saveTraining = async (data: TrainingFlow) => {
+    if (data.id) {
+      await trainingService.updateTraining(data.id, data);
+    } else {
+      await trainingService.createTraining(data);
+    }
+  };
+  
+  // 节点操作
+  const addNode = (type: NodeType, position: Position) => {
+    const node = createNode(type, position);
+    store.addNode(node);
+    store.saveToHistory();
+  };
+  
+  return { loadTraining, saveTraining, addNode, ...store };
+}
+```
+
+#### useWebSocket.ts - WebSocket Hook
+```typescript
+export function useWebSocket() {
+  const ws = ref<WebSocket | null>(null);
+  const isConnected = ref(false);
+  const messages = ref<WebSocketMessage[]>([]);
+  
+  // 建立连接
+  const connect = (sessionId: number) => {
+    ws.value = new WebSocket(`ws://localhost:8080/ws/training?sessionId=${sessionId}`);
+    
+    ws.value.onopen = () => { isConnected.value = true; };
+    ws.value.onmessage = (event) => {
+      messages.value.push(JSON.parse(event.data));
+    };
+    ws.value.onclose = () => { isConnected.value = false; };
+  };
+  
+  // 发送消息
+  const send = (message: WebSocketMessage) => {
+    if (ws.value?.readyState === WebSocket.OPEN) {
+      ws.value.send(JSON.stringify(message));
+    }
+  };
+  
+  // 断开连接
+  const disconnect = () => {
+    ws.value?.close();
+  };
+  
+  return { connect, send, disconnect, isConnected, messages };
+}
 ```
 
 ---
@@ -456,6 +1076,110 @@ npm run preview
 - **UI特性**：
   - **背景效果**：动态光晕背景（bg-glow、radial-gradient）
   - **Hero区域**：品牌Logo + AI对话气泡 + 快捷建议标签（解释抗重放机制/SM4编程第一步/查看我的进度）
+  - **数据看板**：三列统计卡片（我的课程/我的作业/实训进度）
+  - **Tab切换**：待完成/已完成/全部任务筛选
+  - **任务列表**：网格布局卡片，显示封面、标题、描述、进度条、截止时间、操作按钮
+  - **空状态**：无任务时显示占位图和提示
+
+#### StudentCabin.vue
+- **路径**：`/student/student-cabin/:id`
+- **功能**：学生个人学习舱位，沉浸式学习环境
+- **技术实现**：
+  - 路由参数获取（useRoute.params.id）
+  - 动态数据加载
+  - 个性化展示
+
+#### TrainingDetail.vue
+- **路径**：`/student/training-detail/:id`
+- **功能**：实训详情查看
+- **技术实现**：
+  - 路由参数解析
+  - 详情数据获取
+  - 开始实训跳转
+
+#### TrainingExecute.vue
+- **路径**：`/training/execute/:id`
+- **功能**：学生实训执行页面，核心实训交互
+- **技术实现**：
+  - **Vue Flow**：可视化流程执行
+  - **WebSocket**：实时通信获取节点状态
+  - **代码编辑器**：Monaco Editor 或 CodeMirror 集成
+  - **状态管理**：training.store 管理执行状态
+- **UI特性**：
+  - **流程可视化**：左侧显示实训流程图，高亮当前节点
+  - **工作区**：右侧主内容区显示当前节点任务
+  - **控制台**：底部输出执行结果和日志
+  - **进度条**：顶部显示整体进度
+- **执行流程**：
+  ```
+  1. 加载实训流程图
+  2. 建立 WebSocket 连接
+  3. 从起始节点开始
+  4. 循环执行节点:
+     - 显示节点内容（LLM对话/代码编辑/选择题）
+     - 学生完成任务
+     - 提交结果
+     - 等待后端验证
+     - 高亮下一节点
+  5. 完成所有节点，生成报告
+  ```
+
+#### MyClass.vue
+- **路径**：`/student/my-class`
+- **功能**：我的班级信息查看
+- **技术实现**：班级数据获取、成员列表展示
+
+#### CourseList.vue
+- **路径**：`/student/courselist`
+- **功能**：课程列表浏览
+- **技术实现**：课程数据获取、筛选排序
+
+#### Notifications.vue
+- **路径**：`/student/notifications`
+- **功能**：消息通知中心
+- **技术实现**：通知列表、已读/未读状态
+
+#### MyHomework.vue
+- **路径**：`/student/my-homework`
+- **功能**：我的作业列表
+- **技术实现**：作业数据获取、状态筛选
+
+#### MySubmission.vue
+- **路径**：`/student/my-submission`
+- **功能**：我的提交记录
+- **技术实现**：提交历史、成绩查看
+
+#### MyTraining.vue
+- **路径**：`/student/my-training`
+- **功能**：我的实训记录
+- **技术实现**：实训历史、进度查看
+
+#### UserProfile.vue
+- **路径**：`/student/profile`
+- **功能**：学生个人信息管理
+- **技术实现**：表单编辑、头像上传
+
+### 管理员端 (admin)
+
+#### TeacherManage.vue
+- **路径**：`/admin/teacher`
+- **功能**：教师账号管理
+- **技术实现**：CRUD操作、分页列表
+
+#### StudentManage.vue
+- **路径**：`/admin/student`
+- **功能**：学生账号管理
+- **技术实现**：CRUD操作、批量导入
+
+#### OrgManage.vue
+- **路径**：`/admin/org`
+- **功能**：机构组织管理
+- **技术实现**：树形结构、层级管理
+
+#### CourseManage.vue
+- **路径**：`/admin/course`
+- **功能**：课程资源管理
+- **技术实现**：课程CRUD、分类管理
 
 ---
 
@@ -517,269 +1241,4 @@ const http: AxiosInstance = axios.create({
 **解决方案**:
 1. 确认后端服务正在运行（端口 8080）
 2. 确认前端运行端口已添加到后端 CORS 配置
-3. 使用命令检查端口状态：`netstat -ano | findstr ":8080"`
-
-### 2. 页面显示空白
-
-**问题描述**: 页面加载后显示空白
-
-**排查步骤**:
-1. 打开浏览器开发者工具（F12）
-2. 检查 Console 面板是否有错误
-3. 检查 Network 面板是否有请求失败
-4. 确认路由配置正确
-
-### 3. 构建失败
-
-**问题描述**: `npm run build` 失败
-
-**排查步骤**:
-1. 检查是否有 TypeScript 类型错误
-2. 检查依赖是否安装完整
-3. 尝试删除 `node_modules` 后重新安装
-
----
-
-## � 核心状态管理与数据字典
-
-### Pinia Store - useTrainingStore (核心)
-**文件位置**: `stores/modules/training.store.ts`
-
-```typescript
-export const useTrainingStore = defineStore('training', () => {
-  // 1. Vue Flow 实例 (使用 shallowRef 避免响应式劫持导致的性能问题)
-  const flowInstance = shallowRef<any>(null)
-  
-  // 2. 画布节点数组 (Vue Flow 直接使用)
-  const nodes = ref<Node[]>([])
-  
-  // 3. 画布连线数组 (Vue Flow 直接使用)
-  const edges = ref<Edge[]>([])
-  
-  // 4. 节点业务配置映射表 (key: node_id, value: 配置对象)
-  const nodeConfigMap = ref<Record<string, any>>({})
-  
-  // 5. 当前选中的节点 ID
-  const selectedNodeId = ref<string | null>(null)
-  
-  // Action: 更新节点配置
-  const updateNodeConfig = (id: string, config: any) => { ... }
-  
-  return { flowInstance, nodes, edges, nodeConfigMap, selectedNodeId, updateNodeConfig }
-})
-```
-
-**使用场景**：
-- TrainingCreate.vue (教师编排实训流程)
-- 其他需要访问编排数据的组件
-
-### TrainingCreate.vue 组件内部响应式对象
-**文件位置**: `views/teacher/TrainingCreate.vue`
-
-| 对象名 | 类型 | 用途 |
-|--------|------|------|
-| historyStack | ref&lt;string[]&gt; | 撤销历史栈，存储 JSON.stringify 的画布状态 |
-| redoStack | ref&lt;string[]&gt; | 重做栈，存储被撤销的画布状态 |
-| isSidebarCollapsed | ref&lt;boolean&gt; | 左侧节点库侧边栏折叠状态 |
-| expandedCats | ref&lt;string[]&gt; | 已展开的节点分类列表 |
-| selectedNode | ref&lt;any&gt; | 当前选中的节点对象 (用于右侧配置面板) |
-| showPublishModal | ref&lt;boolean&gt; | 发布模板弹窗显示状态 |
-| publishForm | ref&lt;object&gt; | 发布表单数据 { templateName: string } |
-| publishing | ref&lt;boolean&gt; | 发布中加载状态 |
-
----
-
-## 🔧 核心业务实现穿透
-
-### TrainingCreate.vue - 可视化编排器
-
-#### 1. 图形节点 → JSON 拓扑结构转换
-**核心函数**: `buildCanvasData()` (L250-266)
-
-```typescript
-function buildCanvasData(): CanvasData {
-  const orchId = 'orch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)
-  const resultNodes: any[] = []
-  
-  // 遍历所有 Vue Flow 节点
-  for (const n of store.nodes) {
-    resultNodes.push({
-      node_id: n.id,
-      node_type: (n.data.type as string).toUpperCase(), // 转换为大写
-      name: (n.data.label as string) || '',
-      config: extractConfig(n.data) // 提取业务配置
-    })
-  }
-  
-  const resultEdges: any[] = []
-  // 遍历所有连线，只保留 source 和 target
-  for (const e of store.edges) {
-    resultEdges.push({ source: e.source, target: e.target })
-  }
-  
-  return { orchestration_id: orchId, nodes: resultNodes, edges: resultEdges }
-}
-```
-
-**配置提取**: `extractConfig()` (L288-302)
-- 根据节点类型从 `configKeysMap` 中读取对应的配置字段
-- 特殊处理 homework 节点的兼容性逻辑
-- 返回纯净的配置对象，不含 Vue Flow 内部属性
-
-**配置映射表** (L268-286):
-```typescript
-configKeysMap = {
-  grouping: ['groupCount', 'groupMethod'],
-  resource_read: ['resourceName', 'resourceId'],
-  task_distribute: ['taskTitle', 'taskDesc'],
-  homework: ['time_limit_mins', 'source_mode', ...],
-  // ... 其他节点类型
-}
-```
-
-**关键代码位置**: `views/teacher/TrainingCreate.vue:250-302`
-
----
-
-#### 2. 撤销/重做 (Undo/Redo) 实现机制
-**核心原理**: 基于双栈结构 + JSON 序列化
-
-```typescript
-// 两个关键栈
-const historyStack = ref<string[]>([])  // 撤销栈
-const redoStack = ref<string[]>([])     // 重做栈
-const canUndo = computed(() => historyStack.value.length > 0)
-const canRedo = computed(() => redoStack.value.length > 0)
-
-// 记录历史 (节点拖拽、连线、配置修改时调用)
-const recordHistory = () => {
-  historyStack.value.push(JSON.stringify(toObject())) // toObject() 是 Vue Flow 提供的方法
-  if (historyStack.value.length > 30) historyStack.value.shift() // 最多保留 30 步
-  redoStack.value = [] // 清空重做栈
-}
-
-// 撤销
-const undo = () => {
-  if (!canUndo.value) return
-  redoStack.value.push(JSON.stringify(toObject())) // 当前状态压入重做栈
-  const s = JSON.parse(historyStack.value.pop()!)  // 从撤销栈弹出上一个状态
-  store.nodes = s.nodes
-  store.edges = s.edges
-}
-
-// 重做
-const redo = () => {
-  if (!canRedo.value) return
-  historyStack.value.push(JSON.stringify(toObject())) // 当前状态压入撤销栈
-  const s = JSON.parse(redoStack.value.pop()!)        // 从重做栈弹出状态
-  store.nodes = s.nodes
-  store.edges = s.edges
-}
-```
-
-**触发历史记录的时机**:
-- 节点拖拽停止: `@node-drag-stop="recordHistory"`
-- 节点连接完成: `@connect="onConnect"` (内部调用 recordHistory)
-- 节点拖入画布: `onDrop()` (内部调用 recordHistory)
-
-**关键代码位置**: `views/teacher/TrainingCreate.vue:189-210`
-
----
-
-#### 3. 节点拖拽与画布交互
-```typescript
-// 拖拽开始 - 保存节点模板数据
-const onDragStart = (event: DragEvent, item: any) => {
-  event.dataTransfer?.setData('application/vueflow', JSON.stringify(item))
-}
-
-// 拖放 - 创建新节点
-const onDrop = (event: DragEvent) => {
-  const data = event.dataTransfer?.getData('application/vueflow')
-  if (!data) return
-  recordHistory() // 先记录历史
-  const item = JSON.parse(data)
-  const position = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
-  const newNode = {
-    id: 'node_' + Date.now(),
-    type: 'standard',
-    position,
-    data: { type: item.type, label: item.label, icon: item.icon, ...item.defaultData }
-  }
-  store.nodes.push(newNode)
-}
-
-// 连接校验 - 防止自环
-const checkValidConnection = (connection: any) => {
-  if (connection.source === connection.target) return false
-  if (connection.sourceHandle === 'target' || connection.targetHandle === 'source') return false
-  return true
-}
-```
-
----
-
-## 📚 自定义工具库说明
-
-### src/utils 目录
-#### 1. training-flow.ts - 工作流工具
-**文件位置**: `utils/training-flow.ts`
-
-| 函数 | 签名 | 用途 |
-|------|------|------|
-| getNextNodeId | `(currentNodeId: string, edges: FlowEdge[]): string \| null` | 从 edges 中查找下一个节点 |
-| findStartNodeId | `(nodes: FlowNode[]): string \| null` | 查找 START 类型的节点 |
-| checkIsEndNode | `(node: FlowNode): boolean` | 检查节点是否为 END 类型 |
-| buildOrderedSequence | `(nodes: FlowNode[], edges: FlowEdge[]): FlowNode[]` | 从 START 开始 DFS 遍历构建有序节点序列 |
-| normalizeType | `(t: string): string` | 标准化节点类型 (转大写，替换特殊字符) |
-
-**使用场景**: TrainingExecute.vue 中解析实训模板 JSON，确定节点执行顺序
-
-#### 2. storage.ts - 本地存储工具
-**未发现具体实现内容**
-
-#### 3. validate.ts - 校验工具
-**未发现具体实现内容**
-
-#### 4. format.ts - 格式化工具
-**未发现具体实现内容**
-
-#### 5. telemetry.ts - 埋点工具
-**未发现具体实现内容**
-
----
-
-### src/hooks 目录
-#### 1. useAuth.ts - 认证 Hook
-**文件位置**: `hooks/useAuth.ts`
-
-**用途**: 未发现具体实现内容
-
-#### 2. useTraining.ts - 实训 Hook
-**文件位置**: `hooks/useTraining.ts`
-
-**用途**: 未发现具体实现内容
-
-#### 3. useStepProgress.ts - 步进流程 Hook
-**文件位置**: `hooks/useStepProgress.ts`
-
-**用途**: 未发现具体实现内容
-
-#### 4. useTelemetry.ts - 埋点 Hook
-**文件位置**: `hooks/useTelemetry.ts`
-
-**状态**: 文件存在但内容为空 (0 行)
-- 无任何埋点上报逻辑
-- 无数据格式定义
-- 仅作为占位符存在
-
-#### 5. useAssistant.ts - 智能助手 Hook
-**文件位置**: `hooks/useAssistant.ts`
-
-**用途**: 未发现具体实现内容
-
----
-
-## �📞 联系方式
-
-如有问题请联系开发团队。
+3. 使用命令检查端口状态：`netstat -ano | findstr 
