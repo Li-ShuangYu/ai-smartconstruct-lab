@@ -146,6 +146,16 @@
 </template>
 
 <script setup lang="ts">
+/**
+ * 实训流程编排器组件
+ * 
+ * 教师端用于创建实训模板的可视化编排页面，基于 Vue Flow 实现：
+ * - 左侧节点库：提供可拖拽的实训节点组件
+ * - 中央画布：可视化编排区域，支持节点拖拽、连接、撤销/重做
+ * - 右侧配置面板：选中节点后的详细配置
+ * 
+ * @component TrainingCreate.vue
+ */
 import { ref, markRaw, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { VueFlow, useVueFlow, MarkerType } from '@vue-flow/core'
@@ -159,22 +169,33 @@ import { createTemplate } from '@/services/modules/teacher-template.service'
 import type { CanvasData, OrchestrationNode, OrchestrationEdge } from '@/services/types/template.types'
 import StandardNode from './components/StandardNode.vue'
 
+// === 依赖注入 ===
 const store = useTrainingStore()
 const router = useRouter()
 const message = useMessage()
 const { addEdges, toObject, screenToFlowCoordinate } = useVueFlow()
 
+// === Vue Flow 配置 ===
+
+/** 自定义节点类型映射 */
 const nodeTypes: Record<string, any> = { standard: markRaw(StandardNode) }
 
+/** 连接线默认配置 */
 const edgeOptions = {
   type: 'default', animated: true,
   style: { strokeWidth: 2, stroke: '#818CF8' },
   markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20, color: '#818CF8' }
 }
 
+/**
+ * 验证连接线是否有效
+ * 
+ * @param connection 连接参数
+ * @returns true表示连接有效，false表示无效
+ */
 const checkValidConnection = (connection: any) => {
-  if (connection.source === connection.target) return false
-  if (connection.sourceHandle === 'target' || connection.targetHandle === 'source') return false
+  if (connection.source === connection.target) return false  // 不能自连接
+  if (connection.sourceHandle === 'target' || connection.targetHandle === 'source') return false  // 只能从输出端连到输入端
   return true
 }
 
@@ -186,22 +207,49 @@ const toggleCategory = (type: string) => {
   if (i > -1) expandedCats.value.splice(i, 1); else expandedCats.value.push(type)
 }
 
-// 撤销/恢复
+// === 撤销/恢复功能 ===
+
+/** 历史记录栈 - 存储每次操作前的完整状态 */
 const historyStack = ref<string[]>([])
+
+/** 重做栈 - 存储被撤销的状态，用于恢复 */
 const redoStack = ref<string[]>([])
+
+/** 是否可以撤销 */
 const canUndo = computed(() => historyStack.value.length > 0)
+
+/** 是否可以重做 */
 const canRedo = computed(() => redoStack.value.length > 0)
+
+/**
+ * 记录当前状态到历史栈
+ * 
+ * 将当前画布状态（节点+连接线）序列化为 JSON 字符串存入历史栈，
+ * 最多保留 30 条历史记录，超出时自动丢弃最早的记录。
+ */
 const recordHistory = () => {
   historyStack.value.push(JSON.stringify(toObject()))
   if (historyStack.value.length > 30) historyStack.value.shift()
-  redoStack.value = []
+  redoStack.value = []  // 新操作后清空重做栈
 }
+
+/**
+ * 执行撤销操作
+ * 
+ * 将当前状态保存到重做栈，然后从历史栈弹出上一个状态并恢复。
+ */
 const undo = () => {
   if (!canUndo.value) return
   redoStack.value.push(JSON.stringify(toObject()))
   const s = JSON.parse(historyStack.value.pop()!)
   store.nodes = s.nodes; store.edges = s.edges
 }
+
+/**
+ * 执行重做操作
+ * 
+ * 将当前状态保存到历史栈，然后从重做栈弹出最近撤销的状态并恢复。
+ */
 const redo = () => {
   if (!canRedo.value) return
   historyStack.value.push(JSON.stringify(toObject()))
@@ -209,13 +257,30 @@ const redo = () => {
   store.nodes = s.nodes; store.edges = s.edges
 }
 
-// 拖拽
+// === 拖拽功能 ===
+
+/**
+ * 节点拖拽开始事件处理
+ * 
+ * 将节点模板数据序列化后存入 dataTransfer，供 drop 事件使用。
+ * 
+ * @param event 拖拽事件
+ * @param item 节点模板数据
+ */
 const onDragStart = (event: DragEvent, item: any) => {
   if (event.dataTransfer) {
     event.dataTransfer.setData('application/vueflow', JSON.stringify(item))
     event.dataTransfer.effectAllowed = 'move'
   }
 }
+
+/**
+ * 节点放置事件处理
+ * 
+ * 将从节点库拖入的节点添加到画布，并记录历史状态。
+ * 
+ * @param event 放置事件
+ */
 const onDrop = (event: DragEvent) => {
   const data = event.dataTransfer?.getData('application/vueflow')
   if (!data) return
@@ -230,7 +295,23 @@ const onDrop = (event: DragEvent) => {
   }
   store.nodes.push(newNode)
 }
+
+/**
+ * 连接线创建事件处理
+ * 
+ * 记录历史并添加新的连接线。
+ * 
+ * @param params 连接参数
+ */
 const onConnect = (params: any) => { recordHistory(); addEdges({ ...params, animated: true }) }
+
+/**
+ * 画布就绪事件处理
+ * 
+ * 将 Vue Flow 实例保存到全局状态，供其他组件使用。
+ * 
+ * @param instance Vue Flow 实例
+ */
 const onPaneReady = (instance: any) => { store.flowInstance = instance }
 
 // 节点选中 → 配置面板
@@ -246,7 +327,18 @@ const publishFormRef = ref<FormInst | null>(null)
 const publishForm = ref({ templateName: '' })
 const publishRules: FormRules = { templateName: [{ required: true, message: '请输入模板名称' }] }
 
-// 转换为标准 JSON 结构
+// === 画布数据转换与验证 ===
+
+/**
+ * 将前端图形节点转换为标准 JSON 拓扑结构
+ * 
+ * 将 Vue Flow 的节点和连接线数据转换为后端可识别的标准格式，包括：
+ * - orchestration_id: 编排唯一标识
+ * - nodes: 节点数组，包含 node_id, node_type, name, config
+ * - edges: 连接线数组，包含 source, target
+ * 
+ * @returns 标准格式的画布数据
+ */
 function buildCanvasData(): CanvasData {
   const orchId = 'orch_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)
   const resultNodes: any[] = []
@@ -265,6 +357,11 @@ function buildCanvasData(): CanvasData {
   return { orchestration_id: orchId, nodes: resultNodes, edges: resultEdges }
 }
 
+/**
+ * 节点配置字段映射表
+ * 
+ * 定义每种节点类型需要提取的配置字段，用于从节点数据中提取业务配置。
+ */
 const configKeysMap: Record<string, any[]> = {
   grouping: ['groupCount', 'groupMethod'],
   resource_read: ['resourceName', 'resourceId'],
@@ -285,6 +382,15 @@ const configKeysMap: Record<string, any[]> = {
   end: ['desc']
 }
 
+/**
+ * 从节点数据中提取业务配置
+ * 
+ * 根据节点类型，从节点的 data 对象中提取对应的配置字段。
+ * 对特殊节点（如 homework）有额外的处理逻辑。
+ * 
+ * @param data 节点数据对象
+ * @returns 配置对象
+ */
 function extractConfig(data: any): Record<string, unknown> {
   const type = data.type as string
   const keys = configKeysMap[type] || []
@@ -292,7 +398,7 @@ function extractConfig(data: any): Record<string, unknown> {
   for (const k of keys) {
     if (data[k] !== undefined) config[k] = data[k]
   }
-  // Flatten special homework logic
+  // 课后作业节点的特殊处理逻辑
   if (type === 'homework') {
     if (!config.source_mode) config.source_mode = data.isAIGenerated ? 'ai' : 'bank'
     if (!config.time_limit_mins) config.time_limit_mins = 30
@@ -301,6 +407,13 @@ function extractConfig(data: any): Record<string, unknown> {
   return config
 }
 
+/**
+ * 验证画布是否符合发布要求
+ * 
+ * 检查画布是否包含必要的节点：开始节点和结束节点。
+ * 
+ * @returns 错误信息，如果验证通过则返回 null
+ */
 function validateCanvas(): string | null {
   if (store.nodes.length === 0) return '画布为空，请先添加节点'
   const hasStart = store.nodes.some(n => n.data.type === 'start')
@@ -310,6 +423,13 @@ function validateCanvas(): string | null {
   return null
 }
 
+// === 发布功能 ===
+
+/**
+ * 处理发布按钮点击
+ * 
+ * 先验证画布是否符合要求，验证通过后打开发布弹窗。
+ */
 function handlePublish() {
   const err = validateCanvas()
   if (err) { message.warning(err); return }
@@ -317,6 +437,12 @@ function handlePublish() {
   showPublishModal.value = true
 }
 
+/**
+ * 确认发布模板
+ * 
+ * 验证表单后，将画布数据转换为标准格式并提交到后端。
+ * 提交成功后跳转到模板管理页面。
+ */
 async function confirmPublish() {
   try { await publishFormRef.value?.validate() } catch { return }
   publishing.value = true
@@ -333,6 +459,11 @@ async function confirmPublish() {
   } catch { message.error('操作失败') } finally { publishing.value = false }
 }
 
+/**
+ * 组件卸载时清理状态
+ * 
+ * 清空全局状态中的节点和连接线数据，避免影响其他页面。
+ */
 onUnmounted(() => { store.nodes = []; store.edges = [] })
 </script>
 
