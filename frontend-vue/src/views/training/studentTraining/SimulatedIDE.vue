@@ -1,7 +1,7 @@
 <template>
-  <div class="page-wrapper flex items-center justify-center w-full h-full min-h-[calc(100vh-100px)]">
+  <div class="page-wrapper w-full min-h-screen">
     
-    <div class="glass-card w-full max-w-[1400px] p-6 flex flex-col lg:flex-row gap-6 z-10 h-[850px]">
+    <div class="glass-card w-full h-full p-6 flex flex-col z-10">lg:flex-row gap-6 z-10 h-[850px]">
       
       <div class="w-full lg:w-[380px] flex flex-col h-full bg-white/60 border border-gray-100 rounded-2xl p-6 shadow-sm overflow-y-auto custom-scrollbar">
         <div class="mb-2 text-xs font-bold text-indigo-400 tracking-widest uppercase">Node: CODING_CLASS</div>

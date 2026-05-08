@@ -1,7 +1,7 @@
 <template>
-  <div class="page-wrapper flex items-center justify-center w-full h-full min-h-[calc(100vh-100px)]">
+  <div class="page-wrapper w-full min-h-screen">
     
-    <div class="glass-card w-full max-w-7xl p-0 flex flex-col z-10 h-[800px] overflow-hidden border-2"
+    <div class="glass-card w-full h-full p-0 flex flex-col z-10 overflow-hidden border-2"
          :class="cheatCount > 0 ? 'border-red-400 shadow-[0_0_30px_rgba(248,113,113,0.3)]' : 'border-gray-200/50'">
       
       <div class="bg-gray-800 text-white px-8 py-4 flex justify-between items-center shrink-0">

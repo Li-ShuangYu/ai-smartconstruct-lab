@@ -1,7 +1,7 @@
 <template>
-  <div class="page-wrapper flex items-center justify-center w-full h-full min-h-[calc(100vh-100px)]">
+  <div class="page-wrapper w-full min-h-screen">
     
-    <div class="glass-card w-full max-w-4xl p-8 md:p-12 flex flex-col items-center justify-center z-10 min-h-[600px] relative overflow-hidden transition-all duration-700">
+    <div class="glass-card w-full h-full p-8 md:p-12 flex flex-col items-center justify-center z-10 relative overflow-hidden transition-all duration-700">
       
       <div v-if="!isPublished" class="flex flex-col items-center justify-center text-center animate-fade-in w-full">
         

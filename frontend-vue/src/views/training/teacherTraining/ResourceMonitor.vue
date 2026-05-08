@@ -1,7 +1,7 @@
 <template>
-  <div class="page-wrapper flex items-center justify-center w-full h-full min-h-[calc(100vh-100px)]">
+  <div class="page-wrapper w-full min-h-screen">
     
-    <div class="glass-card w-full max-w-5xl p-8 flex flex-col z-10 h-[700px]">
+    <div class="glass-card w-full h-full p-6 flex flex-col z-10">h-[700px]">
       
       <div class="flex justify-between items-end mb-6">
         <div>

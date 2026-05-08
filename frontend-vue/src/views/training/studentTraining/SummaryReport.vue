@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrapper flex items-center justify-center w-full h-full min-h-[calc(100vh-100px)] relative overflow-hidden">
+  <div class="page-wrapper w-full min-h-screen relative overflow-hidden">
     
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
       <div class="absolute top-10 left-1/4 w-32 h-32 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
@@ -7,7 +7,7 @@
       <div class="absolute top-1/3 right-1/3 w-48 h-48 bg-indigo-300 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style="animation-delay: 2s;"></div>
     </div>
 
-    <div class="glass-card w-full max-w-3xl p-10 md:p-14 flex flex-col items-center justify-center z-10 text-center relative border border-white/50 shadow-2xl animate-pop-in">
+    <div class="glass-card w-full h-full p-10 md:p-14 flex flex-col items-center justify-center z-10 text-center relative border border-white/50 shadow-2xl animate-pop-in">
       
       <div class="w-24 h-24 mb-6 rounded-full bg-gradient-to-br from-yellow-100 to-amber-100 flex items-center justify-center shadow-inner border border-amber-200">
         <svg style="width: 48px; height: 48px; flex-shrink: 0;" class="text-amber-500 drop-shadow-sm" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>

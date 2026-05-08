@@ -1,7 +1,7 @@
 <template>
-  <div class="page-wrapper flex items-center justify-center w-full h-full min-h-[calc(100vh-100px)]">
+  <div class="page-wrapper w-full min-h-screen">
     
-    <div class="glass-card w-full max-w-4xl p-8 flex flex-col md:flex-row gap-10 z-10">
+    <div class="glass-card w-full h-full p-8 flex flex-col md:flex-row gap-10 z-10">
       
       <div class="flex-1 flex flex-col justify-center">
         <div class="mb-2 text-xs font-bold text-indigo-400 tracking-widest uppercase">Node: START</div>
