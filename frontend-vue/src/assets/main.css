@@ -65,7 +65,7 @@ a,
 
 .page-wrapper {
   height: calc(100vh - 100px); /* 适应顶部 Header */
-  padding: 0 20px 20px 20px;
+  /* padding: 0 20px 20px 20px; */
   box-sizing: border-box;
 }
 
@@ -154,3 +154,30 @@ a,
 .icon-sm { width: 16px; height: 16px; }
 .icon-lg { width: 48px; height: 48px; }
 .icon-accent { color: #6366f1; }
+
+/* ========================================= */
+/* 全局通用滚动条样式 */
+/* ========================================= */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.4);
+}
+
+/* Firefox 滚动条样式 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
+}

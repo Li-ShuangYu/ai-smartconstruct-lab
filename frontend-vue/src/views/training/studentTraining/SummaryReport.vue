@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrapper w-full min-h-screen relative overflow-hidden">
+  <div style="height: 100%;">
     
     <div class="absolute inset-0 pointer-events-none overflow-hidden">
       <div class="absolute top-10 left-1/4 w-32 h-32 bg-yellow-300 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>

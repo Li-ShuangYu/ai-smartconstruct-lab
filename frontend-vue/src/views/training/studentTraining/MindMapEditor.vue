@@ -1,9 +1,9 @@
 <template>
-  <div class="page-wrapper w-full min-h-screen">
+  <div style="height: 100%;">
     
-    <div class="glass-card w-full h-full p-6 flex flex-col z-10">h-[850px] overflow-hidden border-2 border-white/40 shadow-xl relative">
+    <div class="glass-card w-full h-full p-6 flex flex-col z-10 overflow-hidden border-2 border-white/40 shadow-xl relative overflow-auto">
       
-      <div class="bg-white/80 backdrop-blur-md px-6 py-3 border-b border-gray-200/50 flex justify-between items-center shrink-0 z-20">
+      <div class="bg-white/80 backdrop-blur-md  border-b border-gray-200/50 flex justify-between items-center shrink-0 z-20">
         <div class="flex items-center gap-4">
           <div class="px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-bold tracking-widest">Node: MINDMAP_DRAW</div>
           <div class="h-6 w-px bg-gray-300"></div>

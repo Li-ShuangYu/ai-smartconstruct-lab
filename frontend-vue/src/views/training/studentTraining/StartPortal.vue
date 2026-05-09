@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrapper w-full min-h-screen">
+  <div style="height: 100%;">
     
     <div class="glass-card w-full h-full p-8 flex flex-col md:flex-row gap-10 z-10">
       
@@ -10,7 +10,8 @@
           {{ nodeConfig.desc || '实训流程的说明：本环节为实训准备阶段，请确认本地网络正常后，点击就位。' }}
         </p>
 
-        <div class="w-full h-56 bg-white/40 dark:bg-black/20 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800/50 flex flex-col items-center justify-center relative overflow-hidden group">
+        <div class="w-full h-56 bg-white/40 dark:bg-black/20 rounded-xl border border-dashed border-indigo-200 dark:border-indigo-800/50 flex flex-col items-center justify-center relative overflow-hidden group" 
+        style="height: 100%;">
           <svg class="text-indigo-300 mb-2 group-hover:scale-110 transition-transform" style="width: 40px; height: 40px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
           </svg>

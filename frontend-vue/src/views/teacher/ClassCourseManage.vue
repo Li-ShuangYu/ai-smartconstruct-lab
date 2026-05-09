@@ -1,5 +1,6 @@
 <template>
-  <div class="page-container">
+  <!-- <div class="page-container"> -->
+    <div>
     <div class="page-header">
       <h1 class="page-title">教务组织管理</h1>
       <n-button v-if="activeTab === 'course'" type="primary" @click="handleCreate">新增课程</n-button>
@@ -167,7 +168,7 @@ onMounted(() => loadClasses())
 </script>
 
 <style scoped>
-.page-container { padding: 24px; }
+/* .page-container { padding: 24px; } */
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .page-title { font-size: 24px; font-weight: 800; color: #0F172A; margin: 0; }
 .tabs-nav { display: flex; gap: 32px; border-bottom: 1px solid #E2E8F0; margin-bottom: 20px; }

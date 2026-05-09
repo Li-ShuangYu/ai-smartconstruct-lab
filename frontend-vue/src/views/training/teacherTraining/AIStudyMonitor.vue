@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrapper w-full min-h-screen">
+  <div style="height: 100%;">
     
     <div class="glass-card w-full h-full p-6 flex flex-col z-10">
       
@@ -97,6 +97,8 @@ const realtimeLogs = ref([
   { id: 2, studentName: '王强', time: '10:41:30', cardId: 3, question: 'S盒的作用就是为了混淆吗？它和位移有什么区别？' },
   { id: 3, studentName: '赵芳', time: '10:40:15', cardId: 1, question: '分组长度128比特，如果最后一段不够128比特怎么办？' },
   { id: 4, studentName: '陈伟', time: '10:39:50', cardId: 3, question: '线性变换 L 主要是为了实现扩散，对吧？' },
+  { id: 5, studentName: '刘洋', time: '10:38:00', cardId: 2, question: '异或操作的作用是什么？' },
+  { id: 6, studentName: '王芳', time: '10:37:00', cardId: 1, question: '分组长度128比特，如果最后一段不够128比特怎么办？' },
 ])
 
 // 模拟疑似有认知困难/提问频繁的学生列表

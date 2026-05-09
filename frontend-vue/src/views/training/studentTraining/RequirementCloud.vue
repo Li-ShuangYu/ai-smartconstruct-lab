@@ -1,7 +1,7 @@
 <template>
-  <div class="page-wrapper w-full min-h-screen">
+  <div style="height: 100%;">
     
-    <div class="glass-card w-full h-full p-6 flex flex-col z-10">lg:flex-row gap-8 z-10 h-[700px]">
+    <div class="glass-card w-full h-full p-6 flex flex-col lg:flex-row gap-8 z-10">
       
       <div class="flex-[1.2] flex flex-col h-full relative border-r border-gray-200/50 pr-0 lg:pr-8">
         <div class="mb-2 text-xs font-bold text-indigo-400 tracking-widest uppercase">Node: REQ_UPLOAD</div>

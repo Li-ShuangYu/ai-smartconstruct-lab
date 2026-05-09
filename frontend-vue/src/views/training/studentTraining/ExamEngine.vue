@@ -1,19 +1,19 @@
 <template>
-  <div class="page-wrapper w-full min-h-screen">
+  <div style="height: 100%;">
     
     <div class="glass-card w-full h-full p-0 flex flex-col z-10 overflow-hidden border-2"
          :class="cheatCount > 0 ? 'border-red-400 shadow-[0_0_30px_rgba(248,113,113,0.3)]' : 'border-gray-200/50'">
       
-      <div class="bg-gray-800 text-white px-8 py-4 flex justify-between items-center shrink-0">
+      <div class="bg-white text-gray-800 border-b border-gray-200 px-8 py-4 flex justify-between items-center shrink-0">
         <div class="flex items-center gap-4">
-          <div class="px-2 py-1 bg-red-500 rounded text-xs font-bold tracking-widest animate-pulse">EXAM MODE</div>
+          <div class="px-2 py-1 bg-red-50 text-red-600 border border-red-200 rounded text-xs font-bold tracking-widest animate-pulse">EXAM MODE</div>
           <h1 class="text-xl font-bold tracking-wide">结课考核：密码学综合应用实践</h1>
         </div>
         
         <div class="flex items-center gap-6">
-          <div class="flex items-center gap-2 bg-gray-900 px-4 py-2 rounded-lg border border-gray-700">
-            <svg style="width: 18px; height: 18px; flex-shrink: 0;" class="text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span class="font-mono font-bold text-xl" :class="timeLeft < 600 ? 'text-red-400 animate-pulse' : 'text-white'">
+          <div class="flex items-center gap-2 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+            <svg style="width: 18px; height: 18px; flex-shrink: 0;" class="text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span class="font-mono font-bold text-xl" :class="timeLeft < 600 ? 'text-red-500 animate-pulse' : 'text-gray-700'">
               {{ formattedTime }}
             </span>
           </div>
@@ -44,7 +44,7 @@
             <div class="text-xs text-gray-500 text-right">{{ answeredCount }} / {{ questions.length }}</div>
           </div>
           
-          <div class="grid grid-cols-5 gap-2 overflow-y-auto custom-scrollbar flex-1 content-start pb-4">
+          <div class="grid grid-cols-5 gap-2 p-1 overflow-y-auto custom-scrollbar flex-1 content-start pb-4">
             <button v-for="(q, index) in questions" :key="q.id"
                     @click="currentQIndex = index"
                     class="h-9 rounded flex items-center justify-center text-xs font-bold transition-all border"

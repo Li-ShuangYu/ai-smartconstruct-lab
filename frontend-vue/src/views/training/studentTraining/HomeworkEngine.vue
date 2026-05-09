@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrapper w-full min-h-screen">
+  <div style="height: 100%;">
     
     <div class="glass-card w-full h-full p-6 flex flex-col z-10">
       
@@ -27,9 +27,10 @@
 
       <div class="flex-1 flex gap-6 min-h-0">
         
-        <div class="w-64 bg-white/40 border border-gray-100 rounded-2xl p-5 flex flex-col shadow-sm">
+        <div class="w-64 bg-white/40 border border-gray-100 rounded-2xl p-5 flex flex-col shadow-sm" >
           <h3 class="text-sm font-bold text-gray-700 mb-4 border-b border-gray-200/50 pb-2">答题卡</h3>
-          <div class="grid grid-cols-4 gap-3">
+          <div class="p-1" style="height: 100%;overflow: auto;" >
+            <div class="grid grid-cols-4 gap-3" >
             <button v-for="(q, index) in questions" :key="q.id"
                     @click="currentQIndex = index"
                     class="w-10 h-10 rounded-lg text-sm font-bold flex items-center justify-center transition-all border"
@@ -39,7 +40,7 @@
                     ]">
               {{ index + 1 }}
             </button>
-          </div>
+          </div></div>
           <div class="mt-auto pt-4 border-t border-gray-200/50 flex flex-col gap-2 text-xs text-gray-500">
             <div class="flex items-center gap-2"><span class="w-3 h-3 rounded bg-indigo-500"></span> 已答</div>
             <div class="flex items-center gap-2"><span class="w-3 h-3 rounded border border-gray-300 bg-white"></span> 未答</div>

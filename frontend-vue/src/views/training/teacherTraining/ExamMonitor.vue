@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrapper w-full min-h-screen">
+  <div style="height: 100%;">
     
     <div class="glass-card w-full h-full p-6 md:p-8 flex flex-col z-10">
       

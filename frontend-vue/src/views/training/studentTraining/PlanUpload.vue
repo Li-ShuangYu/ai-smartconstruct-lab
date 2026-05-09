@@ -1,7 +1,7 @@
 <template>
-  <div class="page-wrapper w-full min-h-screen">
+  <div style="height: 100%;">
     
-    <div class="glass-card w-full h-full p-8 md:p-10 flex flex-col md:flex-row gap-10 z-10">
+    <div class="glass-card w-full h-full p-8 md:p-6 flex flex-col md:flex-row gap-10 z-10" >
       
       <div class="flex-1 flex flex-col">
         <div class="mb-2 text-xs font-bold text-indigo-400 tracking-widest uppercase">Node: PLAN_UPLOAD</div>

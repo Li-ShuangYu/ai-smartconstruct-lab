@@ -1,31 +1,34 @@
 <template>
-  <div class="workbench-layout-wrapper">
-    <!-- 系统发光背景 -->
-    <div class="bg-glow"></div>
+  <n-message-provider>
+    <div class="workbench-layout-wrapper">
+      <!-- 系统发光背景 -->
+      <div class="bg-glow"></div>
 
-    <!-- 核心玻璃拟态主卡片 -->
-    <div class="console-main-card glass-card">
-      
-      <!-- 1. 顶部动态 Header (这里调用纯净版 Header，就不会套娃了) -->
-      <StudentHeader v-if="isStudentSide" />
-      <TeacherHeader v-else />
+      <!-- 核心玻璃拟态主卡片 -->
+      <div class="console-main-card glass-card">
+        
+        <!-- 1. 顶部动态 Header (这里调用纯净版 Header，就不会套娃了) -->
+        <StudentHeader v-if="isStudentSide" />
+        <TeacherHeader v-else />
 
-      <!-- 2. 主内容路由区 (自动填充剩余空间并独立滚动) -->
-      <main class="console-content">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
-        </router-view>
-      </main>
+        <!-- 2. 主内容路由区 (自动填充剩余空间并独立滚动) -->
+        <main class="console-content">
+          <router-view v-slot="{ Component }">
+            <transition name="fade" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view>
+        </main>
 
+      </div>
     </div>
-  </div>
+  </n-message-provider>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { NMessageProvider } from 'naive-ui'
 import StudentHeader from './StudentHeader.vue'
 import TeacherHeader from './TeacherHeader.vue'
 
@@ -39,7 +42,7 @@ const isStudentSide = computed(() => route.path.includes('/student'))
 /* 容器全屏撑开，继承系统底色和光晕 */
 .workbench-layout-wrapper {
   height: 100vh;
-
+  padding: 12px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -63,6 +66,7 @@ const isStudentSide = computed(() => route.path.includes('/student'))
 
 /* 主面板：白底毛玻璃拟物化 */
 .console-main-card {
+
   width: 100%;
   height: 100%;
   display: flex;
@@ -79,8 +83,8 @@ const isStudentSide = computed(() => route.path.includes('/student'))
 
 /* 内容区：占据剩余全部空间并允许内部滚动，绝不挤压 Header */
 .console-content {
-
-  flex: 1;
+  height: 88vh;
+  /* flex: 1; */
   overflow-y: auto;
   position: relative;
   background: transparent; 

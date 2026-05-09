@@ -124,7 +124,7 @@ onUnmounted(() => { if (wsClient) wsClient.close() })
 </script>
 
 <style scoped>
-.live-monitor { display: flex; flex-direction: column; min-h-screen; background: #F8FAFC; }
+.live-monitor { display: flex; flex-direction: column; height: 100%; background: #F8FAFC; }
 .top-bar { display: flex; align-items: center; padding: 12px 24px; background: #fff; border-bottom: 1px solid #E2E8F0; gap: 16px; }
 .bar-left { display: flex; align-items: center; gap: 12px; }
 .bar-left h2 { font-size: 18px; font-weight: 800; color: #0F172A; margin: 0; }

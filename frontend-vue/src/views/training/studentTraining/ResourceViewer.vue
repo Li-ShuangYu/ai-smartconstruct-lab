@@ -1,32 +1,9 @@
 <template>
-  <div class="page-wrapper w-full min-h-screen">
+  <div style="height: 100%;">
     
-    <div class="glass-card w-full h-full p-6 flex flex-col z-10">
+    <div class="glass-card w-full h-full p-6 flex flex-col md:flex-row gap-6 z-10">
       
-      <div class="flex-[3] flex flex-col border border-gray-200/60 bg-white/40 rounded-xl overflow-hidden shadow-inner relative">
-        <div class="h-14 border-b border-gray-200/60 bg-white/50 backdrop-blur-md flex items-center justify-between px-5">
-          <div class="flex items-center gap-3">
-            <svg class="text-indigo-500" style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span class="font-bold text-gray-700 text-lg">{{ nodeConfig.resourceName }}</span>
-          </div>
-          <div class="flex items-center gap-4 text-sm text-gray-500">
-            <button class="hover:text-indigo-600 transition-colors" @click="prevPage" :disabled="currentPage === 1">上一页</button>
-            <span class="font-medium bg-gray-100/80 px-3 py-1 rounded-md">{{ currentPage }} / {{ totalPages }}</span>
-            <button class="hover:text-indigo-600 transition-colors" @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
-          </div>
-        </div>
-
-        <div class="flex-1 flex flex-col items-center justify-center bg-gray-50/30 overflow-y-auto p-8 group">
-          <svg class="text-gray-300 mb-4 transition-transform group-hover:scale-105" style="width: 64px; height: 64px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-          </svg>
-          <p class="text-gray-400 font-medium tracking-wider">正在渲染 PDF 资源内容...</p>
-        </div>
-      </div>
-
-      <div class="flex-[1] min-w-[280px] flex flex-col justify-between border-t md:border-t-0 md:border-l border-gray-200/60 pt-6 md:pt-0 md:pl-6">
+      <div class="flex-[1] min-w-[280px] flex flex-col justify-between border-b md:border-b-0 md:border-r border-gray-200/60 pb-6 md:pb-0 md:pr-6">
         
         <div>
           <div class="mb-2 text-xs font-bold text-indigo-400 tracking-widest uppercase">Node: RESOURCE_READ</div>
@@ -78,6 +55,30 @@
         </div>
 
       </div>
+
+      <div class="flex-[3] flex flex-col border border-gray-200/60 bg-white/40 rounded-xl overflow-hidden shadow-inner relative min-h-0">
+        <div class="h-14 border-b border-gray-200/60 bg-white/50 backdrop-blur-md flex items-center justify-between px-5 shrink-0">
+          <div class="flex items-center gap-3">
+            <svg class="text-indigo-500" style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span class="font-bold text-gray-700 text-lg">{{ nodeConfig.resourceName }}</span>
+          </div>
+          <div class="flex items-center gap-4 text-sm text-gray-500">
+            <button class="hover:text-indigo-600 transition-colors" @click="prevPage" :disabled="currentPage === 1">上一页</button>
+            <span class="font-medium bg-gray-100/80 px-3 py-1 rounded-md">{{ currentPage }} / {{ totalPages }}</span>
+            <button class="hover:text-indigo-600 transition-colors" @click="nextPage" :disabled="currentPage === totalPages">下一页</button>
+          </div>
+        </div>
+
+        <div class="flex-1 flex flex-col items-center justify-center bg-gray-50/30 overflow-y-auto p-8 group">
+          <svg class="text-gray-300 mb-4 transition-transform group-hover:scale-105" style="width: 64px; height: 64px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+          <p class="text-gray-400 font-medium tracking-wider">正在渲染 PDF 资源内容...</p>
+        </div>
+      </div>
+      
     </div>
   </div>
 </template>

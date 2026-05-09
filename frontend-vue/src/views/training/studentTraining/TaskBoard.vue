@@ -1,5 +1,5 @@
 <template>
-  <div class="page-wrapper w-full min-h-screen">
+  <div style="height: 100%;">
     
     <div class="glass-card w-full h-full p-8 md:p-12 flex flex-col relative z-10">
       
@@ -18,7 +18,7 @@
         </div>
       </div>
 
-      <div class="flex-1 bg-white/60 border border-gray-100 rounded-xl p-8 mb-8 shadow-sm relative overflow-hidden">
+      <div class="flex-1 bg-white/60 border border-gray-100 rounded-xl p-8 mb-8 shadow-sm relative overflow-auto">
         <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none">
           <svg style="width: 300px; height: 300px; flex-shrink: 0;" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 7.5l-10-5v10.5l10 5 10-5V4.5l-10 5z"/></svg>
         </div>
@@ -33,6 +33,7 @@
           <span class="w-1.5 h-6 bg-purple-500 rounded-full"></span>
           具体执行要求
         </h3>
+        
         <ul class="space-y-3 text-gray-600">
           <li v-for="(req, index) in taskConfig.requirements" :key="index" class="flex items-start gap-3">
             <svg class="text-indigo-400 mt-1" style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
