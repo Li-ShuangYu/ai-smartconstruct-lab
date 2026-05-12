@@ -102,7 +102,7 @@ import { ref, computed } from 'vue'
 
 const nodeConfig = ref({
   format: 'pdf,docx',
-  uploadReq: '1. 方案需包含 SM4 算法的系统架构图及核心数据流向图。\n2. 需详细说明接口封装的标准，包括参数类型、返回值及错误码定义。\n3. 文档排版清晰，需使用提供的标准化模板撰写。'
+  uploadReq: '1. 方案需包含 Python 数组（列表）的核心知识点思维导图或架构图。\n2. 需详细说明数组常用操作方法、时间复杂度分析及使用注意事项。\n3. 文档排版清晰，需使用提供的标准化模板撰写。\n4. 建议包含典型应用场景和常见错误案例分析。'
 })
 
 const allowedFormats = computed(() => nodeConfig.value.format.split(',').map(f => f.trim()))

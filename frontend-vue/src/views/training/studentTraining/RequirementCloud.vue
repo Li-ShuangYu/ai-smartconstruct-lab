@@ -85,7 +85,7 @@
 import { ref } from 'vue'
 
 const nodeConfig = ref({
-  scenario: '在开发面向政企客户的安全办公协同系统时，需设计一套符合国密标准的加密传输方案。请描述你在该场景下认为核心的安全需求或技术痛点。'
+  scenario: '在学习Python数组（列表）相关知识时，你认为初学者最容易遇到哪些问题、难点或需要特别注意的知识点？请结合你的学习体验详细描述。'
 })
 
 const inputText = ref('')
@@ -93,14 +93,14 @@ const isSubmitted = ref(false)
 
 // 模拟初始词云数据
 const mockWordCloud = ref([
-  { text: 'SM4加密', size: 42, weight: 900, colorClass: 'text-indigo-600' },
-  { text: '性能瓶颈', size: 24, weight: 600, colorClass: 'text-purple-500' },
-  { text: '密钥协商', size: 36, weight: 800, colorClass: 'text-blue-500' },
-  { text: '硬件加速', size: 18, weight: 500, colorClass: 'text-gray-500' },
-  { text: '国密改造', size: 28, weight: 700, colorClass: 'text-indigo-400' },
-  { text: '合规性', size: 32, weight: 800, colorClass: 'text-pink-500' },
-  { text: 'SM3摘要', size: 20, weight: 600, colorClass: 'text-gray-600' },
-  { text: '安全通道', size: 26, weight: 700, colorClass: 'text-purple-400' },
+  { text: '索引越界', size: 42, weight: 900, colorClass: 'text-indigo-600' },
+  { text: '切片操作', size: 36, weight: 800, colorClass: 'text-blue-500' },
+  { text: '可变对象', size: 32, weight: 800, colorClass: 'text-pink-500' },
+  { text: '列表推导式', size: 28, weight: 700, colorClass: 'text-indigo-400' },
+  { text: '深拷贝', size: 24, weight: 600, colorClass: 'text-purple-500' },
+  { text: 'append', size: 26, weight: 700, colorClass: 'text-purple-400' },
+  { text: 'pop方法', size: 20, weight: 600, colorClass: 'text-gray-600' },
+  { text: '嵌套列表', size: 18, weight: 500, colorClass: 'text-gray-500' },
 ])
 
 const submitRequirement = () => {
@@ -110,7 +110,7 @@ const submitRequirement = () => {
   // 模拟：提交后，将用户的关键词动态插入到全班词云中
   setTimeout(() => {
     mockWordCloud.value.push({
-      text: '我的最新需求',
+      text: '我的学习难点',
       size: 48,
       weight: 900,
       colorClass: 'text-indigo-600 drop-shadow-md',

@@ -99,13 +99,13 @@ import { ref, computed } from 'vue'
 
 // 模拟词云数据 (带 id 用于过滤)
 const wordCloudData = ref([
-  { id: 1, text: 'SM4加密', size: 52, weight: 900, colorClass: 'text-indigo-600', isFiltered: false },
-  { id: 2, text: '无用测试词', size: 36, weight: 600, colorClass: 'text-gray-400', isFiltered: false }, // 干扰词
-  { id: 3, text: '密钥协商', size: 40, weight: 800, colorClass: 'text-blue-500', isFiltered: false },
-  { id: 4, text: '哈哈哈哈', size: 24, weight: 500, colorClass: 'text-gray-300', isFiltered: false }, // 干扰词
-  { id: 5, text: '国密改造', size: 34, weight: 700, colorClass: 'text-indigo-400', isFiltered: false },
-  { id: 6, text: '性能瓶颈', size: 30, weight: 700, colorClass: 'text-purple-500', isFiltered: false },
-  { id: 7, text: '合规性', size: 38, weight: 800, colorClass: 'text-pink-500', isFiltered: false },
+  { id: 1, text: '索引越界', size: 52, weight: 900, colorClass: 'text-indigo-600', isFiltered: false },
+  { id: 2, text: '测试测试', size: 36, weight: 600, colorClass: 'text-gray-400', isFiltered: false }, // 干扰词
+  { id: 3, text: '切片操作', size: 40, weight: 800, colorClass: 'text-blue-500', isFiltered: false },
+  { id: 4, text: '嗯嗯嗯嗯', size: 24, weight: 500, colorClass: 'text-gray-300', isFiltered: false }, // 干扰词
+  { id: 5, text: '列表推导式', size: 34, weight: 700, colorClass: 'text-indigo-400', isFiltered: false },
+  { id: 6, text: '可变对象', size: 30, weight: 700, colorClass: 'text-purple-500', isFiltered: false },
+  { id: 7, text: '深拷贝', size: 38, weight: 800, colorClass: 'text-pink-500', isFiltered: false },
 ])
 
 const filterWord = (id) => {
@@ -115,10 +115,10 @@ const filterWord = (id) => {
 
 // 模拟瀑布流需求数据
 const requirements = ref([
-  { id: 101, studentName: '林同学', time: '14:20:05', content: '在高并发场景下，SM4 的加解密速度可能成为系统瓶颈，需要考虑加入硬件加速卡的支持。', isPinned: false },
-  { id: 102, studentName: '张同学', time: '14:21:12', content: '我觉得主要问题是不知道怎么做。', isPinned: false }, // 划水回答
-  { id: 103, studentName: '陈同学', time: '14:22:30', content: '除了数据加密，密钥的生命周期管理也是一大痛点，我们需要确保会话密钥的定时更新机制。', isPinned: true }, // 已置顶的优质回答
-  { id: 104, studentName: '王同学', time: '14:25:01', content: '必须符合国密局的相关规范，不然过不了安评。', isPinned: false },
+  { id: 101, studentName: '林同学', time: '14:20:05', content: '切片操作总是弄不清，特别是负数索引和步长参数的组合，经常越界或者取错元素。', isPinned: false },
+  { id: 102, studentName: '张同学', time: '14:21:12', content: '我觉得数组不难。', isPinned: false }, // 划水回答
+  { id: 103, studentName: '陈同学', time: '14:22:30', content: '列表是可变对象这点很容易踩坑，尤其是在函数中传递列表时，不小心就会修改原列表。深拷贝和浅拷贝的区别也需要好好理解。', isPinned: true }, // 已置顶的优质回答
+  { id: 104, studentName: '王同学', time: '14:25:01', content: '嵌套列表的索引访问经常搞错，多维数组的遍历也不太熟练。', isPinned: false },
 ])
 
 // 将置顶的需求排在最前面
