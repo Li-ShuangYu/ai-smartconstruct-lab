@@ -179,8 +179,8 @@ const transformData = (node) => {
   return {
     data: {
       text: node.label,
-      uid: node.id, 
-      ...node 
+      uid: node.id,
+      ...node
     },
     children: node.children ? node.children.map(transformData) : []
   }
@@ -206,11 +206,36 @@ onMounted(() => {
     data: transformData(rootNode.value),
     fit: true,
     mouseScaleBehavior: 'zoom',
-    readonly: true, // 预习模式只读
+    readonly: true,
     enableFreeDrag: false,
+
+    // 所有非根节点统一使用二级节点样式（矩形、白色背景、绿色连接线）
     themeConfig: {
-      node: { expandBtnSize: 0 },
-      root: { expandBtnSize: 0 }
+      root: { expandBtnSize: 0 },
+      second: {
+        expandBtnSize: 0,
+        shape: 'rectangle',
+        fillColor: '#ffffff',
+        borderColor: '#549688',
+        borderWidth: 1,
+        color: '#334155',
+        paddingX: 12,
+        paddingY: 6
+      },
+      node: {
+        expandBtnSize: 0,
+        shape: 'rectangle',
+        fillColor: '#ffffff',
+        borderColor: '#549688',
+        borderWidth: 1,
+        color: '#334155',
+        paddingX: 12,
+        paddingY: 6
+      },
+      line: {
+        color: '#549688',
+        width: 2
+      }
     }
   })
 
