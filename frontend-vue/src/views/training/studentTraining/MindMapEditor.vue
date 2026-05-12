@@ -177,17 +177,13 @@ onMounted(() => {
     mouseScaleBehavior: 'zoom',
     readonly: false,
     themeConfig: {
-      // 核心修复：强制设定 shape 为 'rectangle'，彻底解决 3 级节点无边框问题
+      // 强制设定 shape 为 'rectangle'，彻底解决 3 级节点无边框问题
       root: { shape: 'rectangle', fillColor: '#6366f1', color: '#ffffff', borderColor: '#4f46e5', borderWidth: 2 },
       second: { shape: 'rectangle', fillColor: '#ffffff', borderColor: '#549688', color: '#334155', borderWidth: 2 },
       node: { shape: 'rectangle', fillColor: '#ffffff', borderColor: '#549688', color: '#334155', borderWidth: 1 },
-      // 配置 note 标签显示
+      // 配置 note 标签显示 - 使用简单配置
       note: {
-        show: true,
-        fontSize: 12,
-        color: '#6366f1',
-        bgColor: '#e0e7ff',
-        borderColor: '#6366f1'
+        show: true
       }
     }
   })
@@ -254,12 +250,14 @@ const saveCurrentNode = () => {
   
   // 只有当内容真正改变时才保存
   if (oldText !== formData.value.text || oldNote !== formData.value.note) {
-    // 使用 SET_NODE_DATA 统一更新，确保数据一致性
-    mindMapInstance.execCommand('SET_NODE_DATA', targetNode, {
-      ...targetNode.nodeData.data,
-      text: formData.value.text,
-      note: formData.value.note
-    })
+    // 直接修改节点数据
+    targetNode.nodeData.data.text = formData.value.text
+    targetNode.nodeData.data.note = formData.value.note
+    
+    // 触发数据变更事件，确保视图更新
+    if (mindMapInstance.renderer) {
+      mindMapInstance.renderer.render()
+    }
   }
 }
 
