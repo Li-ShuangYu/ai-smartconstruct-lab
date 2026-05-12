@@ -1,63 +1,86 @@
 <template>
   <div style="height: 100%;">
-    
-    <div class="glass-card w-full h-full p-8 md:p-12 flex flex-col relative z-10">
+    <div class="glass-card w-full h-full p-6 flex flex-col z-10 relative overflow-hidden font-sans">
       
-      <div class="flex justify-between items-start mb-8 pb-6 border-b border-gray-200/50">
+      <div class="flex justify-between items-center mb-6 shrink-0 border-b border-gray-200/50 pb-4">
         <div>
-          <div class="mb-2 text-xs font-bold text-indigo-400 tracking-widest uppercase flex items-center gap-2">
-            <svg style="width: 14px; height: 14px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-            Node: TASK_DISTRIBUTE
+          <div class="mb-1 text-xs font-bold text-indigo-400 tracking-widest uppercase italic">Node: TASK_DISPATCH</div>
+          <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">任务下发</h2>
+        </div>
+      </div>
+
+      <div class="flex-1 flex gap-6 min-h-0">
+        
+        <div class="flex-[1.8] flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2">
+          
+          <div class="bg-white/60 p-5 rounded-xl border border-gray-200/60 shadow-sm">
+            <div class="flex justify-between items-start mb-2">
+              <h1 class="text-xl font-bold text-gray-800">{{ taskData.title }}</h1>
+              <span class="px-3 py-1 bg-red-50 text-red-600 rounded text-xs font-bold border border-red-100 shrink-0">
+                截止: {{ taskData.deadline }}
+              </span>
+            </div>
           </div>
-          <h1 class="text-3xl font-bold text-gray-800">{{ taskConfig.taskTitle }}</h1>
-        </div>
-        <div class="text-right">
-          <span class="inline-block px-3 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-md text-xs font-bold tracking-wider">
-            WORK ORDER
-          </span>
-        </div>
-      </div>
 
-      <div class="flex-1 bg-white/60 border border-gray-100 rounded-xl p-8 mb-8 shadow-sm relative overflow-auto">
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none">
-          <svg style="width: 300px; height: 300px; flex-shrink: 0;" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 7.5l-10-5v10.5l10 5 10-5V4.5l-10 5z"/></svg>
+          <div class="bg-white/60 p-5 rounded-xl border border-gray-200/60 shadow-sm flex-1">
+            <h4 class="text-sm font-bold text-gray-500 mb-3 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+              任务要求
+            </h4>
+            <div class="text-sm text-gray-700 leading-loose whitespace-pre-wrap">{{ taskData.requirements }}</div>
+          </div>
+
+          <div class="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100 shadow-sm shrink-0">
+            <h4 class="text-sm font-bold text-indigo-800 mb-3 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+              任务材料下载
+            </h4>
+            <div class="flex flex-col gap-2">
+              <div v-for="(file, index) in taskData.materials" :key="index" class="flex items-center justify-between bg-white px-4 py-3 rounded-lg border border-indigo-50 hover:border-indigo-200 transition-colors">
+                <div class="flex items-center gap-3">
+                  <div class="text-xl">{{ getFileIcon(file.type) }}</div>
+                  <span class="text-sm font-medium text-gray-700">{{ file.name }}</span>
+                </div>
+                <button class="text-indigo-600 hover:text-indigo-800 text-sm font-bold flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                  下载
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
 
-        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <span class="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
-          任务背景与说明
-        </h3>
-        <p class="text-gray-600 leading-relaxed mb-6 whitespace-pre-wrap">{{ taskConfig.taskDesc }}</p>
+        <div class="flex-[1] flex flex-col gap-4">
+          
+          <div class="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-5 shadow-lg flex flex-col">
+             <div class="flex items-center gap-2 mb-4 shrink-0">
+                <svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                <h3 class="text-white font-bold text-sm tracking-widest uppercase">AI 任务指引</h3>
+             </div>
 
-        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <span class="w-1.5 h-6 bg-purple-500 rounded-full"></span>
-          具体执行要求
-        </h3>
-        
-        <ul class="space-y-3 text-gray-600">
-          <li v-for="(req, index) in taskConfig.requirements" :key="index" class="flex items-start gap-3">
-            <svg class="text-indigo-400 mt-1" style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            <span class="leading-relaxed">{{ req }}</span>
-          </li>
-        </ul>
-      </div>
+             <div class="mb-6 shrink-0 bg-white/10 rounded-lg p-3 border border-white/5">
+                <p class="text-xs text-indigo-300 font-bold mb-1">难度与预计耗时评估</p>
+                <p class="text-sm text-white font-medium">{{ taskData.aiDifficulty }}</p>
+             </div>
 
-      <div class="flex flex-col items-center">
-        <div v-if="isReceived" class="mb-4 flex items-center gap-2 text-sm text-green-600 bg-green-50 px-6 py-2 rounded-full border border-green-100 animate-fade-in shadow-sm">
-          <svg style="width: 18px; height: 18px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <span class="font-bold">任务已确认查收，系统已在侧边栏生成专属任务书入口。</span>
+             <div class="flex-1 overflow-y-auto custom-scrollbar-dark">
+                <p class="text-xs text-indigo-300 font-bold mb-2">建议完成步骤</p>
+                <div class="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{{ taskData.aiSteps }}</div>
+             </div>
+          </div>
+
+          <div class="shrink-0 pt-2">
+            <button 
+               @click="handleAccept"
+               class="hero-send-btn w-full justify-center py-4 rounded-xl text-base font-bold shadow-lg transition-all flex items-center gap-2 active:scale-[0.98]"
+             >
+               已下载材料，开始编程作业
+               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+            </button>
+          </div>
+
         </div>
-        
-        <button 
-          class="hero-send-btn w-full md:w-2/3 justify-center text-lg py-4 rounded-xl shadow-lg transition-all duration-300"
-          :class="isReceived ? 'opacity-50 cursor-not-allowed bg-green-600 shadow-none' : 'hover:-translate-y-1 hover:shadow-indigo-500/40'"
-          @click="handleReceive"
-          :disabled="isReceived"
-        >
-          <svg v-if="!isReceived" style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
-          <svg v-else style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-          {{ isReceived ? '已查收，可进入下一步' : '我已仔细阅读，确认接收任务' }}
-        </button>
       </div>
 
     </div>
@@ -65,32 +88,74 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { reactive } from 'vue'
 
-// 模拟通过编排注入的任务配置数据
-const taskConfig = ref({
-  taskTitle: 'SM4 密码模块系统集成与联调任务',
-  taskDesc: '本次实训进入工程实践阶段。各组/个人需要将前期编写的 SM4 算法核心代码，封装为标准的动态链接库或 API 接口，并部署到模拟的云端服务器 10.0.9.155 节点上，实现端到端的加解密通信链路连通。',
-  requirements: [
-    '严格按照国密局规范对输入输出参数进行标准化封装。',
-    '查收任务后，请在左侧侧边栏“任务书”中查阅接口文档及服务器 SSH 密钥。',
-    '遇到环境问题，优先查看终端报错日志，其次可通过求助面板向导师发起提问。'
-  ]
+// 核心数据模型：直接对应后端接口返回的简单字段
+const taskData = reactive({
+  title: 'Python 数组入门：学生成绩统计',
+  deadline: '2026-06-30 23:59',
+  requirements: `本次作业需要你掌握 Python 列表（List）的基础操作。
+  
+1. 读取代码片段中提供的学生成绩数组。
+2. 使用内置函数找出成绩的最高分和最低分。
+3. 将数组翻转，并使用切片语法 [0:3] 提取最后录入的3个成绩。
+4. 运行代码，将终端的输出结果截图。
+5. 将代码和截图粘贴到提供的 Word 模板中，并提交。`,
+  materials: [
+    { name: '作业提交说明模板.docx', type: 'word' },
+    { name: 'score_practice.py', type: 'code' }
+  ],
+  aiDifficulty: '入门级，预计用时 15 分钟。',
+  aiSteps: `1. 点击左侧下载 Word 模板和 Python 代码片段。
+2. 使用 IDE 打开 score_practice.py。
+3. 在注释提示的区域，编写 max()、min() 和切片代码。
+4. 运行并检查终端输出是否正确。
+5. 截图并保存至 Word 文档，点击下方按钮进入下一步。`
 })
 
-const isReceived = ref(false)
+const getFileIcon = (type) => {
+  if (type === 'word') return '📄'
+  if (type === 'code') return '💻'
+  return '📎'
+}
 
-const handleReceive = () => {
-  if (isReceived.value) return
-  isReceived.value = true
-  // 模拟发送“已查收”信号给教师端和后端状态机
+const handleAccept = () => {
+  alert('任务已确认！进入编码实训环节。')
 }
 </script>
 
 <style scoped>
-.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+}
+
+.hero-send-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: white;
+}
+
+.hero-send-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.custom-scrollbar-dark::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar-dark::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 10px;
 }
 </style>
