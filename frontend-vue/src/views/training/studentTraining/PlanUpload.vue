@@ -31,7 +31,7 @@
            <svg class="text-red-500 mt-0.5" style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
            <div>
              <h4 class="text-sm font-bold text-red-700">方案被驳回打回</h4>
-             <p class="text-xs text-red-600 mt-1">教师留言：请重新核对 SM4 接口文档规范，缺少密钥更新流程，请修改后重新上传。</p>
+             <p class="text-xs text-red-600 mt-1">教师留言：请重新核对 Python 数组知识点覆盖完整性，缺少切片操作和深拷贝的内容，请修改后重新上传。</p>
            </div>
         </div>
 
@@ -79,16 +79,60 @@
             <button @click="resetUpload" class="text-sm text-indigo-500 hover:text-indigo-600 underline">重新上传</button>
           </template>
 
+          <template v-else-if="status === 'analyzing'">
+            <svg class="text-indigo-500 mb-4" style="width: 48px; height: 48px; animation: spin 1s linear infinite;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            <h3 class="text-lg font-bold text-gray-700 mb-4">AI 正在分析方案结构...</h3>
+            <div class="w-full max-w-xs bg-gray-200 rounded-full h-2">
+              <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300" :style="{ width: analysisProgress + '%' }"></div>
+            </div>
+            <span class="text-xs text-gray-500 mt-2">{{ analysisProgress }}%</span>
+          </template>
+
+          <template v-else-if="status === 'analyzed'">
+            <div class="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center mb-6 shadow-inner animate-pop-in">
+              <svg class="text-purple-500" style="width: 40px; height: 40px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-800 mb-3">AI 分析完成</h3>
+            <div class="w-full max-w-sm bg-white border border-gray-100 rounded-xl p-4 shadow-sm mb-4 text-left">
+              <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">方案结构分析</h4>
+              <p class="text-sm text-gray-600 leading-relaxed">{{ analysisResult.structure }}</p>
+              <h4 class="text-xs font-bold text-gray-400 uppercase mb-2 mt-3">问题点标注</h4>
+              <ul class="text-xs text-red-500 space-y-1">
+                <li v-for="(issue, index) in analysisResult.issues" :key="index" class="flex items-start gap-1">
+                  <span class="mt-0.5">•</span>
+                  <span>{{ issue }}</span>
+                </li>
+              </ul>
+              <h4 class="text-xs font-bold text-gray-400 uppercase mb-2 mt-3">优化建议</h4>
+              <p class="text-sm text-green-600 leading-relaxed">{{ analysisResult.suggestion }}</p>
+            </div>
+            <button @click="resetUpload" class="text-sm text-indigo-500 hover:text-indigo-600 underline">重新上传并分析</button>
+          </template>
+
         </div>
 
-        <div class="mt-6">
+        <div class="mt-6 space-y-3">
           <button 
-            class="hero-send-btn w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all"
-            :class="status === 'success' ? 'hover:shadow-indigo-500/40' : 'opacity-50 grayscale cursor-not-allowed'"
-            :disabled="status !== 'success'"
+            v-if="status === 'success'"
+            @click="submitAndAnalyze"
+            class="w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all bg-indigo-600 text-white font-bold hover:bg-indigo-700 flex items-center justify-center gap-2"
           >
-            完成上传，进入下一环节
+            <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            提交方案并进行AI分析
+          </button>
+          <button 
+            v-else-if="status === 'analyzed'"
+            class="hero-send-btn w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all"
+          >
+            完成，进入下一环节
             <svg style="width: 16px; height: 16px; margin-left: 4px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+          </button>
+          <button 
+            v-else
+            disabled
+            class="w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all opacity-50 grayscale cursor-not-allowed bg-gray-400 text-white font-bold"
+          >
+            请先上传方案文件
           </button>
         </div>
 
@@ -109,9 +153,15 @@ const allowedFormats = computed(() => nodeConfig.value.format.split(',').map(f =
 const acceptString = computed(() => allowedFormats.value.map(f => `.${f}`).join(','))
 
 const isDragging = ref(false)
-const status = ref('idle') // idle, uploading, success, rejected
+const status = ref('idle') // idle, uploading, success, analyzing, analyzed, rejected
 const uploadProgress = ref(0)
+const analysisProgress = ref(0)
 const selectedFile = ref(null)
+const analysisResult = ref({
+  structure: '',
+  issues: [],
+  suggestion: ''
+})
 
 // 模拟文件校验与上传
 const processFile = (file) => {
@@ -152,6 +202,36 @@ const resetUpload = () => {
   status.value = 'idle'
   selectedFile.value = null
   uploadProgress.value = 0
+  analysisProgress.value = 0
+  analysisResult.value = { structure: '', issues: [], suggestion: '' }
+}
+
+const submitAndAnalyze = () => {
+  status.value = 'analyzing'
+  analysisProgress.value = 0
+  
+  // 模拟 AI 分析进度
+  const timer = setInterval(() => {
+    analysisProgress.value += Math.floor(Math.random() * 15) + 5
+    if (analysisProgress.value >= 100) {
+      analysisProgress.value = 100
+      clearInterval(timer)
+      setTimeout(() => {
+        // 模拟 AI 分析结果
+        analysisResult.value = {
+          structure: '您的方案整体结构清晰，包含了 Python 数组的基本概念、常用方法、时间复杂度分析等核心内容。章节划分合理，逻辑连贯。',
+          issues: [
+            '缺少切片操作的详细说明和示例',
+            '深拷贝与浅拷贝的区别阐述不够清晰',
+            '建议增加更多实际应用场景案例',
+            '可变对象特性对程序的影响分析不足'
+          ],
+          suggestion: '建议补充切片操作的实战案例，特别是负数索引和步长参数的使用。增加深拷贝与浅拷贝的对比表格会更直观。'
+        }
+        status.value = 'analyzed'
+      }, 500)
+    }
+  }, 250)
 }
 
 // 开发调试用：可以暴露一个方法模拟被教师驳回

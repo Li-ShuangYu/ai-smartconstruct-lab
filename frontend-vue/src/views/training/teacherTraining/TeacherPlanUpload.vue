@@ -27,6 +27,12 @@
              <div class="text-xs text-gray-500 mb-1">已驳回</div>
              <div class="text-xl font-bold text-red-500">{{ rejectedCount }}</div>
            </div>
+           <div class="w-px h-8 bg-gray-200"></div>
+           <button @click="batchDownload" 
+                   class="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white text-sm font-bold rounded-lg hover:bg-indigo-600 transition-colors shadow-sm">
+             <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+             批量下载
+           </button>
         </div>
       </div>
 
@@ -124,6 +130,61 @@
       </div>
 
     </div>
+
+    <div v-if="isPreviewModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm">
+      <div class="bg-white w-[80vw] h-[80vh] rounded-2xl shadow-2xl flex flex-col relative overflow-hidden">
+        
+        <button @click="closePreviewModal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors z-10 bg-white/80 rounded-full p-1">
+          <svg style="width: 24px; height: 24px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+
+        <div class="flex flex-1 overflow-hidden p-6 gap-6 pt-12">
+          
+          <div class="w-1/2 bg-gray-50 border border-gray-200 rounded-xl flex flex-col items-center justify-center overflow-hidden">
+            <svg class="text-gray-300 mb-4" style="width: 64px; height: 64px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            <p class="text-gray-700 font-bold text-lg mb-2">{{ currentPreviewStudent?.fileName }}</p>
+            <p class="text-gray-400 text-sm">（文件在线预览渲染区域）</p>
+          </div>
+
+          <div class="w-1/2 flex flex-col gap-4">
+            
+            <div class="flex-1 bg-indigo-50/50 border border-indigo-100 rounded-xl p-5 overflow-y-auto custom-scrollbar">
+              <h3 class="text-indigo-600 font-bold mb-4 flex items-center gap-2 text-base">
+                <svg style="width: 20px; height: 20px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                AI 方案结构分析与标注
+              </h3>
+              <div class="text-sm text-gray-700 space-y-4 leading-relaxed">
+                <p><strong>🔹 结构完整度评分：</strong>85/100</p>
+                <p><strong>🔹 亮点标注：</strong>方案详尽覆盖了 Python 数组（List）的基础概念，包含创建、索引和基础遍历。结构层次清晰，适合初学者过渡。</p>
+                <p><strong>⚠️ 漏洞预警（知识盲区）：</strong>
+                  <br>1. 未涉及多维数组（嵌套列表）的应用场景。
+                  <br>2. 缺乏切片（Slicing）高阶用法的代码示例与内存引用说明。
+                  <br>3. 未提及列表推导式（List Comprehension）等性能优化写法。
+                </p>
+                <p><strong>💡 AI 批阅建议：</strong>建议重点考查学生对内存分配机制（深浅拷贝）的理解，可要求补充切片的高频运用示例以完善全局认知。</p>
+              </div>
+            </div>
+
+            <div class="shrink-0 flex flex-col gap-3">
+              <textarea 
+                v-model="teacherFeedback" 
+                placeholder="请输入您的专业批阅与修改建议..."
+                class="w-full h-32 p-4 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 resize-none shadow-sm custom-scrollbar"
+              ></textarea>
+              <div class="flex justify-end">
+                <button @click="submitFeedback" 
+                        class="px-6 py-2.5 bg-indigo-500 text-white text-sm font-bold rounded-lg hover:bg-indigo-600 transition-colors shadow-sm flex items-center gap-2">
+                  <svg style="width: 18px; height: 18px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                  提交批阅
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -131,14 +192,14 @@
 import { ref, computed, watch } from 'vue'
 
 const studentList = ref([
-  { id: 1, name: '陈同学', status: 'submitted', fileName: '陈同学-SM4系统设计方案.pdf', uploadTime: '10:42:15' },
-  { id: 2, name: '林同学', status: 'submitted', fileName: '密码学方案_林.docx', uploadTime: '10:35:10' },
+  { id: 1, name: '陈同学', status: 'submitted', fileName: '陈同学-Python数组学习方案.pdf', uploadTime: '10:42:15' },
+  { id: 2, name: '林同学', status: 'submitted', fileName: 'Python数组知识点整理_林.docx', uploadTime: '10:35:10' },
   { id: 3, name: '张同学', status: 'pending', fileName: '', uploadTime: '' },
   { id: 4, name: '王同学', status: 'rejected', fileName: '', uploadTime: '' },
-  { id: 5, name: '李同学', status: 'submitted', fileName: '李_最终版方案v2.pdf', uploadTime: '10:50:01' },
+  { id: 5, name: '李同学', status: 'submitted', fileName: '李_数组学习总结v2.pdf', uploadTime: '10:50:01' },
   { id: 6, name: '赵同学', status: 'pending', fileName: '', uploadTime: '' },
-  { id: 7, name: '周同学', status: 'submitted', fileName: '周_接口封装文档.docx', uploadTime: '10:11:44' },
-  { id: 8, name: '吴同学', status: 'submitted', fileName: '方案v3.pdf', uploadTime: '10:55:00' },
+  { id: 7, name: '周同学', status: 'submitted', fileName: '周_列表操作详解.docx', uploadTime: '10:11:44' },
+  { id: 8, name: '吴同学', status: 'submitted', fileName: 'Python数组方案v3.pdf', uploadTime: '10:55:00' },
   { id: 9, name: '郑同学', status: 'pending', fileName: '', uploadTime: '' },
   { id: 10, name: '孙同学', status: 'rejected', fileName: '', uploadTime: '' },
 ])
@@ -177,16 +238,50 @@ const getStatusText = (status) => {
   return map[status]
 }
 
+// ===== 浮窗相关逻辑 (新增) =====
+const isPreviewModalOpen = ref(false)
+const currentPreviewStudent = ref(null)
+const teacherFeedback = ref('')
+
 const previewPlan = (student) => {
-  alert(`正在打开在线预览模块，查阅文件：${student.fileName}`)
+  currentPreviewStudent.value = student
+  teacherFeedback.value = '' // 打开时清空输入框
+  isPreviewModalOpen.value = true
 }
 
+const closePreviewModal = () => {
+  isPreviewModalOpen.value = false
+  setTimeout(() => {
+    currentPreviewStudent.value = null
+  }, 300) // 等待可能存在的过渡动画
+}
+
+const submitFeedback = () => {
+  if (!teacherFeedback.value.trim()) {
+    alert('提示：批阅意见不可为空，请补充反馈内容。')
+    return
+  }
+  // 此处可接入后端API提交批注
+  alert(`已成功提交对 ${currentPreviewStudent.value.name} 同学的批阅意见！\n内容预览: ${teacherFeedback.value}`)
+  closePreviewModal()
+}
+// =========================
+
 const rejectPlan = (student) => {
-  const reason = prompt(`请输入打回 ${student.name} 同学方案的理由：`, '方案偏题或缺少关键要求')
+  const reason = prompt(`请输入打回 ${student.name} 同学方案的理由：`, '方案内容不完整或需要补充数组核心知识点')
   if (reason) {
     student.status = 'rejected'
     student.fileName = '' 
   }
+}
+
+const batchDownload = () => {
+  const submittedStudents = studentList.value.filter(s => s.status === 'submitted')
+  if (submittedStudents.length === 0) {
+    alert('暂无已提交的方案文件可下载')
+    return
+  }
+  alert(`正在打包下载 ${submittedStudents.length} 位同学的方案文件...\n\n${submittedStudents.map(s => s.name + ': ' + s.fileName).join('\n')}`)
 }
 </script>
 
