@@ -47,7 +47,7 @@
         <div class="flex-[3] flex flex-col bg-gray-50/50 rounded-2xl border border-gray-200/60 shadow-inner overflow-hidden relative group">
           
           <div class="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1.5 bg-white/90 backdrop-blur shadow-xl border border-indigo-100 rounded-2xl z-20">
-            <button @mousedown.stop.prevent @click.stop.prevent="execCommand('APPEND_CHILD_NODE')" class="toolbar-btn" title="插入子节点 (Tab)">
+            <button @mousedown.stop.prevent @click.stop.prevent="execCommand('INSERT_CHILD_NODE')" class="toolbar-btn" title="插入子节点 (Tab)">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
               <span class="text-[10px] mt-0.5">子节点</span>
             </button>
@@ -180,14 +180,27 @@ onMounted(() => {
       // 核心修复：强制设定 shape 为 'rectangle'，彻底解决 3 级节点无边框问题
       root: { shape: 'rectangle', fillColor: '#6366f1', color: '#ffffff', borderColor: '#4f46e5', borderWidth: 2 },
       second: { shape: 'rectangle', fillColor: '#ffffff', borderColor: '#549688', color: '#334155', borderWidth: 2 },
-      node: { shape: 'rectangle', fillColor: '#ffffff', borderColor: '#549688', color: '#334155', borderWidth: 1 }
+      node: { shape: 'rectangle', fillColor: '#ffffff', borderColor: '#549688', color: '#334155', borderWidth: 1 },
+      // 配置 note 标签显示
+      note: {
+        show: true,
+        fontSize: 12,
+        color: '#6366f1',
+        bgColor: '#e0e7ff',
+        borderColor: '#6366f1'
+      }
     }
   })
 
   // 监听画布节点主动切换
   mindMapInstance.on('node_active', (node, activeNodeList) => {
-    // 若是我们通过代码在后台偷偷保存数据触发的 active 变动，直接屏蔽，打破死循环
-    if (isInternalStateUpdate) return
+    // 切换节点前先保存当前编辑的内容
+    if (activeNodeId.value && activeNodeList.length > 0) {
+      const newActiveId = activeNodeList[0].uid
+      if (activeNodeId.value !== newActiveId) {
+        saveCurrentNode()
+      }
+    }
 
     if (activeNodeList.length > 0) {
       const currentActive = activeNodeList[0]
@@ -195,7 +208,8 @@ onMounted(() => {
       formData.value.text = currentActive.nodeData.data.text || ''
       formData.value.note = currentActive.nodeData.data.note || ''
     } else {
-      // 只有在真的点击了画布彻底空白处（失去所有焦点）时，才关闭侧边栏
+      // 点击画布空白处时，先保存再关闭侧边栏
+      saveCurrentNode()
       activeNodeId.value = null
     }
   })
@@ -212,45 +226,48 @@ onBeforeUnmount(() => {
 // 画布基础指令
 const execCommand = (cmd) => {
   if (!mindMapInstance) return
+  
+  // 对于需要选中节点的命令，检查是否有选中的节点
+  const activeNodes = mindMapInstance.renderer.activeNodeList
+  if ((cmd === 'INSERT_CHILD_NODE' || cmd === 'INSERT_NODE') && activeNodes.length === 0) {
+    // 如果没有选中节点，自动选中根节点
+    const rootNode = mindMapInstance.renderer.rootNode
+    if (rootNode) {
+      mindMapInstance.execCommand('CLEAR_ACTIVE_NODE')
+      mindMapInstance.renderer.addActiveNode(rootNode)
+    }
+  }
+  
   mindMapInstance.execCommand(cmd)
 }
 
-// 核心修复：极简且安全的保存逻辑
+// 保存当前节点内容
 const saveCurrentNode = () => {
   if (!mindMapInstance || !activeNodeId.value) return
+  
   const targetNode = mindMapInstance.renderer.findNodeByUid(activeNodeId.value)
   if (!targetNode) return
 
   // Diff 检查：防止无意义的覆盖
   const oldText = targetNode.nodeData.data.text || ''
   const oldNote = targetNode.nodeData.data.note || ''
-  if (oldText === formData.value.text && oldNote === formData.value.note) return 
-
-  // 开启互斥锁
-  isInternalStateUpdate = true
-
-  // 记录当前实际的焦点列表
-  const currentActives = [...mindMapInstance.renderer.activeNodeList]
   
-  // 强制把目标节点变为唯一激活节点，以此安全执行命令写入历史栈
-  mindMapInstance.execCommand('CLEAR_ACTIVE_NODE')
-  mindMapInstance.renderer.addActiveNode(targetNode)
-  
-  // 将表单数据正式推入画布引擎，支持撤销重做
-  mindMapInstance.execCommand('SET_NODE_DATA', targetNode, {
-    ...targetNode.nodeData.data,
-    text: formData.value.text,
-    note: formData.value.note
-  })
+  // 只有当内容真正改变时才保存
+  if (oldText !== formData.value.text || oldNote !== formData.value.note) {
+    // 使用 SET_NODE_DATA 统一更新，确保数据一致性
+    mindMapInstance.execCommand('SET_NODE_DATA', targetNode, {
+      ...targetNode.nodeData.data,
+      text: formData.value.text,
+      note: formData.value.note
+    })
+  }
+}
 
-  // 恢复之前真正的焦点列表
-  mindMapInstance.execCommand('CLEAR_ACTIVE_NODE')
-  currentActives.forEach(n => mindMapInstance.renderer.addActiveNode(n))
-
-  // 关闭互斥锁
-  isInternalStateUpdate = false
-  
-  // 注意：此处绝对不去清理 activeNodeId.value，确保侧边栏稳固显示！
+// 切换节点前保存当前内容
+const saveBeforeSwitch = () => {
+  if (activeNodeId.value) {
+    saveCurrentNode()
+  }
 }
 
 const handleZoomIn = () => mindMapInstance?.view.enlarge()
