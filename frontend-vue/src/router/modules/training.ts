@@ -177,8 +177,8 @@ const trainingRoutes = [
       },
       {
         path: 'teacher-training/teacher-comment',
-        name: 'TeacherComment',
-        component: () => import('@/views/training/teacherTraining/TeacherComment.vue'),
+        name: 'TeacherTeacherComment',
+        component: () => import('@/views/training/teacherTraining/TeacherTeacherComment.vue'),
         meta: { title: '教师点评监控' }
       },
       {

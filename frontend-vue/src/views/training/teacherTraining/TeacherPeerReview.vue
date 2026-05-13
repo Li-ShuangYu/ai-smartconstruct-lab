@@ -1,120 +1,159 @@
 <template>
-  <div style="height: 100%;">
-    
-    <div class="glass-card w-full h-full p-6 flex flex-col z-10">
+  <div style="height: 100vh;" class="p-6 bg-slate-50">
+    <div class="glass-card w-full h-full p-6 flex flex-col z-10 font-sans overflow-hidden">
       
-      <div class="flex justify-between items-end mb-6 pb-4 border-b border-gray-200/50 shrink-0">
+      <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200/50 shrink-0">
         <div>
-          <div class="mb-1 text-xs font-bold text-indigo-400 tracking-widest uppercase flex items-center gap-2">
-            <svg style="width: 14px; height: 14px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-            Node: STUDENT_PEER_REVIEW Monitor
-          </div>
-          <h1 class="text-3xl font-bold text-gray-800">互评数据散点图与异常防刷监控</h1>
+          <div class="mb-1 text-xs font-bold text-indigo-400 tracking-widest uppercase italic">Node: PEER_REVIEW_MONITOR</div>
+          <h1 class="text-2xl font-bold text-gray-800">学生互评实时监控</h1>
         </div>
         
-        <div class="flex items-center gap-4 bg-white/60 px-5 py-3 rounded-2xl border border-gray-100 shadow-sm">
-           <div class="flex flex-col items-center">
-             <span class="text-xs text-gray-500">已产出评价数据</span>
-             <span class="text-xl font-bold text-indigo-600">{{ scatterData.length }} 份</span>
-           </div>
-           <div class="w-px h-8 bg-gray-200"></div>
-           <div class="flex flex-col items-center">
-             <span class="text-xs text-gray-500">系统识别异常评价</span>
-             <span class="text-xl font-bold text-red-600">{{ anomalyCount }} 份</span>
-           </div>
+        <div class="flex items-center gap-6 bg-white/60 px-6 py-3 rounded-2xl border border-gray-100 shadow-sm">
+          <div class="flex flex-col items-center px-4 border-r border-gray-200">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">已完成评价</span>
+            <span class="text-2xl font-black text-green-500">{{ completedCount }}</span>
+          </div>
+          <div class="flex flex-col items-center px-4 border-r border-gray-200">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">评价进行中</span>
+            <span class="text-2xl font-black text-indigo-500">{{ pendingCount }}</span>
+          </div>
+          <div class="flex flex-col items-center px-4">
+            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">全班总人数</span>
+            <span class="text-2xl font-black text-gray-700">{{ totalCount }}</span>
+          </div>
         </div>
       </div>
 
-      <div class="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
+      <div class="flex-1 flex gap-6 min-h-0">
         
-        <div class="flex-[1.5] bg-white/50 border border-gray-200/60 rounded-2xl p-6 shadow-inner flex flex-col relative overflow-hidden">
-          <h3 class="font-bold text-gray-700 text-sm mb-6 flex justify-between items-center z-10">
-            <span>多维度打分分布矩阵 (代码规范 vs 创新性)</span>
-            <div class="flex gap-3 text-xs font-normal">
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500 opacity-60"></span> 正常评价</span>
-              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)]"></span> 疑似恶意刷分</span>
-            </div>
-          </h3>
+        <div class="flex-[1.5] flex flex-col bg-white/60 border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+          <div class="bg-gray-50/80 px-6 py-4 border-b border-gray-100 shrink-0">
+            <h3 class="font-bold text-gray-800 flex items-center gap-2">
+              <svg class="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
+              全班各项产出物评价多维均分 (满分 10.0)
+            </h3>
+          </div>
           
-          <div class="flex-1 relative ml-8 mb-8 border-l-2 border-b-2 border-gray-300">
-             
-             <div class="absolute -left-12 top-0 bottom-0 flex flex-col justify-between text-[10px] text-gray-400 font-mono py-1">
-               <span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
-             </div>
-             <div class="absolute -left-16 top-1/2 -rotate-90 origin-center text-xs font-bold text-gray-500 tracking-widest whitespace-nowrap">
-               创新性得分
-             </div>
+          <div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <div class="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-8">
+              
+              <div v-for="chart in classRadarCharts" :key="chart.id" class="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col items-center transition-all hover:shadow-md">
+                <h4 class="text-sm font-bold text-indigo-900 mb-8 bg-indigo-50 px-4 py-1.5 rounded-lg border border-indigo-100">{{ chart.title }}</h4>
+                
+                <div class="relative w-44 h-44 mb-4">
+                  <span class="absolute -top-5 left-1/2 -translate-x-1/2 text-xs font-bold text-gray-600 whitespace-nowrap">逻辑正确 ({{ chart.scores.logic.toFixed(1) }})</span>
+                  <span class="absolute -bottom-3 -right-8 text-xs font-bold text-gray-600 whitespace-nowrap">代码规范 ({{ chart.scores.standard.toFixed(1) }})</span>
+                  <span class="absolute -bottom-3 -left-8 text-xs font-bold text-gray-600 whitespace-nowrap">方案完整 ({{ chart.scores.completeness.toFixed(1) }})</span>
+                  
+                  <svg viewBox="0 0 100 100" class="w-full h-full overflow-visible">
+                    <polygon points="50,10 84.64,70 15.36,70" fill="none" stroke="#f3f4f6" stroke-width="1"/>
+                    <polygon points="50,26 70.78,62 29.22,62" fill="none" stroke="#f3f4f6" stroke-width="1"/>
+                    <polygon points="50,42 56.92,54 43.08,54" fill="none" stroke="#f3f4f6" stroke-width="1"/>
+                    <line x1="50" y1="50" x2="50" y2="10" stroke="#e5e7eb" stroke-width="1"/>
+                    <line x1="50" y1="50" x2="84.64" y2="70" stroke="#e5e7eb" stroke-width="1"/>
+                    <line x1="50" y1="50" x2="15.36" y2="70" stroke="#e5e7eb" stroke-width="1"/>
+                    <polygon :points="getRadarPoints(chart.scores)" fill="rgba(99, 102, 241, 0.2)" stroke="#6366f1" stroke-width="2" />
+                    <circle :cx="getPoint(chart.scores.logic, 'logic').x" :cy="getPoint(chart.scores.logic, 'logic').y" r="2.5" fill="#4f46e5" />
+                    <circle :cx="getPoint(chart.scores.standard, 'standard').x" :cy="getPoint(chart.scores.standard, 'standard').y" r="2.5" fill="#4f46e5" />
+                    <circle :cx="getPoint(chart.scores.completeness, 'completeness').x" :cy="getPoint(chart.scores.completeness, 'completeness').y" r="2.5" fill="#4f46e5" />
+                  </svg>
+                </div>
+              </div>
 
-             <div class="absolute left-0 right-0 -bottom-6 flex justify-between text-[10px] text-gray-400 font-mono px-1">
-               <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
-             </div>
-             <div class="absolute left-1/2 -bottom-10 -translate-x-1/2 text-xs font-bold text-gray-500 tracking-widest whitespace-nowrap">
-               代码规范得分
-             </div>
-
-             <div class="absolute inset-0 grid grid-cols-4 grid-rows-4 pointer-events-none">
-               <div v-for="i in 16" :key="i" class="border-t border-r border-gray-100/50"></div>
-             </div>
-
-             <div v-for="point in validScatterData" :key="point.id" 
-                  class="absolute w-4 h-4 rounded-full -translate-x-1/2 translate-y-1/2 transition-all duration-500 cursor-pointer group shadow-sm hover:scale-150 hover:z-20"
-                  :class="point.isAnomaly ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] z-10' : 'bg-indigo-500/60 hover:bg-indigo-600'"
-                  :style="{ left: `${point.codeScore}%`, bottom: `${point.innovateScore}%` }">
-               
-               <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 bg-gray-800 text-white text-xs p-3 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl">
-                 <div class="font-bold text-indigo-300 border-b border-gray-600 pb-1 mb-1">评价流水号: #{{ point.id }}</div>
-                 <div>打分人: {{ point.reviewer }}</div>
-                 <div>受评人: {{ point.reviewee }}</div>
-                 <div class="mt-1 font-mono text-gray-300">代码: {{ point.codeScore }} | 创新: {{ point.innovateScore }}</div>
-                 <div v-if="point.isAnomaly" class="mt-1 text-red-400 font-bold border-t border-gray-600 pt-1">系统预警：分值极端</div>
-               </div>
-             </div>
-
+            </div>
           </div>
         </div>
 
-        <div class="flex-[1] flex flex-col bg-white/40 border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          
-          <div class="bg-red-50/50 px-4 py-3 border-b border-red-100/50 flex items-center justify-between shrink-0">
-            <span class="font-bold text-red-800 text-sm flex items-center gap-2">
-               <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-               恶意评价拦截池
-            </span>
+        <div class="flex-[1] flex flex-col bg-white/60 border border-gray-100 rounded-2xl shadow-sm overflow-hidden min-w-[340px]">
+          <div class="bg-gray-50/80 px-6 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
+            <h3 class="font-bold text-gray-800 flex items-center gap-2">
+              <svg class="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>
+              班级互评均分榜单
+            </h3>
           </div>
 
-          <div class="flex-1 overflow-y-auto p-4 custom-scrollbar bg-gray-50/30">
-            <div v-if="anomalies.length === 0" class="h-full flex flex-col items-center justify-center text-gray-400 text-sm">
-              <svg style="width: 48px; height: 48px; flex-shrink: 0;" class="mb-3 opacity-50 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              暂未发现极端异常评分
-            </div>
-            
-            <transition-group name="list" tag="div" class="space-y-3">
-              <div v-for="item in anomalies" :key="item.id" class="bg-white border border-red-200 p-4 rounded-xl shadow-sm relative group overflow-hidden">
-                <div class="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-                
-                <div class="flex justify-between items-start mb-2 pl-2">
-                  <div class="text-xs font-bold text-gray-700">
-                    <span class="text-red-600">{{ item.reviewer }}</span> 评 <span class="text-indigo-600">{{ item.reviewee }}</span>
-                  </div>
-                  <span class="text-[10px] font-mono bg-red-100 text-red-600 px-1.5 py-0.5 rounded border border-red-200">
-                    代码:{{ item.codeScore }} 创新:{{ item.innovateScore }}
-                  </span>
-                </div>
-                
-                <p class="text-xs text-gray-500 mb-3 pl-2 italic">评语: "{{ item.comment || '无' }}"</p>
-                
-                <div class="pl-2 border-t border-gray-100 pt-3 flex gap-2">
-                  <button @click="invalidateReview(item.id)" class="flex-1 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded text-xs font-bold transition-colors">
-                    一键作废退回
-                  </button>
-                  <button @click="ignoreAnomaly(item.id)" class="flex-1 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-gray-200 rounded text-xs font-bold transition-colors">
-                    忽略放行
-                  </button>
-                </div>
+          <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-gray-100 bg-white text-[10px] font-bold text-gray-400 uppercase tracking-wider shrink-0">
+            <div class="col-span-2 text-center">排名</div>
+            <div class="col-span-6">学生信息</div>
+            <div class="col-span-4 text-right">综合均分</div>
+          </div>
+
+          <div class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-2">
+            <div 
+              v-for="(student, index) in rankedStudents" 
+              :key="student.id"
+              @click="openDetails(student)"
+              class="grid grid-cols-12 gap-4 px-2 py-3 items-center bg-white border rounded-xl transition-all cursor-pointer group"
+              :class="index < 3 ? 'border-indigo-100 shadow-sm hover:border-indigo-300' : 'border-gray-50 hover:border-indigo-200 hover:shadow-sm'"
+            >
+              <div class="col-span-2 flex justify-center">
+                <div v-if="index === 0" class="w-6 h-6 rounded-full bg-yellow-100 text-yellow-600 font-black flex items-center justify-center text-xs">1</div>
+                <div v-else-if="index === 1" class="w-6 h-6 rounded-full bg-gray-100 text-gray-500 font-black flex items-center justify-center text-xs">2</div>
+                <div v-else-if="index === 2" class="w-6 h-6 rounded-full bg-orange-100 text-orange-600 font-black flex items-center justify-center text-xs">3</div>
+                <div v-else class="text-sm font-bold text-gray-400">{{ index + 1 }}</div>
               </div>
-            </transition-group>
+
+              <div class="col-span-6 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm"
+                     :class="index < 3 ? 'bg-gradient-to-br from-indigo-400 to-purple-500' : 'bg-gray-300'">
+                  {{ student.name.charAt(0) }}
+                </div>
+                <span class="text-sm font-bold text-gray-700 group-hover:text-indigo-600 transition-colors">{{ student.name }}</span>
+              </div>
+
+              <div class="col-span-4 text-right pr-2">
+                <span class="font-mono text-base font-black" :class="index < 3 ? 'text-indigo-600' : 'text-gray-600'">
+                  {{ student.score.toFixed(1) }}
+                </span>
+                <span class="text-[10px] text-gray-400 ml-0.5">/ 10.0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div v-if="selectedStudent" class="absolute inset-0 z-50 bg-gray-900/40 backdrop-blur-sm rounded-[1.5rem] flex items-center justify-center animate-fade-in p-6">
+        <div class="bg-white rounded-2xl w-full max-w-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+          
+          <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-lg bg-gradient-to-br from-indigo-400 to-purple-500 shadow-sm">
+                {{ selectedStudent.name.charAt(0) }}
+              </div>
+              <div>
+                <h3 class="font-bold text-gray-800 text-lg">{{ selectedStudent.name }} 的各项产出物得分明细</h3>
+                <p class="text-xs text-gray-500 mt-0.5">最终综合均分：<strong class="text-indigo-600 text-sm">{{ selectedStudent.score.toFixed(1) }}</strong></p>
+              </div>
+            </div>
+            <button @click="selectedStudent = null" class="text-gray-400 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
           </div>
           
+          <div class="p-6 bg-slate-50/50">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              
+              <div v-for="item in selectedStudent.details" :key="item.title" class="bg-white border border-gray-100 rounded-xl p-5 shadow-sm hover:border-indigo-200 transition-colors">
+                <h4 class="font-bold text-sm text-indigo-900 mb-4 pb-2 border-b border-gray-50">{{ item.title }}</h4>
+                <div class="space-y-3">
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs text-gray-500">逻辑正确性</span>
+                    <span class="font-mono text-sm font-bold" :class="item.scores.logic >= 8 ? 'text-green-600' : 'text-indigo-600'">{{ item.scores.logic.toFixed(1) }}</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs text-gray-500">代码规范度</span>
+                    <span class="font-mono text-sm font-bold" :class="item.scores.standard >= 8 ? 'text-green-600' : 'text-indigo-600'">{{ item.scores.standard.toFixed(1) }}</span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-xs text-gray-500">方案完整性</span>
+                    <span class="font-mono text-sm font-bold" :class="item.scores.completeness >= 8 ? 'text-green-600' : 'text-indigo-600'">{{ item.scores.completeness.toFixed(1) }}</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
         </div>
       </div>
 
@@ -125,48 +164,114 @@
 <script setup>
 import { ref, computed } from 'vue'
 
-// 模拟散点图互评数据
-const scatterData = ref([
-  { id: 101, reviewer: '陈同学', reviewee: '李同学', codeScore: 85, innovateScore: 70, comment: '架构很清晰，SM4 轮函数抽离得很好。', isAnomaly: false },
-  { id: 102, reviewer: '林同学', reviewee: '王同学', codeScore: 60, innovateScore: 65, comment: '勉强能跑，代码有点乱。', isAnomaly: false },
-  { id: 103, reviewer: '赵同学', reviewee: '陈同学', codeScore: 90, innovateScore: 95, comment: '运用了位运算优化，非常牛。', isAnomaly: false },
-  { id: 104, reviewer: '周同学', reviewee: '赵同学', codeScore: 75, innovateScore: 50, comment: '一般般。', isAnomaly: false },
-  { id: 105, reviewer: '吴同学', reviewee: '林同学', codeScore: 40, innovateScore: 45, comment: '没有注释。', isAnomaly: false },
-  
-  // 模拟异常数据 (全 0 或 全 100 等极端恶意值)
-  { id: 901, reviewer: '张同学', reviewee: '李同学', codeScore: 0, innovateScore: 0, comment: '垃圾', isAnomaly: true },
-  { id: 902, reviewer: '张同学', reviewee: '王同学', codeScore: 5, innovateScore: 0, comment: '看不懂', isAnomaly: true },
-  { id: 903, reviewer: '李同学', reviewee: '张同学', codeScore: 100, innovateScore: 100, comment: '兄弟互刷满分', isAnomaly: true },
+// --- 全班进度数据 ---
+const completedCount = ref(24)
+const pendingCount = ref(8)
+const totalCount = ref(32)
+
+// --- 3个产出物雷达图数据 ---
+const classRadarCharts = ref([
+  { id: 1, title: '产出物一：需求分析方案', scores: { logic: 8.5, standard: 7.8, completeness: 9.0 } },
+  { id: 2, title: '产出物二：系统架构设计', scores: { logic: 7.5, standard: 8.2, completeness: 8.5 } },
+  { id: 3, title: '产出物三：核心源代码', scores: { logic: 9.2, standard: 8.8, completeness: 9.5 } }
 ])
 
-// 过滤掉被作废的数据，保证图表动态更新
-const validScatterData = computed(() => scatterData.value.filter(p => p.isActive !== false))
-
-const anomalies = computed(() => validScatterData.value.filter(p => p.isAnomaly))
-const anomalyCount = computed(() => anomalies.value.length)
-
-const invalidateReview = (id) => {
-  const item = scatterData.value.find(i => i.id === id)
-  if (item) {
-    item.isActive = false // 从图表和列表中隐藏作废
-    alert(`已将 ${item.reviewer} 的恶意评价作废，并强制要求其重评。`)
+// --- 雷达图 SVG 计算逻辑 (满分 10.0，半径 40，中心点 50) ---
+const getPoint = (score, key) => {
+  const r = 40
+  const c = 50
+  const val = (score / 10.0) * r // 转换为10分制比例
+  
+  let angle = 0
+  if (key === 'logic') angle = -Math.PI / 2           // 顶部 (-90度)
+  if (key === 'standard') angle = Math.PI / 6         // 右下 (30度)
+  if (key === 'completeness') angle = 5 * Math.PI / 6 // 左下 (150度)
+  
+  return {
+    x: c + val * Math.cos(angle),
+    y: c + val * Math.sin(angle)
   }
 }
 
-const ignoreAnomaly = (id) => {
-  const item = scatterData.value.find(i => i.id === id)
-  if (item) {
-    item.isAnomaly = false // 解除红点预警，变回普通蓝点
-  }
+const getRadarPoints = (scores) => {
+  const p1 = getPoint(scores.logic, 'logic')
+  const p2 = getPoint(scores.standard, 'standard')
+  const p3 = getPoint(scores.completeness, 'completeness')
+  return `${p1.x},${p1.y} ${p2.x},${p2.y} ${p3.x},${p3.y}`
+}
+
+// --- 学生列表与详情数据 (10.0 分制) ---
+const studentsData = [
+  { 
+    id: 1, name: '陈静', score: 9.8,
+    details: [
+      { title: '需求分析方案', scores: { logic: 9.8, standard: 9.5, completeness: 10.0 } },
+      { title: '系统架构设计', scores: { logic: 9.5, standard: 9.8, completeness: 9.8 } },
+      { title: '核心源代码', scores: { logic: 10.0, standard: 9.9, completeness: 9.9 } }
+    ]
+  },
+  { 
+    id: 2, name: '张伟', score: 9.5,
+    details: [
+      { title: '需求分析方案', scores: { logic: 9.2, standard: 9.5, completeness: 9.0 } },
+      { title: '系统架构设计', scores: { logic: 9.5, standard: 9.8, completeness: 9.5 } },
+      { title: '核心源代码', scores: { logic: 9.8, standard: 9.5, completeness: 9.6 } }
+    ]
+  },
+  { 
+    id: 3, name: '孙颖', score: 9.2,
+    details: [
+      { title: '需求分析方案', scores: { logic: 9.0, standard: 9.2, completeness: 9.5 } },
+      { title: '系统架构设计', scores: { logic: 9.5, standard: 9.0, completeness: 9.2 } },
+      { title: '核心源代码', scores: { logic: 9.2, standard: 9.0, completeness: 9.5 } }
+    ]
+  },
+  { id: 4, name: '赵云', score: 8.8, details: [{ title: '需求分析方案', scores: { logic: 8.5, standard: 9.0, completeness: 8.5 } }, { title: '系统架构设计', scores: { logic: 8.8, standard: 8.5, completeness: 8.9 } }, { title: '核心源代码', scores: { logic: 9.0, standard: 8.8, completeness: 9.0 } }] },
+  { id: 5, name: '吴敏', score: 8.5, details: [{ title: '需求分析方案', scores: { logic: 8.0, standard: 8.5, completeness: 8.8 } }, { title: '系统架构设计', scores: { logic: 8.5, standard: 8.6, completeness: 8.5 } }, { title: '核心源代码', scores: { logic: 8.8, standard: 8.5, completeness: 8.5 } }] },
+  { id: 6, name: '李明', score: 8.2, details: [{ title: '需求分析方案', scores: { logic: 8.0, standard: 8.2, completeness: 8.0 } }, { title: '系统架构设计', scores: { logic: 8.2, standard: 8.0, completeness: 8.5 } }, { title: '核心源代码', scores: { logic: 8.5, standard: 8.2, completeness: 8.0 } }] },
+  { id: 7, name: '林峰', score: 8.0, details: [{ title: '需求分析方案', scores: { logic: 8.0, standard: 8.0, completeness: 7.8 } }, { title: '系统架构设计', scores: { logic: 7.8, standard: 8.2, completeness: 8.0 } }, { title: '核心源代码', scores: { logic: 8.2, standard: 8.0, completeness: 8.0 } }] },
+  { id: 8, name: '郑强', score: 7.8, details: [{ title: '需求分析方案', scores: { logic: 7.5, standard: 7.8, completeness: 8.0 } }, { title: '系统架构设计', scores: { logic: 7.8, standard: 7.5, completeness: 7.8 } }, { title: '核心源代码', scores: { logic: 8.0, standard: 7.8, completeness: 7.5 } }] },
+  { id: 9, name: '王磊', score: 7.5, details: [{ title: '需求分析方案', scores: { logic: 7.0, standard: 7.5, completeness: 7.2 } }, { title: '系统架构设计', scores: { logic: 7.5, standard: 7.8, completeness: 7.5 } }, { title: '核心源代码', scores: { logic: 7.8, standard: 7.2, completeness: 7.5 } }] },
+  { id: 10, name: '周杰', score: 7.0, details: [{ title: '需求分析方案', scores: { logic: 6.8, standard: 7.0, completeness: 7.2 } }, { title: '系统架构设计', scores: { logic: 7.0, standard: 6.8, completeness: 7.0 } }, { title: '核心源代码', scores: { logic: 7.2, standard: 7.0, completeness: 6.8 } }] }
+]
+
+const rankedStudents = computed(() => {
+  return [...studentsData].sort((a, b) => b.score - a.score)
+})
+
+// --- 浮窗控制逻辑 ---
+const selectedStudent = ref(null)
+const openDetails = (student) => {
+  selectedStudent.value = student
 }
 </script>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar { width: 4px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(239, 68, 68, 0.3); border-radius: 4px; }
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+}
 
-/* 异常列表移除动画 */
-.list-leave-active { transition: all 0.5s ease; }
-.list-leave-to { opacity: 0; transform: translateX(30px); }
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
 </style>

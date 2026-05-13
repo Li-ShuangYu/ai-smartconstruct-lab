@@ -121,21 +121,24 @@
             <div v-for="dim in dimensions" :key="dim.key" class="space-y-2">
               <div class="flex justify-between items-end">
                 <label class="text-xs font-bold text-gray-700">{{ dim.label }}</label>
-                <span class="text-xs font-bold" :class="activePeer.review.scores[dim.key] > 0 ? 'text-indigo-600' : 'text-gray-300'">
-                  {{ activePeer.review.scores[dim.key] || 0 }} / 5 分
+                <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="activePeer.review.scores[dim.key] > 0 ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400'">
+                  {{ activePeer.review.scores[dim.key] || 0 }} / 10 分
                 </span>
               </div>
-              <div class="flex justify-between gap-2">
-                <button 
-                  v-for="score in 5" :key="score"
-                  @click="activePeer.review.scores[dim.key] = score"
-                  class="flex-1 py-1.5 rounded border transition-all text-sm font-bold"
-                  :class="activePeer.review.scores[dim.key] === score 
-                    ? 'bg-indigo-50 border-indigo-500 text-indigo-600 shadow-sm' 
-                    : 'bg-white border-gray-200 text-gray-400 hover:border-indigo-200'"
-                >
-                  {{ score }}
-                </button>
+              <div class="relative">
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="10" 
+                  step="1"
+                  v-model="activePeer.review.scores[dim.key]"
+                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-indigo"
+                />
+                <div class="flex justify-between mt-1 text-[10px] text-gray-400">
+                  <span>0</span>
+                  <span>5</span>
+                  <span>10</span>
+                </div>
               </div>
             </div>
 
@@ -291,5 +294,51 @@ const submitAllReviews = () => {
 .custom-scrollbar-dark::-webkit-scrollbar-thumb {
   background: #475569;
   border-radius: 10px;
+}
+
+/* 滑块样式 */
+.slider-indigo::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
+  transition: all 0.2s ease;
+}
+
+.slider-indigo::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+}
+
+.slider-indigo::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  cursor: pointer;
+  border: 3px solid white;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
+  transition: all 0.2s ease;
+}
+
+.slider-indigo::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+}
+
+.slider-indigo::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg, #6366f1 var(--progress, 0%), #e2e8f0 var(--progress, 0%));
+  border-radius: 8px;
+}
+
+.slider-indigo::-moz-range-track {
+  background: #e2e8f0;
+  border-radius: 8px;
+  height: 8px;
 }
 </style>
