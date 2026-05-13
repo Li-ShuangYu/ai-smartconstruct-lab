@@ -2,140 +2,176 @@
   <div style="height: 100vh;" class="p-6 bg-slate-50">
     <div class="glass-card w-full h-full p-6 flex flex-col z-10 font-sans overflow-hidden">
       
-      <div class="flex justify-between items-end mb-6 pb-4 border-b border-gray-200/50 shrink-0">
+      <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200/50 shrink-0">
         <div>
-          <div class="mb-1 text-xs font-bold text-indigo-400 tracking-widest uppercase italic">Node: TEACHER_REVIEW</div>
-          <h1 class="text-2xl font-bold text-gray-800">教师总结与点评下发</h1>
+          <div class="mb-1 text-xs font-bold text-indigo-400 tracking-widest uppercase italic">Node: TEACHER_REVIEW_FINAL</div>
+          <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">教师总结与成果评定</h1>
         </div>
         
-        <div class="flex items-center gap-4 bg-white/60 px-5 py-2.5 rounded-xl border border-gray-100 shadow-sm">
-          <span class="text-sm font-bold text-gray-600">已点评人数：</span>
-          <span class="text-xl font-black" :class="reviewedCount === students.length ? 'text-green-600' : 'text-indigo-600'">
-            {{ reviewedCount }} <span class="text-sm text-gray-400 font-normal">/ {{ students.length }}</span>
-          </span>
+        <div class="flex items-center gap-4">
+          <div class="px-4 py-2 bg-white/60 rounded-xl border border-gray-100 shadow-sm text-sm">
+            <span class="text-gray-500">已评/总数：</span>
+            <span class="font-black text-indigo-600">{{ reviewedCount }} / {{ students.length }}</span>
+          </div>
+          <button @click="nextNode" class="hero-send-btn px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg transition-all active:scale-95 flex items-center gap-2">
+            点击进入下一节点
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" /></svg>
+          </button>
         </div>
       </div>
 
       <div class="flex-1 flex gap-6 min-h-0">
         
-        <div class="flex-[1.2] flex flex-col gap-5 min-w-[360px]">
-          
+        <div class="flex-[1] flex flex-col gap-5 min-w-[320px]">
           <div class="flex-1 bg-white/60 border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col overflow-hidden">
             <h3 class="text-sm font-bold text-indigo-900 mb-4 flex items-center gap-2 shrink-0">
               <svg class="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-              AI 班级学情洞察报告
+              AI 班级学情洞察
             </h3>
             
             <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
-              
               <div class="bg-orange-50/50 border border-orange-100 rounded-xl p-4">
-                <h4 class="text-xs font-bold text-orange-700 mb-2 flex items-center gap-1">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                  班级共性问题总结
-                </h4>
-                <p class="text-sm text-gray-700 leading-relaxed">{{ aiInsights.commonIssues }}</p>
+                <h4 class="text-[10px] font-black text-orange-700 mb-2 uppercase tracking-widest">班级共性问题</h4>
+                <p class="text-xs text-gray-700 leading-relaxed">{{ aiInsights.commonIssues }}</p>
               </div>
 
-              <div class="bg-green-50/50 border border-green-100 rounded-xl p-4">
-                <h4 class="text-xs font-bold text-green-700 mb-3 flex items-center gap-1">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                  优秀案例推荐
-                </h4>
-                <div class="space-y-3">
-                  <div v-for="(caseItem, idx) in aiInsights.excellentCases" :key="idx" class="bg-white p-3 rounded-lg border border-green-200/50 shadow-sm">
-                    <div class="flex justify-between items-center mb-1">
-                      <span class="text-sm font-bold text-gray-800">{{ caseItem.studentName }}</span>
-                      <span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold">{{ caseItem.tag }}</span>
-                    </div>
-                    <p class="text-xs text-gray-600">{{ caseItem.reason }}</p>
-                  </div>
-                </div>
+              <div class="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4">
+                <h4 class="text-[10px] font-black text-indigo-700 mb-2 uppercase tracking-widest">优秀案例推荐理由</h4>
+                <p class="text-xs text-gray-700 leading-relaxed">{{ aiInsights.excellentReason }}</p>
               </div>
-
             </div>
           </div>
-
-          <div class="bg-white/60 border border-gray-100 rounded-2xl p-5 shadow-sm shrink-0 flex flex-col gap-3">
-            <button 
-              @click="batchSendComments"
-              class="hero-send-btn w-full justify-center py-3.5 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2 active:scale-95"
-            >
-              一键批量下发 AI 默认点评
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-            </button>
-            <button 
-              @click="exportComments"
-              class="w-full py-3 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-indigo-600 rounded-xl text-sm font-bold transition-all shadow-sm flex justify-center items-center gap-2"
-            >
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-              批量导出点评与成绩报表
-            </button>
-          </div>
-
         </div>
 
-        <div class="flex-[1.8] flex flex-col bg-white/60 border border-gray-100 rounded-2xl shadow-sm overflow-hidden min-w-[400px]">
-          <div class="bg-gray-50/80 px-6 py-4 border-b border-gray-100 flex justify-between items-center shrink-0">
-            <h3 class="font-bold text-gray-800 flex items-center gap-2">
-              <svg class="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-              学生个性化点评编辑区
-            </h3>
-            <span class="text-[10px] text-gray-400 font-bold bg-white px-2 py-1 rounded border border-gray-200">
-              * 文本框已默认填充 AI 预生成点评，修改后独立发送即可
-            </span>
-          </div>
+        <div class="flex-[2.2] flex flex-col min-w-0 h-full gap-4">
+          
+          <div class="flex-1 bg-white/60 border border-gray-100 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+            <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-gray-100 bg-gray-50/50 text-[10px] font-bold text-gray-400 uppercase tracking-widest shrink-0">
+              <div class="col-span-1 text-center">排名</div>
+              <div class="col-span-5 text-left">学生 (点击查看产出物)</div>
+              <div class="col-span-2 text-center">得分</div>
+              <div class="col-span-4 text-right">操作评定</div>
+            </div>
 
-          <div class="flex-1 overflow-y-auto p-5 custom-scrollbar space-y-4">
-            <div 
-              v-for="student in students" 
-              :key="student.id"
-              class="bg-white border rounded-xl p-4 transition-all"
-              :class="student.status === 'sent' ? 'border-green-200 shadow-sm' : 'border-gray-200 hover:border-indigo-200'"
-            >
-              <div class="flex justify-between items-center mb-3">
-                <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm"
-                       :class="student.status === 'sent' ? 'bg-green-500' : 'bg-indigo-400'">
+            <div class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+              <div 
+                v-for="(student, index) in rankedStudents" 
+                :key="student.id"
+                class="grid grid-cols-12 gap-4 px-4 py-2.5 items-center bg-white border border-transparent rounded-xl hover:border-indigo-100 hover:shadow-sm transition-all group"
+              >
+                <div class="col-span-1 flex justify-center">
+                  <span v-if="index === 0" class="text-xl" title="金牌">🥇</span>
+                  <span v-else-if="index === 1" class="text-xl" title="银牌">🥈</span>
+                  <span v-else-if="index === 2" class="text-xl" title="铜牌">🥉</span>
+                  <span v-else class="text-xs font-mono font-bold text-gray-400">{{ index + 1 }}</span>
+                </div>
+
+                <div @click="openOutputs(student)" class="col-span-5 flex items-center gap-3 cursor-pointer group/item">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 text-white flex items-center justify-center text-xs font-bold shadow-sm group-hover/item:scale-110 transition-transform">
                     {{ student.name.charAt(0) }}
                   </div>
-                  <span class="text-sm font-bold text-gray-800">{{ student.name }}</span>
+                  <div class="min-w-0">
+                    <span class="text-sm font-bold text-gray-700 group-hover/item:text-indigo-600 transition-colors">{{ student.name }}</span>
+                    <span v-if="student.isExcellent" class="ml-2 text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-black uppercase">优秀案例</span>
+                  </div>
                 </div>
-                <span class="text-[10px] font-bold px-2 py-1 rounded"
-                      :class="student.status === 'sent' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'">
-                  {{ student.status === 'sent' ? '已下发' : '待下发' }}
-                </span>
-              </div>
-              
-              <div class="relative">
-                <textarea 
-                  v-model="student.comment"
-                  :disabled="student.status === 'sent'"
-                  rows="3"
-                  class="w-full bg-gray-50 border border-gray-100 rounded-lg p-3 text-sm text-gray-700 outline-none focus:bg-white focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100/50 resize-none custom-scrollbar disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed"
-                ></textarea>
-                
-                <div class="flex justify-end mt-2">
+
+                <div class="col-span-2 text-center">
+                  <span class="font-mono font-black text-gray-700">{{ student.score.toFixed(1) }}</span>
+                </div>
+
+                <div class="col-span-4 flex justify-end gap-2">
                   <button 
-                    v-if="student.status !== 'sent'"
-                    @click="sendIndividualComment(student)"
-                    class="px-4 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100 rounded text-xs font-bold transition-colors"
+                    @click="markAsExcellent(student)"
+                    :disabled="student.isExcellent"
+                    class="p-2 rounded-lg border transition-all"
+                    :class="student.isExcellent ? 'bg-green-50 border-green-200 text-green-600' : 'bg-white border-gray-200 text-gray-400 hover:text-green-600 hover:border-green-200'"
+                    title="设为优秀案例"
                   >
-                    独立下发
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
                   </button>
                   <button 
-                    v-else
-                    @click="student.status = 'pending'"
-                    class="px-4 py-1.5 bg-white text-gray-500 hover:text-indigo-600 border border-gray-200 rounded text-xs font-bold transition-colors"
+                    @click="sendComment(student)"
+                    :disabled="student.status === 'sent'"
+                    class="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border"
+                    :class="student.status === 'sent' 
+                      ? 'bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'bg-indigo-50 border-indigo-100 text-indigo-600 hover:bg-indigo-600 hover:text-white'"
                   >
-                    撤回修改
+                    {{ student.status === 'sent' ? '已下发评价' : '下发评价' }}
                   </button>
                 </div>
               </div>
+            </div>
+
+            <div class="p-4 bg-gray-50/80 border-t border-gray-100 flex gap-4 shrink-0">
+              <button @click="batchSendComments" class="flex-1 py-3 bg-white border border-indigo-200 text-indigo-600 rounded-xl text-sm font-bold shadow-sm hover:bg-indigo-50 transition-all flex justify-center items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                一键下发 AI 点评 ({{ pendingCommentCount }}人)
+              </button>
+              <button @click="batchMarkExcellent" class="flex-1 py-3 bg-white border border-green-200 text-green-600 rounded-xl text-sm font-bold shadow-sm hover:bg-green-50 transition-all flex justify-center items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                一键下发优秀案例展示
+              </button>
             </div>
           </div>
         </div>
 
       </div>
+
+      <div v-if="selectedStudent" class="absolute inset-0 z-50 bg-gray-900/40 backdrop-blur-md rounded-[1.5rem] flex items-center justify-center animate-fade-in p-8">
+        <div class="bg-white rounded-2xl w-full max-w-5xl h-full shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+          
+          <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 shrink-0">
+            <div class="flex items-center gap-4">
+              <div class="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-lg font-bold">
+                {{ selectedStudent.name.charAt(0) }}
+              </div>
+              <h3 class="font-bold text-gray-800 text-xl">{{ selectedStudent.name }} 的产出物审查</h3>
+            </div>
+            <button @click="selectedStudent = null" class="text-gray-400 hover:text-red-500 p-2 rounded-lg transition-colors">
+              <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          
+          <div class="flex-1 overflow-hidden flex flex-col p-6 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 h-1/2 min-h-0">
+              <div class="bg-slate-50 rounded-xl p-5 border border-gray-200 flex flex-col overflow-hidden">
+                <h4 class="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2">
+                   <svg class="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                   产出一：需求分析说明
+                </h4>
+                <div class="flex-1 overflow-y-auto custom-scrollbar text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {{ selectedStudent.outputs.requirement }}
+                </div>
+              </div>
+              <div class="bg-slate-50 rounded-xl p-5 border border-gray-200 flex flex-col overflow-hidden">
+                <h4 class="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2">
+                   <svg class="w-4 h-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                   产出二：系统设计方案
+                </h4>
+                <div class="flex-1 overflow-y-auto custom-scrollbar text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                  {{ selectedStudent.outputs.plan }}
+                </div>
+              </div>
+            </div>
+            <div class="flex-1 bg-slate-900 rounded-xl overflow-hidden border border-slate-800 flex flex-col min-h-0">
+               <div class="bg-slate-800 px-4 py-2 border-b border-slate-700 flex justify-between items-center shrink-0">
+                 <span class="text-[10px] font-mono text-slate-400 uppercase tracking-widest">Main_Logic.py</span>
+                 <div class="flex gap-1.5">
+                   <div class="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
+                   <div class="w-2.5 h-2.5 rounded-full bg-amber-500/50"></div>
+                   <div class="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
+                 </div>
+               </div>
+               <div class="flex-1 overflow-auto custom-scrollbar-dark p-6">
+                 <pre class="text-sm font-mono text-indigo-300 leading-relaxed"><code>{{ selectedStudent.outputs.code }}</code></pre>
+               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
@@ -143,50 +179,63 @@
 <script setup>
 import { ref, computed } from 'vue'
 
-// --- AI 洞察数据 ---
+// --- 基础洞察数据 ---
 const aiInsights = ref({
-  commonIssues: '全班在处理“动态数组扩容边界”问题时普遍存在认知盲区，约有 45% 的学生在互评代码和理论答题中未能正确处理越界异常（IndexError）。建议在后续课程中增加针对切片步长越界的专项调试训练。',
-  excellentCases: [
-    { studentName: '陈静', tag: '架构清晰', reason: '在需求分析与架构设计环节，代码逻辑解耦彻底，将数据校验与核心算法分离。' },
-    { studentName: '张伟', tag: '代码优雅', reason: '熟练运用 Pythonic 切片语法完成列表反转，并完美兼容了空数组异常处理。' }
-  ]
+  commonIssues: '全班学生在“数组原地反转”环节普遍表现优异，但在“多维数组索引计算”的逻辑推导中，仍有 30% 左右的同学在处理嵌套循环时出现了 Off-by-one 误差。',
+  excellentReason: '本次推荐的案例在代码健壮性方面达到了准生产级别，需求分析中不仅考虑了正常流程，还详尽列出了异常输入（如 None、空列表）的规避方案。'
 })
 
-// --- 学生列表与 AI 草稿数据 ---
+// --- 学生数据 ---
 const students = ref([
-  { id: 1, name: '陈静', status: 'pending', comment: '表现非常出色！代码逻辑严谨，架构设计清晰，特别是对空数组的防御性编程做得很好。继续保持。' },
-  { id: 2, name: '张伟', status: 'pending', comment: '基础扎实，能够熟练运用切片技巧。但在互评阶段给分略显随意，希望后续能更严谨地对待代码规范度评估。' },
-  { id: 3, name: '孙颖', status: 'pending', comment: '理论知识掌握不错，但在编写核心源代码时，存在冗余的循环逻辑，建议多利用内置函数来提升效率。' },
-  { id: 4, name: '赵云', status: 'pending', comment: '任务完成度很高。但在处理边界条件时漏掉了一个潜在的 IndexError，建议复习一下动态数组的扩容机制。' },
-  { id: 5, name: '吴敏', status: 'sent', comment: '整体表现平稳。思维导图绘制得非常详实，但代码部分的注释较少，建议后续注意代码可读性。' },
-  { id: 6, name: '李明', status: 'pending', comment: '本节实训进步明显。虽然在 AI 对练环节卡壳了较长时间，但最终掌握了核心概念，值得表扬！' },
-  { id: 7, name: '林峰', status: 'pending', comment: '基本完成了各项任务。后续需要重点巩固 Python 列表的底层内存分配原理，这部分在理论答题中失分较多。' }
+  { 
+    id: 1, name: '陈静', score: 9.8, status: 'pending', isExcellent: false,
+    outputs: {
+      requirement: '1. 需实现动态数组自增\n2. 处理 IndexError 异常\n3. 保证 O(1) 均摊时间复杂度',
+      plan: '采用倍增扩容策略，初始容量设定为 8，当负载因子达到 0.75 时触发扩容。',
+      code: 'def reverse_array(arr):\n    return arr[::-1] # Pythonic Style'
+    }
+  },
+  { id: 2, name: '张伟', score: 9.5, status: 'pending', isExcellent: false, outputs: { requirement: '略', plan: '略', code: 'print("Hello World")' } },
+  { id: 3, name: '孙颖', score: 9.2, status: 'pending', isExcellent: false, outputs: { requirement: '略', plan: '略', code: 'pass' } },
+  { id: 4, name: '赵云', score: 8.8, status: 'sent', isExcellent: true, outputs: { requirement: '略', plan: '略', code: 'pass' } },
+  { id: 5, name: '吴敏', score: 8.5, status: 'pending', isExcellent: false, outputs: { requirement: '略', plan: '略', code: 'pass' } },
+  { id: 6, name: '李明', score: 8.2, status: 'sent', isExcellent: false, outputs: { requirement: '略', plan: '略', code: 'pass' } },
+  { id: 7, name: '林峰', score: 7.9, status: 'pending', isExcellent: false, outputs: { requirement: '略', plan: '略', code: 'pass' } }
 ])
 
+const rankedStudents = computed(() => [...students.value].sort((a, b) => b.score - a.score))
 const reviewedCount = computed(() => students.value.filter(s => s.status === 'sent').length)
+const pendingCommentCount = computed(() => students.value.filter(s => s.status !== 'sent').length)
 
-// --- 交互操作 ---
+// --- 弹窗逻辑 ---
+const selectedStudent = ref(null)
+const openOutputs = (student) => {
+  selectedStudent.value = student
+}
+
+// --- 业务操作 ---
+const sendComment = (student) => {
+  student.status = 'sent'
+}
+
+const markAsExcellent = (student) => {
+  student.isExcellent = true
+}
+
 const batchSendComments = () => {
-  const pendingStudents = students.value.filter(s => s.status !== 'sent')
-  if (pendingStudents.length === 0) {
-    alert('全班均已下发点评！')
-    return
-  }
-  if (confirm(`确认将当前文本框内的点评一键下发给 ${pendingStudents.length} 名未点评学生吗？`)) {
+  if (confirm('确认一键下发 AI 默认生成的点评吗？')) {
     students.value.forEach(s => s.status = 'sent')
   }
 }
 
-const sendIndividualComment = (student) => {
-  if (!student.comment.trim()) {
-    alert('点评内容不能为空！')
-    return
+const batchMarkExcellent = () => {
+  if (confirm('确认将排名前 3 的优秀案例同步至全班展示墙吗？')) {
+    rankedStudents.value.slice(0, 3).forEach(s => s.isExcellent = true)
   }
-  student.status = 'sent'
 }
 
-const exportComments = () => {
-  alert('正在生成《全班点评与综合成绩报表.xlsx》，即将开始下载...')
+const nextNode = () => {
+  alert('实训环节已结束，正在结算成绩并进入下一课程节点。')
 }
 </script>
 
@@ -204,14 +253,15 @@ const exportComments = () => {
   color: white;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+.custom-scrollbar-dark::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar-dark::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+
+.animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 </style>
