@@ -21,14 +21,14 @@
     <form @submit.prevent="handleRegister" class="register-form">
       <div class="input-group">
         <div class="input-field">
-          <i class="fas fa-id-card input-icon"></i>
+          <FontAwesomeIcon icon="fa-solid fa-id-card" class="input-icon" />
           <input type="text" v-model="form.username" :placeholder="idPlaceholder" required />
         </div>
       </div>
 
       <div class="input-group">
         <div class="input-field">
-          <i class="fas fa-user input-icon"></i>
+          <FontAwesomeIcon icon="fa-solid fa-user" class="input-icon" />
           <input type="text" v-model="form.realName" placeholder="请输入真实姓名" required />
         </div>
       </div>
@@ -36,7 +36,7 @@
       <!-- 院系下拉 -->
       <div class="input-group">
         <div class="input-field">
-          <i class="fas fa-building input-icon"></i>
+          <FontAwesomeIcon icon="fa-solid fa-building" class="input-icon" />
           <select v-model="selectedDeptId" class="form-select">
             <option value="" disabled>请选择院系</option>
             <option v-for="d in deptList" :key="d.id" :value="d.id">{{ d.deptName }}</option>
@@ -48,7 +48,7 @@
       <template v-if="currentRole === 'student'">
         <div class="input-group">
           <div class="input-field">
-            <i class="fas fa-graduation-cap input-icon"></i>
+            <FontAwesomeIcon icon="fa-solid fa-graduation-cap" class="input-icon" />
             <select v-model="selectedMajorId" class="form-select" :disabled="!selectedDeptId">
               <option value="" disabled>请选择专业</option>
               <option v-for="m in majorList" :key="m.id" :value="m.id">{{ m.majorName }}</option>
@@ -58,7 +58,7 @@
 
         <div class="input-group">
           <div class="input-field">
-            <i class="fas fa-users input-icon"></i>
+            <FontAwesomeIcon icon="fa-solid fa-users" class="input-icon" />
             <select v-model="selectedClassId" class="form-select" :disabled="!selectedMajorId">
               <option value="" disabled>请选择班级</option>
               <option v-for="c in classList" :key="c.id" :value="c.id">{{ c.className }}</option>
@@ -69,14 +69,14 @@
 
       <div class="input-group">
         <div class="input-field">
-          <i class="fas fa-lock input-icon"></i>
+          <FontAwesomeIcon icon="fa-solid fa-lock" class="input-icon" />
           <input type="password" v-model="form.password" placeholder="设置登录密码" required />
         </div>
       </div>
 
       <div class="input-group">
         <div class="input-field">
-          <i class="fas fa-check-double input-icon"></i>
+          <FontAwesomeIcon icon="fa-solid fa-check-double" class="input-icon" />
           <input type="password" v-model="form.confirmPassword" placeholder="请再次确认密码" required />
         </div>
       </div>

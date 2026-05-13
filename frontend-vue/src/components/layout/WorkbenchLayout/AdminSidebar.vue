@@ -7,10 +7,11 @@
           
           <div class="group-header" @click="toggleGroup(group)">
             <span class="group-title">{{ group.title }}</span>
-            <i 
-              class="fas fa-chevron-down toggle-icon" 
+            <FontAwesomeIcon 
+              icon="fa-solid fa-chevron-down" 
+              class="toggle-icon" 
               :class="{ 'is-collapsed': !group.expanded }"
-            ></i>
+            />
           </div>
 
           <div class="group-items" v-show="group.expanded">
@@ -21,7 +22,7 @@
               class="nav-item" 
               active-class="active"
             >
-              <i :class="item.icon"></i> {{ item.name }}
+              <FontAwesomeIcon :icon="item.icon" /> {{ item.name }}
             </router-link>
           </div>
           
@@ -42,10 +43,10 @@ const adminMenus = ref([
     title: '用户中心',
     expanded: true, // 默认展开
     children: [
-      { name: '临时测试', path: '/admin/training-test', icon: 'fas fa-user-tie' },
-      { name: '教师管理', path: '/admin/teacher', icon: 'fas fa-user-tie' },
-      { name: '学生统管', path: '/admin/student', icon: 'fas fa-user-graduate' },
-      { name: '菜单权限', path: '/admin/menu', icon: 'fas fa-list' }
+      { name: '临时测试', path: '/admin/training-test', icon: 'fa-solid fa-user-tie' },
+      { name: '教师管理', path: '/admin/teacher', icon: 'fa-solid fa-user-tie' },
+      { name: '学生统管', path: '/admin/student', icon: 'fa-solid fa-user-graduate' },
+      { name: '菜单权限', path: '/admin/menu', icon: 'fa-solid fa-list' }
     ]
   },
   {
@@ -53,8 +54,8 @@ const adminMenus = ref([
     title: '教务中心',
     expanded: true,
     children: [
-      { name: '教学组织维护', path: '/admin/org', icon: 'fas fa-sitemap' },
-      { name: '课程统管', path: '/admin/course', icon: 'fas fa-book-open' }
+      { name: '教学组织维护', path: '/admin/org', icon: 'fa-solid fa-sitemap' },
+      { name: '课程统管', path: '/admin/course', icon: 'fa-solid fa-book-open' }
     ]
   },
   {
@@ -62,9 +63,9 @@ const adminMenus = ref([
     title: '资源中心',
     expanded: true,
     children: [
-      { name: '编排节点管理', path: '/admin/node', icon: 'fas fa-server' },
-      { name: '公共模板库', path: '/admin/template', icon: 'fas fa-layer-group' },
-      { name: '公共题库大盘', path: '/admin/question', icon: 'fas fa-database' }
+      { name: '编排节点管理', path: '/admin/node', icon: 'fa-solid fa-server' },
+      { name: '公共模板库', path: '/admin/template', icon: 'fa-solid fa-layer-group' },
+      { name: '公共题库大盘', path: '/admin/question', icon: 'fa-solid fa-database' }
     ]
   },
   {
@@ -72,9 +73,9 @@ const adminMenus = ref([
     title: '系统中心',
     expanded: true,
     children: [
-      { name: '工单/反馈处理', path: '/admin/ticket', icon: 'fas fa-headset' },
-      { name: '服务运行监控', path: '/admin/monitor', icon: 'fas fa-microchip' },
-      { name: '操作日志审计', path: '/admin/audit', icon: 'fas fa-history' }
+      { name: '工单/反馈处理', path: '/admin/ticket', icon: 'fa-solid fa-headset' },
+      { name: '服务运行监控', path: '/admin/monitor', icon: 'fa-solid fa-microchip' },
+      { name: '操作日志审计', path: '/admin/audit', icon: 'fa-solid fa-history' }
     ]
   }
 ])

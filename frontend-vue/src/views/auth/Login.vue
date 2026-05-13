@@ -18,7 +18,7 @@
       <div class="input-group">
         <label>账号</label>
         <div class="input-field">
-          <i class="fas fa-user input-icon"></i>
+          <FontAwesomeIcon icon="fa-solid fa-user" class="input-icon" />
           <input type="text" v-model="account" :placeholder="accountPlaceholder" required />
         </div>
       </div>
@@ -26,7 +26,7 @@
       <div class="input-group">
         <label>密码</label>
         <div class="input-field">
-          <i class="fas fa-lock input-icon"></i>
+          <FontAwesomeIcon icon="fa-solid fa-lock" class="input-icon" />
           <input type="password" v-model="password" placeholder="请输入密码"  required />
         </div>
       </div>
