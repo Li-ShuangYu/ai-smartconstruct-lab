@@ -88,17 +88,12 @@ frontend-vue/
 │   │       ├── teacher.ts     # 教师路由
 │   │       ├── student.ts     # 学生路由
 │   │       ├── admin.ts       # 管理员路由
-│   │       ├── training.ts    # 实训路由
+│   │       ├── training.ts    # 实训路由（学生端+教师端）
 │   │       └── homework.ts    # 作业路由
 │   │
 │   ├── services/              # 服务层
 │   │   ├── api.ts            # Axios封装
 │   │   ├── types/            # 类型定义
-│   │   │   ├── auth.types.ts
-│   │   │   ├── user.types.ts
-│   │   │   ├── training.types.ts
-│   │   │   ├── homework.types.ts
-│   │   │   └── org.types.ts
 │   │   └── modules/          # API服务
 │   │       ├── auth.service.ts
 │   │       ├── user.service.ts
@@ -126,11 +121,60 @@ frontend-vue/
 │   │   ├── auth/            # 认证页面
 │   │   │   ├── Login.vue    # 登录页
 │   │   │   └── Register.vue # 注册页
-│   │   ├── teacher/         # 教师端页面
-│   │   ├── student/         # 学生端页面
+│   │   ├── teacher/         # 教师端页面（工作台）
+│   │   │   ├── Workbench.vue
+│   │   │   ├── TrainingCreate.vue
+│   │   │   ├── TrainingManage.vue
+│   │   │   └── EvaluationDashboard.vue
+│   │   ├── student/         # 学生端页面（工作台）
+│   │   │   ├── Workbench.vue
+│   │   │   ├── TrainingDetail.vue
+│   │   │   └── StudentCabin.vue
 │   │   ├── admin/           # 管理员端页面
-│   │   ├── homework/        # 作业页面
-│   │   ├── training/        # 实训页面
+│   │   │   ├── TeacherManage.vue
+│   │   │   ├── StudentManage.vue
+│   │   │   ├── OrgManage.vue
+│   │   │   ├── CourseManage.vue
+│   │   │   ├── NodeManage.vue
+│   │   │   ├── TemplateDashboard.vue
+│   │   │   ├── QuestionDashboard.vue
+│   │   │   ├── TicketManage.vue
+│   │   │   ├── ServiceMonitor.vue
+│   │   │   ├── AuditLog.vue
+│   │   │   └── TrainingTestEntry.vue # 实训页面测试入口
+│   │   ├── training/        # 实训页面（学生端+教师端）
+│   │   │   ├── studentTraining/   # 学生端实训页面
+│   │   │   │   ├── StartPortal.vue
+│   │   │   │   ├── ResourceViewer.vue
+│   │   │   │   ├── VideoPlayer.vue
+│   │   │   │   ├── MindMapPreview.vue
+│   │   │   │   ├── TaskBoard.vue
+│   │   │   │   ├── AIStudyCard.vue
+│   │   │   │   ├── AIPractice.vue
+│   │   │   │   ├── MindMapEditor.vue
+│   │   │   │   ├── RequirementCloud.vue
+│   │   │   │   ├── PlanUpload.vue
+│   │   │   │   ├── SimulatedIDE.vue      # 模拟IDE（Python数组学习，自动连续流程）
+│   │   │   │   ├── HomeworkEngine.vue
+│   │   │   │   ├── PeerReview.vue        # 同伴互评（滑块评分0-10分）
+│   │   │   │   ├── TeacherComment.vue    # 教师点评与实训复盘（学生端查看）
+│   │   │   │   └── SummaryReport.vue
+│   │   │   └── teacherTraining/   # 教师端实训监控页面
+│   │   │       ├── TeacherStartPortal.vue
+│   │   │       ├── TeacherResourceViewer.vue
+│   │   │       ├── TeacherVideoPlayer.vue
+│   │   │       ├── TeacherMindMapPreview.vue
+│   │   │       ├── TeacherTaskBoard.vue
+│   │   │       ├── TeacherAIStudyCard.vue
+│   │   │       ├── TeacherAIPractice.vue
+│   │   │       ├── TeacherMindMapEditor.vue
+│   │   │       ├── TeacherRequirementCloud.vue
+│   │   │       ├── TeacherPlanUpload.vue
+│   │   │       ├── TeacherSimulatedIDE.vue
+│   │   │       ├── TeacherHomeworkEngine.vue
+│   │   │       ├── TeacherPeerReview.vue
+│   │   │       ├── TeacherTeacherComment.vue  # 教师点评监控（教师端监控）
+│   │   │       └── TeacherSummaryReport.vue
 │   │   └── common/          # 公共页面
 │   │
 │   ├── rules/               # 开发规范
@@ -149,7 +193,7 @@ frontend-vue/
 ├── vite.config.ts         # Vite配置
 ├── index.html              # HTML入口
 ├── env.d.ts               # 环境声明
-└── README.md              # 项目说明
+└── FRONTEND_README.md      # 前端项目详细说明
 ```
 
 ---
@@ -1153,6 +1197,64 @@ export function useWebSocket() {
 - **路径**：`/student/my-training`
 - **功能**：我的实训记录
 - **技术实现**：实训历史、进度查看
+
+### 实训模块 (training)
+
+#### SimulatedIDE.vue
+- **路径**：`/training/simulated-ide`
+- **功能**：模拟IDE实训页面，专注于Python数组学习，包含自动连续流程
+- **核心特性**：
+  - **Python数组学习**：涵盖数组反转、快速排序、二分查找等常用算法
+  - **自动连续流程**：取消localStorage机制，实现"初次生成→报错修改→测试通过"的连续学习流程
+  - **代码编辑器**：支持Python语法高亮显示
+  - **终端日志**：实时显示代码执行结果和错误信息
+  - **AI助手**：提供代码生成、错误修复建议和知识点讲解
+- **技术实现**：
+  - Vue 3 Composition API + `<script setup>` 语法
+  - 代码高亮逻辑（基于行的diffType判断背景色、行号颜色、文本颜色）
+  - 流式输出（代码、富文本、终端日志）
+  - 自动填充输入逻辑（取消localStorage，改为终端生成结束后自动填充后续输入）
+- **学习流程**：
+  1. 初次生成：AI生成Python数组操作代码
+  2. 报错修改：自动填充报错信息，AI分析并修复代码
+  3. 测试通过：验证修复后的代码，显示测试结果
+- **业务场景**：学生学习Python数组操作算法，体验完整的编码调试流程
+
+#### PeerReview.vue
+- **路径**：`/training/peer-review`
+- **功能**：同伴互评页面，学生之间互相评价实训成果
+- **核心特性**：
+  - **滑块评分**：评分方式从按钮改为拖动条，分数范围0-10分
+  - **多维度评价**：支持从多个维度（如代码质量、算法效率、文档规范等）进行评价
+  - **实时评分显示**：拖动滑块时实时显示当前分数
+  - **评分提交**：完成评价后提交评分结果
+- **技术实现**：
+  - Vue 3 Composition API + `<script setup>` 语法
+  - 响应式数据绑定（v-model）
+  - CSS滑块样式定制
+- **UI特性**：
+  - 滑块组件：min="0" max="10" step="1"
+  - 刻度标记：显示0、5、10三个参考点
+  - 分数显示：实时更新当前选中分数
+- **业务场景**：学生完成实训后，对同伴的实训成果进行多维度评价
+
+#### TeacherComment.vue
+- **路径**：`/training/teacher-comment`
+- **功能**：教师点评与实训复盘页面（学生端查看）
+- **核心特性**：
+  - 查看教师对实训的评价和建议
+  - 查看实训成绩和能力分析
+  - 回顾实训过程和关键知识点
+- **技术实现**：评分展示、能力分析图表
+
+#### TeacherTeacherComment.vue
+- **路径**：`/training/teacher-teacher-comment`
+- **功能**：教师点评监控页面（教师端监控）
+- **核心特性**：
+  - 查看所有学生的实训进度
+  - 对学生实训成果进行点评打分
+  - 监控班级整体实训情况
+- **技术实现**：实时监控、批量点评、进度统计
 
 #### UserProfile.vue
 - **路径**：`/student/profile`
