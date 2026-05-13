@@ -1,4 +1,8 @@
 {
+  // 修复：添加 "vueCompilerOptions" 配置以支持 Vue 文件解析
+  "vueCompilerOptions": {
+    "target": 3
+  },
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
   "exclude": ["src/**/__tests__/*"],
