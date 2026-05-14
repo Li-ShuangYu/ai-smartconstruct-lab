@@ -88,13 +88,23 @@
                     <div 
                       v-for="(evalRecord, idx) in getNodeEvaluations(activeNode.id)" 
                       :key="idx"
-                      class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
+                      class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors relative"
                     >
-                      <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-2">
                         <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-600">
                           {{ evalRecord.name.charAt(0) }}
                         </div>
                         <span class="text-sm font-medium text-gray-700">{{ evalRecord.name }}</span>
+                        <span 
+                          v-if="evalRecord.question"
+                          class="question-tag w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xs font-bold cursor-help hover:bg-amber-200 transition-colors relative"
+                          title=""
+                        >
+                          ?
+                          <span class="question-tooltip absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 invisible hover:opacity-100 hover:visible transition-all whitespace-nowrap z-20 max-w-[240px]">
+                            {{ evalRecord.question }}
+                          </span>
+                        </span>
                       </div>
                       
                       <span 
@@ -161,27 +171,34 @@ const rootNode = ref({
 })
 
 // 模拟所有学生对各个节点的打分数据
-// 数据结构: { nodeId: [ { name: '学生名', rating: 'easy|medium|hard' }, ... ] }
+// 数据结构: { nodeId: [ { name: '学生名', rating: 'easy|medium|hard', question?: '疑问内容' }, ... ] }
 const mockEvaluations = {
   'n1': [
-    { name: '张伟', rating: 'easy' }, { name: '李娜', rating: 'easy' }, { name: '王磊', rating: 'medium' },
-    { name: '刘洋', rating: 'easy' }, { name: '陈静', rating: 'easy' }, { name: '赵云', rating: 'medium' }
+    { name: '张伟', rating: 'easy' }, { name: '李娜', rating: 'easy', question: '什么是数组的定义？' }, 
+    { name: '王磊', rating: 'medium' },
+    { name: '刘洋', rating: 'easy' }, { name: '陈静', rating: 'easy' }, { name: '赵云', rating: 'medium', question: '数组和列表有什么区别？' }
   ],
   'n1-1': [
-    { name: '张伟', rating: 'medium' }, { name: '李娜', rating: 'hard' }, { name: '王磊', rating: 'hard' },
+    { name: '张伟', rating: 'medium', question: '连续存储是什么意思？内存布局是怎样的？' }, 
+    { name: '李娜', rating: 'hard', question: '不太理解连续存储的优势在哪里' }, 
+    { name: '王磊', rating: 'hard' },
     { name: '刘洋', rating: 'medium' }, { name: '陈静', rating: 'hard' }, { name: '赵云', rating: 'medium' }
   ],
   'n1-2': [
     { name: '张伟', rating: 'easy' }, { name: '李娜', rating: 'medium' }, { name: '王磊', rating: 'medium' },
-    { name: '刘洋', rating: 'hard' }, { name: '陈静', rating: 'medium' }, { name: '赵云', rating: 'easy' }
+    { name: '刘洋', rating: 'hard', question: '动态数组如何实现自动扩容？' }, 
+    { name: '陈静', rating: 'medium' }, { name: '赵云', rating: 'easy' }
   ],
   'n2': [
-    { name: '张伟', rating: 'medium' }, { name: '李娜', rating: 'medium' }, { name: '王磊', rating: 'hard' },
+    { name: '张伟', rating: 'medium' }, { name: '李娜', rating: 'medium', question: '核心操作包括哪些？' }, 
+    { name: '王磊', rating: 'hard' },
     { name: '刘洋', rating: 'hard' }, { name: '陈静', rating: 'medium' }, { name: '赵云', rating: 'hard' }
   ],
   'n2-1': [ // 高级切片 (非常难)
-    { name: '张伟', rating: 'hard' }, { name: '李娜', rating: 'hard' }, { name: '王磊', rating: 'hard' },
-    { name: '刘洋', rating: 'hard' }, { name: '陈静', rating: 'medium' }, { name: '赵云', rating: 'hard' }
+    { name: '张伟', rating: 'hard', question: '切片的步长参数怎么用？' }, 
+    { name: '李娜', rating: 'hard', question: '负数索引不太明白' }, 
+    { name: '王磊', rating: 'hard', question: '切片赋值时内存是怎么处理的？' },
+    { name: '刘洋', rating: 'hard' }, { name: '陈静', rating: 'medium' }, { name: '赵云', rating: 'hard', question: '[:-1] 和 [0:-1] 有区别吗？' }
   ],
   'n2-2': [ // 原地操作 (较容易)
     { name: '张伟', rating: 'easy' }, { name: '李娜', rating: 'easy' }, { name: '王磊', rating: 'easy' },
@@ -355,5 +372,20 @@ const handleFitView = () => mindMapInstance && mindMapInstance.view.fit()
 :deep(.smm-node.active) {
   outline: 3px solid rgba(99, 102, 241, 0.5) !important;
   box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+}
+
+.question-tag:hover .question-tooltip {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.question-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1f2937;
 }
 </style>

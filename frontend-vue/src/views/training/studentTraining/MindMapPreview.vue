@@ -84,6 +84,19 @@
                 </div>
               </div>
 
+              <div class="shrink-0 pt-6 border-t border-gray-100 mb-6">
+                <p class="text-xs font-bold text-amber-500 mb-3 flex items-center gap-1 uppercase tracking-tighter">
+                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  疑问记录
+                </p>
+                <textarea
+                  v-model="activeNode.question"
+                  placeholder="在此记录您对该知识点的疑问，系统将自动在导图生成标记..."
+                  class="w-full h-24 px-4 py-3 text-sm bg-amber-50/50 border border-amber-100/50 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-300 transition-all text-gray-600 placeholder-gray-400"
+                  @input="handleQuestionInput"
+                ></textarea>
+              </div>
+
               <div class="shrink-0 pt-6 border-t border-gray-100">
                 <p class="text-xs font-bold text-gray-500 mb-4 text-center uppercase tracking-tighter">评估您对此知识点的掌握程度</p>
                 <div class="grid grid-cols-3 gap-3">
@@ -135,9 +148,10 @@ const rootNode = ref({
       desc: '数组在 Python 中通常通过列表(List)或 array 模块实现，是存放相同类型数据的集合。',
       points: ['List 的内存模型', '索引与偏移量关系', '时间复杂度分析'],
       difficulty: null,
+      question: '',
       children: [
-        { id: 'n1-1', label: '连续存储', points: ['Cache Line 对齐', '物理内存布局'], difficulty: null },
-        { id: 'n1-2', label: '静态 vs 动态', points: ['扩容因子', 'Overhead 消耗'], difficulty: null }
+        { id: 'n1-1', label: '连续存储', points: ['Cache Line 对齐', '物理内存布局'], difficulty: null, question: '' },
+        { id: 'n1-2', label: '静态 vs 动态', points: ['扩容因子', 'Overhead 消耗'], difficulty: null, question: '' }
       ]
     },
     {
@@ -146,9 +160,10 @@ const rootNode = ref({
       desc: '掌握数组的增删改查是算法优化的基础，尤其是切片(Slicing)的高级用法。',
       points: ['浅拷贝 vs 深拷贝', '正向/负向切片', 'Step 步长逻辑'],
       difficulty: null,
+      question: '',
       children: [
-        { id: 'n2-1', label: '高级切片', points: ['[::2] 隔行取样', '[::-1] 翻转数组'], difficulty: null },
-        { id: 'n2-2', label: '原地操作', points: ['pop() 与 remove()', 'del 关键字'], difficulty: null }
+        { id: 'n2-1', label: '高级切片', points: ['[::2] 隔行取样', '[::-1] 翻转数组'], difficulty: null, question: '' },
+        { id: 'n2-2', label: '原地操作', points: ['pop() 与 remove()', 'del 关键字'], difficulty: null, question: '' }
       ]
     }
   ]
@@ -180,6 +195,8 @@ const transformData = (node) => {
     data: {
       text: node.label,
       uid: node.id,
+      // 直接初始化原生 note
+      note: (node.question && node.question.trim()) ? node.question : '',
       ...node
     },
     children: node.children ? node.children.map(transformData) : []
@@ -235,6 +252,12 @@ onMounted(() => {
       line: {
         color: '#549688',
         width: 2
+      },
+      // 开启原生备注配置，使用醒目的绿色
+      note: {
+        show: true,
+        fillColor: '#10b981', 
+        margin: 6
       }
     }
   })
@@ -259,6 +282,14 @@ const handleZoomIn = () => mindMapInstance && mindMapInstance.view.enlarge()
 const handleZoomOut = () => mindMapInstance && mindMapInstance.view.narrow()
 const handleFitView = () => mindMapInstance && mindMapInstance.view.fit()
 
+// 监听输入框，实时同步原生的备注数据
+const handleQuestionInput = () => {
+  if (activeNode.value && activeNode.value.id !== 'root') {
+    updateQuestionNote(activeNode.value.id, activeNode.value.question)
+  }
+}
+
+// 难度打分
 const markDifficulty = (level) => {
   if (activeNode.value && activeNode.value.id !== 'root') {
     activeNode.value.difficulty = level
@@ -269,11 +300,10 @@ const markDifficulty = (level) => {
 const getColor = (key) => key === 'easy' ? 'green' : (key === 'medium' ? 'indigo' : 'red')
 const getEmoji = (key) => key === 'easy' ? '😊' : (key === 'medium' ? '😐' : '😰')
 
-// 【核心修改】通过 simple-mind-map 的内部 API 更新节点渲染样式
+// 【修复 1】：恢复最正确的 setStyle 方法，完美实现颜色动态切换
 const updateNodeStyle = (nodeId, difficulty) => {
   if (!mindMapInstance) return
   
-  // simple-mind-map 使用 fillColor 和 color 控制背景和字体色
   const styleMap = {
     'easy': { fillColor: '#22c55e', color: '#ffffff', borderColor: '#16a34a' },
     'medium': { fillColor: '#6366f1', color: '#ffffff', borderColor: '#4f46e5' },
@@ -281,14 +311,24 @@ const updateNodeStyle = (nodeId, difficulty) => {
   }
   
   const styles = styleMap[difficulty]
-  
-  // 在 readonly 模式下，获取 renderer 中的节点实例并直接覆盖样式属性
   const nodeInstance = mindMapInstance.renderer.findNodeByUid(nodeId)
   
   if (nodeInstance) {
     nodeInstance.setStyle('fillColor', styles.fillColor)
     nodeInstance.setStyle('color', styles.color)
     nodeInstance.setStyle('borderColor', styles.borderColor)
+  }
+}
+
+// 【修复 2】：使用官方命令更新数据，保证标签图标实时渲染，且不会覆盖样式
+const updateQuestionNote = (nodeId, question) => {
+  if (!mindMapInstance) return
+  
+  const nodeInstance = mindMapInstance.renderer.findNodeByUid(nodeId)
+  
+  if (nodeInstance) {
+    const noteContent = question?.trim() || ''
+    mindMapInstance.execCommand('SET_NODE_DATA', nodeInstance, { note: noteContent })
   }
 }
 

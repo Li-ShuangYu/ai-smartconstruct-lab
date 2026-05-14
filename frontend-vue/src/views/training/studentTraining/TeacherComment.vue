@@ -154,21 +154,21 @@ const commonIssues = ref([
 const excellentWorks = ref([
   {
     id: 'e1',
-    name: '张三 (满分范例)',
+    name: '张三',
     req: '通过一趟遍历，同时找出数组的最大值和最小值，要求时间复杂度为 O(N)，并处理传入数组为空的异常。',
     plan: '1. 前置拦截：使用 if not arr 直接捕获空数组返回 None。\n2. 初始化极值：将数组的第一个元素同时赋给 max_val 和 min_val。\n3. 遍历比对：从第二个元素开始遍历，分别更新极值，最终返回 Tuple。',
     code: `def get_min_max(arr):\n    if not arr:\n        return None, None\n        \n    min_val = max_val = arr[0]\n    for num in arr[1:]:\n        if num < min_val:\n            min_val = num\n        if num > max_val:\n            max_val = num\n            \n    return min_val, max_val`
   },
   {
     id: 'e2',
-    name: '李四 (精简代码)',
+    name: '李四',
     req: '利用 Python 特性，用最简洁的代码实现数组的原地反转与切片提取。',
     plan: '核心思路是充分利用 Python 强大的切片语法 [::-1] 进行逆序，不引入多余的辅助变量，保证代码 Pythonic。',
     code: `def process_array(arr):\n    # 使用切片直接返回反转后的前三个元素\n    return arr[::-1][:3]\n\n# 优雅且无惧索引越界\nprint(process_array([1, 2, 3, 4, 5]))`
   },
   {
     id: 'e3',
-    name: '王五 (容错处理)',
+    name: '王五',
     req: '编写一个函数，接收包含各种脏数据（如字符串、None）的数组，提取其中的合法整数并求和。',
     plan: '由于输入不可控，重点在清洗数据。\n使用 isinstance() 判断类型，并使用列表推导式 (List Comprehension) 进行过滤，最后使用 sum() 求和。',
     code: `def sum_valid_integers(arr):\n    if not isinstance(arr, list):\n        return 0\n        \n    # 列表推导式过滤脏数据\n    clean_nums = [x for x in arr if isinstance(x, int)]\n    return sum(clean_nums)`

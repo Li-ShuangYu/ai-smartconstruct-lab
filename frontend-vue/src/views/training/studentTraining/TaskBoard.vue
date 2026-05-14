@@ -75,7 +75,7 @@
                @click="handleAccept"
                class="hero-send-btn w-full justify-center py-4 rounded-xl text-base font-bold shadow-lg transition-all flex items-center gap-2 active:scale-[0.98]"
              >
-               已下载材料，开始编程作业
+               {{ isTaskAccepted ? '已确认任务，进入下一节点' : '接收任务' }}
                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
             </button>
           </div>
@@ -88,7 +88,9 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
+
+const isTaskAccepted = ref(false)
 
 // 核心数据模型：直接对应后端接口返回的简单字段
 const taskData = reactive({
@@ -120,7 +122,12 @@ const getFileIcon = (type) => {
 }
 
 const handleAccept = () => {
-  alert('任务已确认！进入编码实训环节。')
+  if (!isTaskAccepted.value) {
+    alert('接收成功！')
+    isTaskAccepted.value = true
+  } else {
+    alert('任务已确认！进入编码实训环节。')
+  }
 }
 </script>
 
