@@ -11,9 +11,8 @@
       <!-- 核心玻璃拟态主卡片 -->
       <div class="console-main-card glass-card">
         
-        <!-- 1. 顶部动态 Header (这里调用纯净版 Header，就不会套娃了) -->
-        <StudentHeader v-if="isStudentSide" />
-        <TeacherHeader v-else />
+        <!-- 1. 顶部动态 Header (空占位，侧边栏已在外部) -->
+        <div class="header-placeholder"></div>
 
         <!-- 2. 主内容路由区 (自动填充剩余空间并独立滚动) -->
         <main class="console-content">
@@ -33,10 +32,8 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { NMessageProvider } from 'naive-ui'
-import StudentHeader from './StudentHeader.vue'
-import TeacherHeader from './TeacherHeader.vue'
-import StudentSidebar from './Sidebar/StudentSidebar.vue'
-import TeacherSidebar from './Sidebar/TeacherSidebar.vue'
+import StudentSidebar from './StudentSidebar.vue'
+import TeacherSidebar from './TeacherSidebar.vue'
 
 const route = useRoute()
 
