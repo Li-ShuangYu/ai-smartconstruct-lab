@@ -122,10 +122,17 @@
           </button>
           <button 
             v-else-if="status === 'analyzed'"
-            class="hero-send-btn w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all"
+            class="hero-send-btn w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+            :class="{
+              'opacity-50 grayscale cursor-not-allowed': isWaiting,
+              'hover:shadow-indigo-500/30': !isWaiting && isTeacherConfirmed
+            }"
+            :disabled="isWaiting"
+            @click="handleComplete"
           >
-            完成，进入下一环节
-            <svg style="width: 16px; height: 16px; margin-left: 4px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+            {{ isTeacherConfirmed ? '进入下一节点' : (isWaiting ? '等待教师进入下一节点' : '完成，进入下一环节') }}
+            <svg v-if="!isWaiting" style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+            <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
           </button>
           <button 
             v-else
@@ -143,11 +150,18 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const nodeConfig = ref({
   format: 'pdf,docx',
   uploadReq: '1. 方案需包含 Python 数组（列表）的核心知识点思维导图或架构图。\n2. 需详细说明数组常用操作方法、时间复杂度分析及使用注意事项。\n3. 文档排版清晰，需使用提供的标准化模板撰写。\n4. 建议包含典型应用场景和常见错误案例分析。'
 })
+
+// 按钮状态管理
+const isWaiting = ref(false) // 是否正在等待教师确认
+const isTeacherConfirmed = ref(false) // 教师是否已确认
 
 const allowedFormats = computed(() => nodeConfig.value.format.split(',').map(f => f.trim()))
 const acceptString = computed(() => allowedFormats.value.map(f => `.${f}`).join(','))
@@ -237,6 +251,24 @@ const submitAndAnalyze = () => {
 // 开发调试用：可以暴露一个方法模拟被教师驳回
 const mockReject = () => {
   status.value = 'rejected'
+}
+
+const handleComplete = () => {
+  if (isWaiting.value) return
+  
+  if (!isTeacherConfirmed.value) {
+    // 第一次点击：进入等待状态
+    isWaiting.value = true
+    
+    // 模拟1秒后教师确认
+    setTimeout(() => {
+      isWaiting.value = false
+      isTeacherConfirmed.value = true
+    }, 1000)
+  } else {
+    // 教师确认后：进入下一节点
+    router.push('/student/training/homework-engine')
+  }
 }
 </script>
 

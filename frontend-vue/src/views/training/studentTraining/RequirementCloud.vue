@@ -29,13 +29,17 @@
 
           <div v-if="!isSubmitted">
             <button 
-              class="hero-send-btn w-full justify-center py-3.5 rounded-xl shadow-lg transition-all duration-300"
-              :class="!inputText.trim() ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-indigo-500/40'"
+              class="hero-send-btn w-full justify-center py-3.5 rounded-xl shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+              :class="{
+                'opacity-50 cursor-not-allowed grayscale': !inputText.trim() || isWaiting,
+                'hover:shadow-indigo-500/40': inputText.trim() && !isWaiting && isTeacherConfirmed
+              }"
               @click="submitRequirement"
-              :disabled="!inputText.trim()"
+              :disabled="!inputText.trim() || isWaiting"
             >
-              <svg style="width: 18px; height: 18px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
-              提交需求
+              <svg v-if="!isWaiting" style="width: 18px; height: 18px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+              <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              {{ isTeacherConfirmed ? '进入下一节点' : (isWaiting ? '等待教师进入下一节点' : '提交需求') }}
             </button>
           </div>
           <div v-else class="animate-fade-in space-y-3">
@@ -43,9 +47,15 @@
                 <svg style="width: 18px; height: 18px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 <span>需求已提交！满足前置条件。</span>
              </div>
-             <button class="w-full py-3.5 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-               进入下一实训环节
-               <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+             <button 
+               class="w-full py-3.5 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+               :class="{ 'opacity-50 cursor-not-allowed grayscale': isWaiting }"
+               :disabled="isWaiting"
+               @click="goNext"
+             >
+               {{ isTeacherConfirmed ? '进入下一节点' : (isWaiting ? '等待教师进入下一节点' : '进入下一实训环节') }}
+               <svg v-if="!isWaiting" style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+               <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
              </button>
           </div>
         </div>
@@ -83,6 +93,9 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const nodeConfig = ref({
   scenario: '在学习Python数组（列表）相关知识时，你认为初学者最容易遇到哪些问题、难点或需要特别注意的知识点？请结合你的学习体验详细描述。'
@@ -90,6 +103,10 @@ const nodeConfig = ref({
 
 const inputText = ref('')
 const isSubmitted = ref(false)
+
+// 按钮状态管理
+const isWaiting = ref(false) // 是否正在等待教师确认
+const isTeacherConfirmed = ref(false) // 教师是否已确认
 
 // 模拟初始词云数据
 const mockWordCloud = ref([
@@ -104,19 +121,51 @@ const mockWordCloud = ref([
 ])
 
 const submitRequirement = () => {
-  if (!inputText.value.trim()) return
-  isSubmitted.value = true
+  if (!inputText.value.trim() || isWaiting.value) return
   
-  // 模拟：提交后，将用户的关键词动态插入到全班词云中
-  setTimeout(() => {
-    mockWordCloud.value.push({
-      text: '我的学习难点',
-      size: 48,
-      weight: 900,
-      colorClass: 'text-indigo-600 drop-shadow-md',
-      isNew: true // 用于触发动画
-    })
-  }, 500)
+  if (!isTeacherConfirmed.value) {
+    // 第一次点击：标记完成，进入等待状态
+    isWaiting.value = true
+    
+    // 模拟1秒后教师确认
+    setTimeout(() => {
+      isWaiting.value = false
+      isTeacherConfirmed.value = true
+      isSubmitted.value = true
+      
+      // 模拟：提交后，将用户的关键词动态插入到全班词云中
+      setTimeout(() => {
+        mockWordCloud.value.push({
+          text: '我的学习难点',
+          size: 48,
+          weight: 900,
+          colorClass: 'text-indigo-600 drop-shadow-md',
+          isNew: true // 用于触发动画
+        })
+      }, 500)
+    }, 1000)
+  } else {
+    // 教师确认后：进入下一节点
+    router.push('/student/training/plan-upload')
+  }
+}
+
+const goNext = () => {
+  if (isWaiting.value) return
+  
+  if (!isTeacherConfirmed.value) {
+    // 第一次点击：进入等待状态
+    isWaiting.value = true
+    
+    // 模拟1秒后教师确认
+    setTimeout(() => {
+      isWaiting.value = false
+      isTeacherConfirmed.value = true
+    }, 1000)
+  } else {
+    // 教师确认后：进入下一节点
+    router.push('/student/training/plan-upload')
+  }
 }
 </script>
 
