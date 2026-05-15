@@ -99,18 +99,13 @@
           
           
           <button 
-            @click="handleReady"
-            :disabled="isReady"
+            @click="handleStart"
             class="hero-send-btn w-full justify-center py-4 rounded-xl text-lg font-bold shadow-xl transition-all active:scale-95 flex items-center gap-3"
-            :class="{'opacity-50 grayscale cursor-not-allowed': isReady}"
           >
-            <svg v-if="!isReady" class="w-6 h-6 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            <svg v-else class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            {{ isReady ? '等待导师开启实训...' : '准备就绪' }}
+            开始实训，进入第一个节点
           </button>
         </div>
       </div>
@@ -120,6 +115,9 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const nodes = [
   '开始实训', '课件阅读', '视频观看', '思维导图预习与评价', '任务下发',
@@ -169,10 +167,9 @@ const students = [
 // AI 生成的个性化欢迎语
 const aiWelcomeMessage = ref("你好，同学！欢迎来到《Python 数组实训》环节。数组（Array）是编程世界的基石，掌握它将为你开启高效数据处理的大门。今天，我们将从零构建你的第一个动态列表，准备好与这些方括号 [] 深度共鸣了吗？")
 
-const handleReady = () => {
-  if (isReady.value) return
-  isReady.value = true
-  readyCount.value++
+// 开始实训，跳转到第一个节点（课件阅读）
+const handleStart = () => {
+  router.push('/student/training/material')
 }
 
 onMounted(() => {

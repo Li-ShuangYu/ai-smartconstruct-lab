@@ -78,7 +78,7 @@
  * 
  * @component Login.vue
  */
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { login as loginApi } from '@/services/modules/auth.service'
 import { useAuthStore } from '@/stores/modules/auth.store'
@@ -93,10 +93,21 @@ const authStore = useAuthStore()
 const currentRole = ref('student')
 
 /** 账号输入 */
-const account = ref('')
+const account = ref('2270410234')
 
 /** 密码输入 */
-const password = ref('')
+const password = ref('123456')
+
+/**
+ * 监听角色切换，自动填充默认账号密码
+ */
+watch(currentRole, (newRole) => {
+  const credentials = defaultCredentials[newRole]
+  if (credentials) {
+    account.value = credentials.account
+    password.value = credentials.password
+  }
+})
 
 /** 是否记住我 */
 const rememberMe = ref(true)
@@ -125,6 +136,13 @@ const roles = [
   { id: 'teacher', label: '教师端', icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h20v14H2z"></path><path d="M12 17v4M8 21h8"></path></svg>' },
   { id: 'admin', label: '管理端', icon: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>' }
 ]
+
+/** 默认账号密码配置 */
+const defaultCredentials: Record<string, { account: string; password: string }> = {
+  student: { account: '2270410234', password: '123456' },
+  teacher: { account: 'teacher', password: '123456' },
+  admin: { account: 'user1', password: '123456' }
+}
 
 // === 计算属性 ===
 
