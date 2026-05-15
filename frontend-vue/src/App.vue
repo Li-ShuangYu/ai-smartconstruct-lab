@@ -1,9 +1,20 @@
 <template>
-  <router-view />
+  <div class="app-container">
+    <router-view />
+    <!-- AI 悬浮球助手（除登录注册页面外都显示） -->
+    <AIFloatingAssistant v-if="showAssistant" />
+  </div>
 </template>
 
 <script setup lang="ts">
-// 根组件当前不需要任何额外逻辑
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+import AIFloatingAssistant from '@/components/AIFloatingAssistant/AIFloatingAssistant.vue'
+
+const route = useRoute()
+
+// 判断是否显示 AI 助手（排除登录注册页面）
+const showAssistant = computed(() => !route.path.startsWith('/auth'))
 </script>
 
 <style>

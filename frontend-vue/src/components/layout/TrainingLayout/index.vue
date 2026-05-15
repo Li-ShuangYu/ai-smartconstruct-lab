@@ -4,6 +4,10 @@
       <!-- 系统发光背景 -->
       <div class="bg-glow"></div>
 
+      <!-- 侧边栏（固定在左侧） -->
+      <StudentSidebar v-if="currentRole === 'student'" />
+      <TeacherSidebar v-else-if="currentRole === 'teacher'" />
+
       <!-- 核心玻璃拟态主卡片 -->
       <div class="console-main-card glass-card">
         
@@ -31,11 +35,24 @@ import { useRoute } from 'vue-router'
 import { NMessageProvider } from 'naive-ui'
 import StudentHeader from './StudentHeader.vue'
 import TeacherHeader from './TeacherHeader.vue'
+import StudentSidebar from './Sidebar/StudentSidebar.vue'
+import TeacherSidebar from './Sidebar/TeacherSidebar.vue'
 
 const route = useRoute()
 
 // 智能判断当前端点环境
 const isStudentSide = computed(() => route.path.includes('/student'))
+
+// 根据路由 meta.role 判断当前角色（获取嵌套路由中最具体的 meta）
+const currentRole = computed(() => {
+  const matchedRoutes = route.matched
+  for (let i = matchedRoutes.length - 1; i >= 0; i--) {
+    if (matchedRoutes[i].meta?.role) {
+      return matchedRoutes[i].meta!.role as 'student' | 'teacher'
+    }
+  }
+  return undefined
+})
 </script>
 
 <style scoped>
@@ -44,12 +61,13 @@ const isStudentSide = computed(() => route.path.includes('/student'))
   height: 100vh;
   padding: 12px;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  justify-content: flex-start;
+  align-items: stretch;
   box-sizing: border-box;
   background: linear-gradient(135deg, #f3f4f6 0%, #eef2ff 100%);
   position: relative;
   overflow: hidden;
+  gap: 12px;
 }
 
 .bg-glow {
@@ -66,8 +84,7 @@ const isStudentSide = computed(() => route.path.includes('/student'))
 
 /* 主面板：白底毛玻璃拟物化 */
 .console-main-card {
-
-  width: 100%;
+  flex: 1;
   height: 100%;
   display: flex;
   flex-direction: column; /* 核心：垂直 Flex 布局，保证 Header 在上，Content 在下 */
@@ -83,8 +100,7 @@ const isStudentSide = computed(() => route.path.includes('/student'))
 
 /* 内容区：占据剩余全部空间并允许内部滚动，绝不挤压 Header */
 .console-content {
-  height: 88vh;
-  /* flex: 1; */
+  flex: 1;
   overflow-y: auto;
   position: relative;
   background: transparent; 
