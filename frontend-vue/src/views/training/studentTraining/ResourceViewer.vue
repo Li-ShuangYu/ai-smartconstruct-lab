@@ -63,10 +63,13 @@
           <button 
             @click="handleComplete"
             class="hero-send-btn w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all flex items-center gap-2"
-            :class="{'opacity-50 grayscale cursor-not-allowed': !isAllConditionsMet, 'hover:shadow-indigo-500/30': isAllConditionsMet}"
-            :disabled="!isAllConditionsMet"
+            :class="[
+              isCompleted ? 'hover:shadow-indigo-500/30' : {'opacity-50 grayscale cursor-not-allowed': !isAllConditionsMet, 'hover:shadow-indigo-500/30': isAllConditionsMet}
+            ]"
+            :disabled="!isAllConditionsMet && !isCompleted"
           >
-            完成学习并继续
+            <!-- {{ isCompleted ? '等待教师进入下一节点' }} -->
+            {{ isCompleted ? '进入下一节点' : '完成学习' }}
             <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
           </button>
         </div>
@@ -177,6 +180,9 @@
 
 <script setup>
 import { ref, computed, reactive } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 // 模拟多种类型的文件资源列表数据
 const resourceFiles = ref([
@@ -232,6 +238,9 @@ const resourceFiles = ref([
 
 const activeFileId = ref(1)
 
+// 是否已完成学习
+const isCompleted = ref(false)
+
 // AI 侧边栏折叠状态控制
 const aiPanels = reactive({
   summary: true,
@@ -264,8 +273,12 @@ const simulateReadProgress = () => {
 
 // 完成按钮逻辑
 const handleComplete = () => {
-  if(isAllConditionsMet.value) {
-    alert('恭喜，所有课件阅读达标！即将进入下一实训环节。')
+  if (!isCompleted.value) {
+    // 第一次点击：标记完成学习
+    isCompleted.value = true
+  } else {
+    // 第二次点击：进入下一节点
+    router.push('/student/training/video')
   }
 }
 

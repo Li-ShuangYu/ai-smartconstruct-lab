@@ -126,15 +126,20 @@
           </div>
 
           <button 
+            @click="handleComplete"
             class="hero-send-btn w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all flex flex-col items-center"
-            :class="{'opacity-50 grayscale cursor-not-allowed': !isUnlocked, 'hover:shadow-indigo-500/30': isUnlocked}"
-            :disabled="!isUnlocked"
+            :class="{
+              'opacity-50 grayscale cursor-not-allowed': (!isUnlocked || isWaiting),
+              'hover:shadow-indigo-500/30': isUnlocked && !isWaiting
+            }"
+            :disabled="!isUnlocked || isWaiting"
           >
             <span class="flex items-center gap-2">
-              完成本节观看
-              <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              {{ isTeacherConfirmed ? '进入下一节点' : (isWaiting ? '等待教师进入下一节点' : '完成观看') }}
+              <svg v-if="!isWaiting" style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+              <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
             </span>
-            <span v-if="!isUnlocked" class="text-[10px] opacity-70 mt-1 font-normal">需观看至 {{ nodeConfig.unlockThreshold }}% 解锁</span>
+            <span v-if="!isUnlocked && !isCompleted" class="text-[10px] opacity-70 mt-1 font-normal">需观看至 {{ nodeConfig.unlockThreshold }}% 解锁</span>
           </button>
         </div>
       </div>
@@ -145,6 +150,9 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 // 节点编排配置
 const nodeConfig = {
@@ -154,12 +162,17 @@ const nodeConfig = {
 }
 
 // 播放状态管理
-const currentTime = ref(125) // 模拟当前播放到125秒
+const currentTime = ref(500) // 模拟当前播放到500秒（超过80%解锁阈值）
 const duration = ref(600) // 模拟总长10分钟
 const playbackRate = ref(1.0)
 const showSubtitles = ref(true)
 const isVerifying = ref(false)
-const watchTime = ref(125) // 实际观看时长（防跳过计算）
+const watchTime = ref(500) // 实际观看时长（防跳过计算），初始已达到80%以上
+
+// 按钮状态管理
+const isCompleted = ref(false) // 是否已完成观看
+const isWaiting = ref(false) // 是否正在等待教师确认
+const isTeacherConfirmed = ref(false) // 教师是否已确认
 
 // AI 知识点数据
 const knowledgePoints = [
@@ -200,6 +213,26 @@ const seekTo = (time) => {
 
 const closeVerification = () => {
   isVerifying.value = false
+}
+
+// 完成观看按钮逻辑
+const handleComplete = () => {
+  if (!isUnlocked.value) return
+  
+  if (!isCompleted.value) {
+    // 第一次点击：标记完成，进入等待状态
+    isCompleted.value = true
+    isWaiting.value = true
+    
+    // 模拟1秒后教师确认
+    setTimeout(() => {
+      isWaiting.value = false
+      isTeacherConfirmed.value = true
+    }, 1000)
+  } else if (isTeacherConfirmed.value) {
+    // 教师确认后：进入下一节点
+    router.push('/student/training/mindmap')
+  }
 }
 
 // 模拟计时器逻辑
