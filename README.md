@@ -68,7 +68,7 @@ ai-smartconstruct-lab/
 
 | 模块 | 职责 |
 |------|------|
-| `frontend-vue` | 用户界面展示，包含教师工作台、学生学习空间、管理员后台、实训编排器 |
+| `frontend-vue` | 用户界面展示，包含教师工作台、学生学习空间、管理员后台、实训编排器、动态节点执行系统 |
 | `backend-core` | 核心业务逻辑、用户认证、任务流转控制、数据持久化、工作流引擎 |
 | `ai-engine` | 量化评分引擎、苏格拉底式智能辅导、大模型交互 |
 | `infrastructure` | Docker 容器编排、数据库配置（可选） |
@@ -205,9 +205,17 @@ ai-smartconstruct-lab/
 #### 1. 认证模块 (Auth)
 
 **核心组件**:
-- `Login.vue` - 登录页面组件
+- `Login.vue` - 登录页面组件（含角色预填功能）
 - `Register.vue` - 注册页面组件
 - `AuthLayout/index.vue` - 认证页面布局
+
+**角色预填功能**:
+登录页面支持根据角色自动预填账号密码：
+| 角色 | 账号 | 密码 |
+|------|------|------|
+| 学生 | `2270410234` | `123456` |
+| 教师 | `teacher` | `123456` |
+| 管理员 | `user1` | `123456` |
 
 **核心Store**:
 - `auth.store.ts` - 认证状态管理
@@ -257,8 +265,24 @@ interface TrainingEdge {
 #### 3. 实训执行模块 (Training Execution)
 
 **核心组件**:
-- `TrainingExecute.vue` - 实训执行页面
+- `TrainingExecute.vue` - 实训执行页面（动态组件加载）
 - `StudentCabin.vue` - 学生舱位页面
+
+**动态节点组件**:
+`TrainingExecute.vue` 根据节点类型动态加载对应组件：
+- `GenericNode.vue` - 通用节点
+- `GroupingNode.vue` - 分组节点
+- `HomeworkNode.vue` - 作业节点
+- `ResourceNode.vue` - 资源节点
+- `UploadNode.vue` - 上传节点
+
+**三状态按钮交互模式**:
+实训节点页面采用统一的三状态按钮交互规范：
+| 状态 | 按钮文字 | 按钮状态 | 说明 |
+|------|----------|----------|------|
+| 初始 | `[完成当前任务]` | 可点击 | 用户完成当前节点任务 |
+| 等待 | `等待教师进入下一节点` | 禁用+loading | 教师尚未推进到下一节点 |
+| 进入 | `进入下一节点` | 可点击 | 教师已确认，学生可进入下一节点 |
 
 **核心Hook**:
 - `useWebSocket.ts` - WebSocket连接管理
@@ -277,7 +301,7 @@ interface TrainingEdge {
 3. 获取当前节点
    GET /api/student/training-tasks/{taskId}/participation
    ↓
-4. 渲染节点内容
+4. 渲染节点内容（动态组件）
    根据节点类型显示不同UI
    ↓
 5. 学生完成任务

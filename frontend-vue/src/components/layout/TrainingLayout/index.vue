@@ -44,8 +44,9 @@ const isStudentSide = computed(() => route.path.includes('/student'))
 const currentRole = computed(() => {
   const matchedRoutes = route.matched
   for (let i = matchedRoutes.length - 1; i >= 0; i--) {
-    if (matchedRoutes[i].meta?.role) {
-      return matchedRoutes[i].meta!.role as 'student' | 'teacher'
+    const matchedRoute = matchedRoutes[i]
+    if (matchedRoute && matchedRoute.meta?.role) {
+      return matchedRoute.meta.role as 'student' | 'teacher'
     }
   }
   return undefined

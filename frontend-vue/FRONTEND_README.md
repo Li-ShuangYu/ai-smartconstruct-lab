@@ -62,8 +62,11 @@ frontend-vue/
 │   │       │   └── index.vue
 │   │       ├── TrainingLayout/ # 实训布局
 │   │       │   ├── index.vue
-│   │       │   ├── StudentHeader.vue
-│   │       │   └── TeacherHeader.vue
+│   │       │   ├── Sidebar/       # 侧边栏子组件
+│   │       │   │   ├── StudentSidebar.vue
+│   │       │   │   └── TeacherSidebar.vue
+│   │       │   ├── StudentSidebar.vue
+│   │       │   └── TeacherSidebar.vue
 │   │       └── WorkbenchLayout/ # 工作台布局
 │   │           ├── index.vue         # 主布局入口
 │   │           ├── Sidebar.vue       # 通用侧边栏
@@ -95,12 +98,18 @@ frontend-vue/
 │   │   ├── api.ts            # Axios封装
 │   │   ├── types/            # 类型定义
 │   │   └── modules/          # API服务
-│   │       ├── auth.service.ts
-│   │       ├── user.service.ts
-│   │       ├── training.service.ts
-│   │       ├── homework.service.ts
-│   │       ├── assistant.service.ts
-│   │       └── org.service.ts
+│   │       ├── auth.service.ts        # 认证服务
+│   │       ├── user.service.ts        # 用户服务
+│   │       ├── training.service.ts    # 实训服务
+│   │       ├── homework.service.ts    # 作业服务
+│   │       ├── assistant.service.ts   # 智能助手服务
+│   │       ├── org.service.ts         # 组织机构服务
+│   │       ├── admin.service.ts       # 管理员服务
+│   │       ├── student.service.ts     # 学生服务
+│   │       ├── student-dashboard.service.ts  # 学生仪表盘服务
+│   │       ├── teacher.service.ts     # 教师服务
+│   │       ├── teacher-dashboard.service.ts  # 教师仪表盘服务
+│   │       └── teacher-template.service.ts    # 教师模板服务
 │   │
 │   ├── stores/                # 状态管理
 │   │   ├── index.ts          # Store入口
@@ -119,28 +128,58 @@ frontend-vue/
 │   │
 │   ├── views/                # 页面组件
 │   │   ├── auth/            # 认证页面
-│   │   │   ├── Login.vue    # 登录页
+│   │   │   ├── Login.vue    # 登录页（含角色预填功能）
 │   │   │   └── Register.vue # 注册页
 │   │   ├── teacher/         # 教师端页面（工作台）
 │   │   │   ├── Workbench.vue
-│   │   │   ├── TrainingCreate.vue
-│   │   │   ├── TrainingManage.vue
-│   │   │   └── EvaluationDashboard.vue
+│   │   │   ├── TrainingCreate.vue      # 实训编排（可视化拖拽）
+│   │   │   ├── TrainingManage.vue      # 实训管理
+│   │   │   ├── TrainingPublish.vue     # 实训发布
+│   │   │   ├── EvaluationDashboard.vue # 评控面板
+│   │   │   ├── EvaluationManage.vue   # 评控管理
+│   │   │   ├── ClassCompetencyProfile.vue   # 班级能力画像
+│   │   │   ├── StudentCompetencyProfile.vue # 学生能力画像
+│   │   │   ├── TeacherLiveMonitor.vue  # 直播监控
+│   │   │   ├── UserProfile.vue         # 用户信息
+│   │   │   └── components/            # 教师端公共组件
+│   │   │       ├── PropertyEditor.vue
+│   │   │       └── StandardNode.vue
 │   │   ├── student/         # 学生端页面（工作台）
-│   │   │   ├── Workbench.vue
-│   │   │   ├── TrainingDetail.vue
-│   │   │   └── StudentCabin.vue
+│   │   │   ├── Workbench.vue           # 学习空间
+│   │   │   ├── TrainingDetail.vue      # 实训详情
+│   │   │   ├── TrainingExecute.vue     # 实训执行（动态组件加载）
+│   │   │   ├── TrainingPreview.vue     # 实训预览
+│   │   │   ├── StudentCabin.vue        # 学生舱位
+│   │   │   ├── MyTraining.vue          # 我的实训
+│   │   │   ├── MyHomework.vue         # 我的作业
+│   │   │   ├── MySubmission.vue       # 我的提交
+│   │   │   ├── MyClass.vue            # 我的班级
+│   │   │   ├── CourseList.vue         # 课程列表
+│   │   │   ├── Notifications.vue     # 通知中心
+│   │   │   ├── UserProfile.vue       # 用户信息
+│   │   │   └── flow/                 # 实训节点流组件
+│   │   │       ├── GenericNode.vue   # 通用节点
+│   │   │       ├── GroupingNode.vue  # 分组节点
+│   │   │       ├── HomeworkNode.vue   # 作业节点
+│   │   │       ├── ResourceNode.vue   # 资源节点
+│   │   │       └── UploadNode.vue     # 上传节点
+│   │   ├── homework/        # 作业相关页面
+│   │   │   ├── ExamPage.vue        # 考试页面
+│   │   │   ├── HomeworkDetail.vue  # 作业详情
+│   │   │   └── MindMapPractice.vue # 思维导图练习
 │   │   ├── admin/           # 管理员端页面
-│   │   │   ├── TeacherManage.vue
-│   │   │   ├── StudentManage.vue
-│   │   │   ├── OrgManage.vue
-│   │   │   ├── CourseManage.vue
-│   │   │   ├── NodeManage.vue
-│   │   │   ├── TemplateDashboard.vue
-│   │   │   ├── QuestionDashboard.vue
-│   │   │   ├── TicketManage.vue
-│   │   │   ├── ServiceMonitor.vue
-│   │   │   ├── AuditLog.vue
+│   │   │   ├── AdminLayout.vue        # 管理员布局
+│   │   │   ├── TeacherManage.vue       # 教师管理
+│   │   │   ├── StudentManage.vue      # 学生管理
+│   │   │   ├── OrgManage.vue          # 组织机构管理
+│   │   │   ├── CourseManage.vue       # 课程管理
+│   │   │   ├── NodeManage.vue        # 节点管理
+│   │   │   ├── TemplateDashboard.vue  # 模板看板
+│   │   │   ├── QuestionDashboard.vue  # 题库看板
+│   │   │   ├── TicketManage.vue      # 工单管理
+│   │   │   ├── ServiceMonitor.vue    # 服务监控
+│   │   │   ├── AuditLog.vue         # 审计日志
+│   │   │   ├── MenuManage.vue        # 菜单管理
 │   │   │   └── TrainingTestEntry.vue # 实训页面测试入口
 │   │   ├── training/        # 实训页面（学生端+教师端）
 │   │   │   ├── studentTraining/   # 学生端实训页面
@@ -203,12 +242,22 @@ frontend-vue/
 ### 1. 认证模块 (Auth)
 
 **核心类/组件**:
-- `Login.vue` - 登录页面组件
+- `Login.vue` - 登录页面组件（含角色预填功能）
 - `Register.vue` - 注册页面组件
 - `AuthLayout/index.vue` - 认证页面布局组件
 - `useAuth.ts` - 认证相关组合式函数
 - `auth.store.ts` - 认证状态管理Store
 - `auth.service.ts` - 认证API服务
+
+**角色预填功能**:
+登录页面支持根据角色自动预填账号密码，提升登录效率：
+| 角色 | 账号 | 密码 |
+|------|------|------|
+| 学生 | `2270410234` | `123456` |
+| 教师 | `teacher` | `123456` |
+| 管理员 | `user1` | `123456` |
+
+切换角色时，账号密码输入框自动填充对应角色的默认凭证。
 
 **核心类型定义**:
 ```typescript
@@ -369,11 +418,29 @@ interface TrainingFlow {
 ### 3. 实训执行模块 (Training Execution)
 
 **核心类/组件**:
-- `TrainingExecute.vue` - 学生实训执行页面
+- `TrainingExecute.vue` - 学生实训执行页面（动态组件加载）
 - `StudentCabin.vue` - 学生舱位页面
 - `TrainingDetail.vue` - 实训详情页面
 - `training.store.ts` - 实训状态管理
 - `useWebSocket.ts` - WebSocket连接管理
+
+**动态节点组件**:
+`TrainingExecute.vue` 根据节点类型动态加载对应组件，支持以下节点类型：
+- `GroupingNode.vue` - 分组节点
+- `UploadNode.vue` - 上传节点
+- `ResourceNode.vue` - 资源节点
+- `HomeworkNode.vue` - 作业节点
+- `GenericNode.vue` - 通用节点
+
+**三状态按钮交互模式**:
+实训节点页面采用统一的三状态按钮交互规范：
+| 状态 | 按钮文字 | 按钮状态 | 说明 |
+|------|----------|----------|------|
+| 初始 | `[完成当前任务]` | 可点击 | 用户完成当前节点任务 |
+| 等待 | `等待教师进入下一节点` | 禁用+loading | 教师尚未推进到下一节点 |
+| 进入 | `进入下一节点` | 可点击 | 教师已确认，学生可进入下一节点 |
+
+适用页面：`ResourceViewer`、`VideoPlayer`、`MindMapPreview`、`TaskBoard`、`AIStudyCard`、`AIPractice`、`MindMapEditor`、`RequirementCloud`、`PlanUpload`、`SimulatedIDE`、`HomeworkEngine`、`PeerReview`、`TeacherComment`
 
 **核心类型定义**:
 ```typescript
