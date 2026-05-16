@@ -658,7 +658,7 @@ const toggleCategory = (type: string) => {
 const toggleAIConfig = () => { isAIExpanded.value = !isAIExpanded.value }
 const hasAIConfig = (type: string) => !['end'].includes(type)
 const getNodeIcon = (type: string) => {
-  if (type === 'start') return '🏁'; if (type === 'end') return '🛑'
+  if (type === 'start') return '🟢'; if (type === 'end') return '🔴'
   for (const cat of MATERIAL_CATEGORIES) {
     const it = cat.items.find(i => i.type === type); if (it) return it.icon
   }
