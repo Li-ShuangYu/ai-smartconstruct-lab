@@ -34,13 +34,15 @@ export const updateCourseStatus = (id: number, status: number) =>
   http.put<ApiResult<void>>(`/api/admin/courses/${id}/status?status=${status}`).then(r => r.data)
 
 // ===== 资源中心 - 编排节点 =====
-export const getNodes = (page = 1, pageSize = 10) =>
-  http.get<ApiResult<PageResult<NodeDef>>>('/api/admin/nodes', { params: { page, pageSize } }).then(r => r.data)
+export const getNodes = () =>
+  http.get<ApiResult<NodeDef[]>>('/api/admin/nodes').then(r => r.data)
 export const addNode = (n: NodeDef) => http.post<ApiResult<void>>('/api/admin/nodes', n).then(r => r.data)
 export const updateNode = (id: number, n: NodeDef) => http.put<ApiResult<void>>(`/api/admin/nodes/${id}`, n).then(r => r.data)
 export const deleteNode = (id: number) => http.delete<ApiResult<void>>(`/api/admin/nodes/${id}`).then(r => r.data)
 export const toggleNode = (id: number, isActive: number) =>
   http.put<ApiResult<void>>(`/api/admin/nodes/${id}/toggle?isActive=${isActive}`).then(r => r.data)
+export const getActiveNodes = () =>
+  http.get<ApiResult<NodeDef[]>>('/api/public/active-nodes').then(r => r.data)
 
 // ===== 资源中心 - 实训模板 =====
 export const getTemplates = (page = 1, pageSize = 10, aiStatus?: number) =>

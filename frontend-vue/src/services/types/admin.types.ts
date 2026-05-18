@@ -62,9 +62,11 @@ export interface EnrolledCourse {
 
 export interface NodeDef {
   id?: number
-  nodeCode: string
+  nodeType: string
   nodeName: string
   isActive: number
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface TrainingTemplate {

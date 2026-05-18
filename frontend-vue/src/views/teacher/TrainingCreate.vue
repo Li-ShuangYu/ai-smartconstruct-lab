@@ -20,7 +20,7 @@
             <div class="drawer-animator" :class="{ 'is-open': expandedCats.includes(cat.type) }">
               <div class="drawer-inner">
                 <div class="node-list">
-                  <div v-for="item in cat.items" :key="item.type" class="draggable-node"
+                  <div v-for="item in filteredCatItems(cat)" :key="item.type" class="draggable-node"
                     draggable="true" 
                     @dragstart="onDragStartLibrary($event, item)"
                     @dragend="onDragEnd"
@@ -413,7 +413,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { getActiveNodes } from '@/services/modules/admin.service'
 
 // ==================== 文件上传 ====================
 const docFileInput = ref<HTMLInputElement | null>(null)
@@ -451,6 +452,46 @@ const onVideoFileSelected = (e: Event) => {
   if (!active) return
   active.config.video_file = file.name
   input.value = ''
+}
+
+// ==================== 0. 节点活跃状态过滤 ====================
+const activeNodeTypes = ref<Set<string>>(new Set())
+
+onMounted(async () => {
+  try {
+    const res = await getActiveNodes()
+    if (res.code === 200) {
+      activeNodeTypes.value = new Set(res.data.map((n: any) => n.nodeType))
+    }
+  } catch (e) {
+    console.warn('获取活跃节点失败，默认显示全部', e)
+  }
+})
+
+/** 将内部 type 名映射到 DB 中的 node_type 值 */
+const typeToNodeType: Record<string, string> = {
+  start: 'START',
+  end: 'END',
+  resource_read: 'RESOURCE_READ',
+  video_watch: 'VIDEO_LEARN',
+  mindmap_preview: 'MINDMAP_PREVIEW',
+  survey: 'SEMESTER_SURVEY',
+  mindmap_draw: 'MINDMAP_DRAW',
+  ai_practice: 'AI_PRACTICE',
+  theory_class: 'THEORY_CLASS',
+  task_distribute: 'TASK_DISTRIBUTE',
+  req_upload: 'REQ_UPLOAD',
+  plan_upload: 'PLAN_UPLOAD',
+  homework: 'HOMEWORK',
+  coding_class: 'CODING_CLASS',
+  student_peer_review: 'STUDENT_PEER_REVIEW',
+  teacher_eval: 'TEACHER_COMMENT'
+}
+
+/** 过滤出活跃节点 */
+const filteredCatItems = (cat: any) => {
+  if (activeNodeTypes.value.size === 0) return cat.items // 没加载好时显示全部
+  return cat.items.filter((item: any) => activeNodeTypes.value.has(typeToNodeType[item.type]))
 }
 
 // ==================== 1. 数据结构与初始化 ====================

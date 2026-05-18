@@ -1,6 +1,5 @@
 package com.smartconstruct.backend_core.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.smartconstruct.backend_core.dto.ApiResult;
 import com.smartconstruct.backend_core.dto.RegisterRequest;
 import com.smartconstruct.backend_core.entity.*;
@@ -28,6 +27,7 @@ public class InitController {
     private final SysUserService sysUserService;
     private final IStudentService studentService;
     private final ITeacherService teacherService;
+    private final INodeDefService nodeDefService;
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbcTemplate;
 
@@ -38,6 +38,7 @@ public class InitController {
             SysUserService sysUserService,
             IStudentService studentService,
             ITeacherService teacherService,
+            INodeDefService nodeDefService,
             PasswordEncoder passwordEncoder,
             JdbcTemplate jdbcTemplate) {
         this.departmentService = departmentService;
@@ -46,6 +47,7 @@ public class InitController {
         this.sysUserService = sysUserService;
         this.studentService = studentService;
         this.teacherService = teacherService;
+        this.nodeDefService = nodeDefService;
         this.passwordEncoder = passwordEncoder;
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -58,7 +60,6 @@ public class InitController {
         }
 
         migrateSchema();
-
         LocalDateTime now = LocalDateTime.now();
 
         BizDepartment dept = new BizDepartment();
@@ -106,15 +107,44 @@ public class InitController {
         studentReq.setClassId(adminClass.getId());
         sysUserService.registerUser(studentReq);
 
-        return ApiResult.ok("系统数据初始化完成：院系/专业/班级/管理员/教师/学生");
+        seedNodeDefs(now);
+
+        return ApiResult.ok("系统数据初始化完成：院系/专业/班级/管理员/教师/学生/编排节点");
     }
 
-    /**
-     * Schema migration: drop all FK constraints, drop obsolete columns, add missing columns
-     */
+    private void seedNodeDefs(LocalDateTime now) {
+        String[][] nodes = {
+            {"START", "开始实训"},
+            {"END", "结束实训"},
+            {"RESOURCE_READ", "资源阅读"},
+            {"VIDEO_LEARN", "视频观看"},
+            {"MINDMAP_PREVIEW", "导图预习"},
+            {"SEMESTER_SURVEY", "学情调查"},
+            {"MINDMAP_DRAW", "导图绘制"},
+            {"AI_PRACTICE", "AI 对练"},
+            {"THEORY_CLASS", "理论实训"},
+            {"TASK_DISTRIBUTE", "任务下发"},
+            {"REQ_UPLOAD", "需求上传"},
+            {"PLAN_UPLOAD", "方案上传"},
+            {"HOMEWORK", "课后作业"},
+            {"CODING_CLASS", "编码实训"},
+            {"STUDENT_PEER_REVIEW", "学生互评"},
+            {"TEACHER_COMMENT", "教师点评"}
+        };
+        for (String[] n : nodes) {
+            WfNodeDef def = new WfNodeDef();
+            def.setNodeType(n[0]);
+            def.setNodeName(n[1]);
+            def.setIsActive(1);
+            def.setCreatedAt(now);
+            def.setUpdatedAt(now);
+            nodeDefService.save(def);
+        }
+    }
+
     private void migrateSchema() {
-        // ===== 1. Drop all foreign key constraints =====
-        String[] fkDropSqls = {
+        // Drop FK constraints
+        String[] fkSqls = {
             "ALTER TABLE biz_student DROP FOREIGN KEY IF EXISTS fk_student_user",
             "ALTER TABLE biz_student DROP FOREIGN KEY IF EXISTS fk_student_dept",
             "ALTER TABLE biz_student DROP FOREIGN KEY IF EXISTS fk_student_major",
@@ -123,8 +153,8 @@ public class InitController {
             "ALTER TABLE biz_teacher DROP FOREIGN KEY IF EXISTS fk_teacher_dept",
             "ALTER TABLE biz_course DROP FOREIGN KEY IF EXISTS fk_course_creator",
             "ALTER TABLE biz_student_course DROP FOREIGN KEY IF EXISTS fk_sc_student",
-            "ALTER TABLE biz_student_question_biz_course DROP FOREIGN KEY IF EXISTS fk_sc_course",
-            "ALTER TABLE fiz_question_bank DROP FOREIGN KEY IF EXISTS fk_qb_teacher",
+            "ALTER TABLE biz_student_course DROP FOREIGN KEY IF EXISTS fk_sc_course",
+            "ALTER TABLE biz_question_bank DROP FOREIGN KEY IF EXISTS fk_qb_teacher",
             "ALTER TABLE biz_question DROP FOREIGN KEY IF EXISTS fk_q_bank",
             "ALTER TABLE biz_knowledge_point DROP FOREIGN KEY IF EXISTS fk_kp_course",
             "ALTER TABLE sys_resource DROP FOREIGN KEY IF EXISTS fk_resource_uploader",
@@ -141,7 +171,7 @@ public class InitController {
             "ALTER TABLE biz_training_upload DROP FOREIGN KEY IF EXISTS fk_tu_resource",
             "ALTER TABLE biz_training_group DROP FOREIGN KEY IF EXISTS fk_tg_task",
             "ALTER TABLE biz_group_member DROP FOREIGN KEY IF EXISTS fk_gm_group",
-            "ALTER TABLE biz_group_member DROP FOREIGN KEY IF EXISTS IF EXISTS fk_gm_student",
+            "ALTER TABLE biz_group_member DROP FOREIGN KEY IF EXISTS fk_gm_student",
             "ALTER TABLE wf_node_instance DROP FOREIGN KEY IF EXISTS fk_ni_task",
             "ALTER TABLE wf_node_instance DROP FOREIGN KEY IF EXISTS fk_ni_def",
             "ALTER TABLE wf_global_activity_state DROP FOREIGN KEY IF EXISTS fk_gas_task",
@@ -158,12 +188,12 @@ public class InitController {
             "ALTER TABLE biz_student_answer_detail DROP FOREIGN KEY IF EXISTS fk_sad_student_paper",
             "ALTER TABLE biz_student_answer_detail DROP FOREIGN KEY IF EXISTS fk_sad_paper_question",
             "ALTER TABLE biz_ai_session DROP FOREIGN KEY IF EXISTS fk_ais_student",
-            "ALTER TABLE biz_ai_session DROP FOREIGN KEY IF EXISTS fk_ais_task",
+            "ALTER TABLE biz_ai_session DROP FOREIGN KEY IF EXISTS IF EXISTS fk_ais_task",
             "ALTER TABLE biz_ai_session DROP FOREIGN KEY IF EXISTS fk_ais_node",
             "ALTER TABLE biz_ai_message DROP FOREIGN KEY IF EXISTS fk_aim_session",
             "ALTER TABLE wf_student_node_progress DROP FOREIGN KEY IF EXISTS fk_snp_participation",
             "ALTER TABLE wf_student_node_progress DROP FOREIGN KEY IF EXISTS fk_snp_node",
-            "ALTER TABLE wf_teacher_node_drop DROP FOREIGN KEY IF EXISTS fk_tno_task",
+            "ALTER TABLE wf_teacher_node_operation DROP FOREIGN KEY IF EXISTS fk_tno_task",
             "ALTER TABLE wf_teacher_node_operation DROP FOREIGN KEY IF EXISTS fk_tno_node",
             "ALTER TABLE wf_teacher_node_operation DROP FOREIGN KEY IF EXISTS fk_tno_teacher",
             "ALTER TABLE biz_peer_review_assignment DROP FOREIGN KEY IF EXISTS fk_pra_node",
@@ -178,23 +208,21 @@ public class InitController {
             "ALTER TABLE sys_feedback DROP FOREIGN KEY IF EXISTS fk_feedback_user",
             "ALTER TABLE sys_operation_log DROP FOREIGN KEY IF EXISTS fk_operation_log_user"
         };
-        for (String sql : fkDropSqls) {
+        for (String sql : fkSqls) {
             executeIgnoreError(sql);
         }
 
-        // ===== 2. Drop obsolete columns and indexes =====
-        String[] dropColSqls = {
+        String[] dropCols = {
             "ALTER TABLE biz_student DROP INDEX IF EXISTS uk_student_no",
             "ALTER TABLE biz_student DROP COLUMN IF EXISTS student_no",
             "ALTER TABLE biz_teacher DROP INDEX IF EXISTS uk_employee_no",
             "ALTER TABLE biz_teacher DROP COLUMN IF EXISTS employee_no"
         };
-        for (String sql : dropColSqls) {
+        for (String sql : dropCols) {
             executeIgnoreError(sql);
         }
 
-        // ===== 3. Add missing columns =====
-        String[] addColSqls = {
+        String[] addCols = {
             "ALTER TABLE biz_department ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
             "ALTER TABLE biz_major ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
             "ALTER TABLE biz_admin_class ADD COLUMN IF NOT EXISTS enrollment_year INT NOT NULL DEFAULT 2026",
@@ -211,7 +239,7 @@ public class InitController {
             "ALTER TABLE wf_global_activity_state ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
             "ALTER TABLE wf_global_activity_state ADD COLUMN IF NOT EXISTS updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
         };
-        for (String sql : addColSqls) {
+        for (String sql : addCols) {
             executeIgnoreError(sql);
         }
     }
