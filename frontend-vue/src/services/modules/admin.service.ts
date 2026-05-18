@@ -27,10 +27,10 @@ export const deleteClass = (id: number) => http.delete<ApiResult<void>>(`/api/ad
 // ===== 教务中心 - 课程 =====
 export const getCourses = (page = 1, pageSize = 10, keyword?: string) =>
   http.get<ApiResult<PageResult<Course>>>('/api/admin/courses', { params: { page, pageSize, keyword } }).then(r => r.data)
-export const addCourse = (c: Course) => http.post<ApiResult<void>>('/api/admin/courses', c).then(r => r.data)
-export const updateCourse = (id: number, c: Course) => http.put<ApiResult<void>>(`/api/admin/courses/${id}`, c).then(r => r.data)
-export const deleteCourse = (id: number) => http.delete<ApiResult<void>>(`/api/admin/courses/${id}`).then(r => r.data)
-export const updateCourseStatus = (id: number, status: number) =>
+export const addCourse = (params: any) => http.post<ApiResult<void>>('/api/admin/courses', params).then(r => r.data)
+export const updateCourse = (id: string, params: any) => http.put<ApiResult<void>>(`/api/admin/courses/${id}`, params).then(r => r.data)
+export const deleteCourse = (id: string) => http.delete<ApiResult<void>>(`/api/admin/courses/${id}`).then(r => r.data)
+export const updateCourseStatus = (id: string, status: number) =>
   http.put<ApiResult<void>>(`/api/admin/courses/${id}/status?status=${status}`).then(r => r.data)
 
 // ===== 资源中心 - 编排节点 =====

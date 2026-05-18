@@ -30,16 +30,24 @@
     <n-modal v-model:show="showTeacherPicker" preset="card" title="选择授课教师" style="width: 600px">
       <n-input v-model:value="teacherKeyword" placeholder="搜索教师姓名..." clearable style="margin-bottom: 12px" />
       <div class="teacher-list">
-        <div v-for="teacher in filteredTeachers" :key="teacher.userId" class="teacher-item" :class="{ selected: form.creatorId === teacher.userId }" @click="selectTeacher(teacher)">
+        <div v-for="teacher in filteredTeachers" :key="teacher.userId" class="teacher-item" :class="{ selected: form.teacherId === teacher.userId }" @click="selectTeacher(teacher)">
           <div class="teacher-info">
             <span class="teacher-name">{{ teacher.realName }}</span>
             <span class="teacher-dept">{{ getDeptName(teacher.deptId) }}</span>
           </div>
-          <span v-if="form.creatorId === teacher.userId" class="teacher-check">✓</span>
+          <span v-if="form.teacherId === teacher.userId" class="teacher-check">✓</span>
         </div>
         <div v-if="filteredTeachers.length === 0" class="empty-state">暂无教师数据</div>
       </div>
       <template #footer><n-space justify="end"><n-button @click="showTeacherPicker=false">取消</n-button><n-button type="primary" @click="confirmTeacher">确认选择</n-button></n-space></template>
+    </n-modal>
+
+    <!-- 二次确认删除弹窗 -->
+    <n-modal v-model:show="showDeleteModal" preset="card" title="确认删除" style="max-width:420px">
+      <p style="margin:12px 0;">确定要删除课程 <strong>{{ deleteTarget?.name }}</strong> 吗？此操作不可恢复。</p>
+      <template #footer>
+        <n-space justify="end"><n-button @click="showDeleteModal=false">取消</n-button><n-button type="error" @click="doDelete" :loading="deleting">确认删除</n-button></n-space>
+      </template>
     </n-modal>
   </div>
 </template>
@@ -52,9 +60,10 @@ import * as api from '@/services/modules/admin.service'
 import type { Course, PageResult, Teacher, Department } from '@/services/types/admin.types'
 
 const message = useMessage()
-const loading=ref(false),saving=ref(false),showModal=ref(false),keyword=ref(''),page=ref(1),pageSize=ref(10),editingId=ref<number|null>(null)
+const loading=ref(false),saving=ref(false),showModal=ref(false),showDeleteModal=ref(false),keyword=ref(''),page=ref(1),pageSize=ref(10),editingId=ref<string|null>(null),deleting=ref(false)
+let deleteTarget:any=null
 const data=ref<PageResult<Course>>({records:[],total:0,page:1,pageSize:10})
-const form=reactive<Course>({courseName:'',description:'',status:0,needEnrollCode:0,enrollCode:'',creatorId:0})
+const form=reactive<any>({courseName:'',description:'',status:0,needEnrollCode:0,enrollCode:'',teacherId:''})
 
 // 教师选择相关
 const showTeacherPicker = ref(false)
@@ -72,15 +81,15 @@ const filteredTeachers = computed(() => {
 })
 
 const selectedTeacherName = computed(() => {
-  if (!form.creatorId) return ''
-  const teacher = teachers.value.find(t => t.userId === form.creatorId)
+  if (!form.teacherId) return ''
+  const teacher = teachers.value.find(t => t.userId === form.teacherId)
   return teacher?.realName || ''
 })
 
 const columns: DataTableColumns<Course> = [
   {title:'课程名称',key:'courseName'},
   {title:'状态',key:'status',width:80,render(row){return row.status===1?h(NTag,{type:'success',size:'small'},{default:()=>'已发布'}):h(NTag,{type:'default',size:'small'},{default:()=>'草稿'})}},
-  {title:'授课教师',key:'creatorId',width:120,render(row){return getTeacherName(row.creatorId)}},
+  {title:'授课教师',key:'teacherName',width:120,render(row){return row.teacherName||'-'}},
   {title:'需选课码',key:'needEnrollCode',width:80,render(row){return row.needEnrollCode===1?'是':'否'}},
   {title:'选课码',key:'enrollCode',width:120,render(row){return row.enrollCode||'-'}},
   {title:'创建时间',key:'createdAt',width:160,render(row){return formatDate(row.createdAt)}},
@@ -110,9 +119,9 @@ async function fetchData(){
 function openModal(row:Course|null){
   editingId.value=row?.id??null
   if(row){
-    Object.assign(form,{courseName:row.courseName,description:row.description||'',status:row.status,needEnrollCode:row.needEnrollCode||0,enrollCode:row.enrollCode||'',creatorId:row.creatorId||0})
+    Object.assign(form,{courseName:row.courseName,description:row.description||'',status:row.status,needEnrollCode:row.needEnrollCode||0,enrollCode:row.enrollCode||'',teacherId:row.teacherId||''})
   }else{
-    Object.assign(form,{courseName:'',description:'',status:0,needEnrollCode:0,enrollCode:'',creatorId:0})
+    Object.assign(form,{courseName:'',description:'',status:0,needEnrollCode:0,enrollCode:'',teacherId:''})
   }
   showModal.value=true
 }
@@ -122,7 +131,7 @@ function openTeacherPicker() {
 }
 
 function selectTeacher(teacher: Teacher) {
-  form.creatorId = teacher.userId
+  form.teacherId = teacher.userId
 }
 
 function confirmTeacher() {
@@ -135,10 +144,10 @@ function getDeptName(deptId: number | undefined): string {
   return dept?.deptName || String(deptId)
 }
 
-function getTeacherName(teacherId: number | undefined): string {
+function getTeacherName(teacherId: string | undefined): string {
   if (!teacherId) return '-'
   const teacher = teachers.value.find(t => t.userId === teacherId)
-  return teacher?.realName || String(teacherId)
+  return teacher?.realName || teacherId
 }
 
 function formatDate(dateStr: string | undefined): string {
@@ -177,7 +186,10 @@ async function save(){
   if(!form.courseName.trim()){message.warning('请输入课程名称');return}
   saving.value=true
   try {
-    editingId.value ? await api.updateCourse(editingId.value, {...form}) : await api.addCourse({...form})
+    const body:any = {courseName:form.courseName,description:form.description,status:form.status,needEnrollCode:form.needEnrollCode}
+    if(form.teacherId) body.teacherId = form.teacherId
+    const res = editingId.value ? await api.updateCourse(editingId.value, body) : await api.addCourse(body)
+    if(res.code!==200){message.error(res.message||'保存失败');return}
     message.success('保存成功')
     showModal.value=false
     await fetchData()
@@ -187,14 +199,22 @@ async function save(){
     saving.value=false
   }
 }
-async function handleDelete(row:Course){
+function handleDelete(row:Course){
+  deleteTarget = {name: row.courseName, id: row.id}
+  showDeleteModal.value = true
+}
+async function doDelete(){
+  if(!deleteTarget)return
+  deleting.value=true
   try {
-    await api.deleteCourse(row.id!)
+    const res = await api.deleteCourse(deleteTarget.id)
+    if(res.code!==200){message.error(res.message||'删除失败');return}
     message.success('已删除')
+    showDeleteModal.value=false
+    deleteTarget=null
     await fetchData()
-  } catch (e: any) {
-    message.error(e?.response?.data?.message || '删除失败')
-  }
+  } catch (e:any){message.error(e?.response?.data?.message||'删除失败')}
+  finally{deleting.value=false}
 }
 async function toggleStatus(row:Course){
   const ns=row.status===1?0:1

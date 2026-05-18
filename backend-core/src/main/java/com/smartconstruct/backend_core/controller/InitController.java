@@ -242,6 +242,8 @@ public class InitController {
         for (String sql : addCols) {
             executeIgnoreError(sql);
         }
+        // Make teacher_id nullable
+        executeIgnoreError("ALTER TABLE biz_course MODIFY COLUMN teacher_id BIGINT DEFAULT NULL");
     }
 
     private void executeIgnoreError(String sql) {

@@ -27,14 +27,14 @@ export interface AdminClass {
 }
 
 export interface Course {
-  id?: number
+  id: string
   courseName: string
-  courseCode: string
   description?: string
   status: number
   needEnrollCode?: number
   enrollCode?: string
-  creatorId?: number
+  teacherId?: string
+  teacherName?: string
   createdAt?: string
   updatedAt?: string
 }

@@ -280,7 +280,6 @@ async function handleDelete(row: Student) {
 }
 
 async function doDelete() {
-async function doDelete() {
   if (!deleteTarget.value?.userId) return
   deleting.value = true
   try {
