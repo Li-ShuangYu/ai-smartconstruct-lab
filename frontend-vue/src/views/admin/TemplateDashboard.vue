@@ -27,7 +27,7 @@ const sm:Record<number,{type:string,label:string}>={0:{type:'default',label:'草
 const columns: DataTableColumns<TrainingTemplate> = [
   {title:'ID',key:'id',width:60},
   {title:'模板名称',key:'templateName'},
-  {title:'AI状态',key:'aiStatus',width:100,render(row){const s=sm[row.aiStatus]||sm[0];return h(NTag,{type:s.type as any,size:'small'},{default:()=>s.label})}},
+  {title:'AI状态',key:'aiStatus',width:100,render(row){const s=sm[row.aiStatus]||sm[0];return h(NTag,{type:s?.type as any,size:'small'},{default:()=>s?.label||'未知'})}},
   {title:'异常信息',key:'errorReason',width:200,render(row){return row.errorReason||'-'}},
   {title:'创建时间',key:'createdAt',width:160},
   {title:'操作',key:'actions',width:80,render(row){return h(NButton,{size:'tiny',type:'error',onClick:()=>handleDelete(row)},{default:()=>'删除'})}}

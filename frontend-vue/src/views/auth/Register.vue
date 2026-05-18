@@ -206,7 +206,7 @@ const handleRegister = async () => {
     const res = await registerApi({
       username: form.username,
       password: form.password,
-      roleType: roleMap[currentRole.value],
+      roleType: roleMap[currentRole.value] ?? 3,
       realName: form.realName,
       deptId: selectedDeptId.value ? Number(selectedDeptId.value) : undefined,
       majorId: selectedMajorId.value ? Number(selectedMajorId.value) : undefined,

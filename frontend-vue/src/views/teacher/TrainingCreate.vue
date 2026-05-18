@@ -52,7 +52,7 @@
       <div class="canvas-top-toolbar">
         <span class="pipeline-title">实训流程编排</span>
         <div class="flex-spacer"></div>
-        <button class="secondary-action-btn" @click="handlePublish">🚀 发布实训</button>
+        <button class="secondary-action-btn" @click="handlePublish">🚀 发布模板</button>
       </div>
       
       <div class="pipeline-scroll-area">
@@ -151,11 +151,11 @@
               <label><span class="required">*</span>文件列表 (pdf, txt, word, ppt, md)</label>
               <div class="table-wrapper">
                 <table class="resizable-table">
-                  <thead><tr><th style="width: 40px">序号</th><th class="resizable-th">上传文件名</th><th class="resizable-th">展示名</th><th class="resizable-th">进度%</th><th style="width: 40px">操作</th></tr></thead>
+                  <thead><tr><th style="width: 40px">序号</th><th style="width: 120px">上传文件</th><th class="resizable-th">展示名</th><th class="resizable-th">进度%</th><th style="width: 40px">操作</th></tr></thead>
                   <tbody>
                     <tr v-for="(file, i) in activeNode.config.files" :key="i">
                       <td class="text-center">{{ Number(i) + 1 }}</td>
-                      <td><input v-model.lazy="file.original_name" class="config-input borderless" placeholder="上传后原名" /></td>
+                      <td><button class="upload-btn-sm" @click="openDocUpload(Number(i))">{{ file.original_name || '选择文件' }}</button></td>
                       <td><input v-model.lazy="file.display_name" class="config-input borderless" placeholder="展示名" /></td>
                       <td><input type="number" v-model.lazy="file.min_progress" class="config-input borderless" min="0" max="100" /></td>
                       <td class="text-center"><button class="icon-btn-small" @click="activeNode.config.files.splice(i, 1)">✕</button></td>
@@ -168,7 +168,7 @@
           </template>
 
           <template v-else-if="activeNode.type === 'video_watch'">
-            <div class="config-field"><label><span class="required">*</span>上传视频文件</label><input v-model.lazy="activeNode.config.video_file" class="config-input" placeholder="wmv/mp4/m4v/mov/avi/mkv/mp3" /></div>
+            <div class="config-field"><label><span class="required">*</span>上传视频文件</label><button class="upload-btn" @click="openVideoUpload()">{{ activeNode.config.video_file || '选择视频文件' }}</button></div>
             <div class="config-field"><label>视频展示标题</label><input v-model.lazy="activeNode.config.video_title" class="config-input" /></div>
             <div class="config-field"><label>最少播放进度(%)</label><input type="number" v-model.lazy="activeNode.config.min_progress" class="config-input" min="0" max="100" /></div>
             <div class="config-field flex-row"><label>是否允许拖拽进度条</label><input type="checkbox" v-model="activeNode.config.allow_drag" /></div>
@@ -230,11 +230,11 @@
               <label>附件列表</label>
               <div class="table-wrapper">
                 <table class="resizable-table">
-                  <thead><tr><th style="width: 40px">序号</th><th class="resizable-th">上传文件名</th><th class="resizable-th">展示名</th><th style="width: 40px">操作</th></tr></thead>
+                  <thead><tr><th style="width: 40px">序号</th><th style="width: 120px">上传文件</th><th class="resizable-th">展示名</th><th style="width: 40px">操作</th></tr></thead>
                   <tbody>
                     <tr v-for="(file, i) in activeNode.config.files" :key="i">
                       <td class="text-center">{{ Number(i) + 1 }}</td>
-                      <td><input v-model.lazy="file.original_name" class="config-input borderless" placeholder="原名" /></td>
+                      <td><button class="upload-btn-sm" @click="openDocUpload(Number(i))">{{ file.original_name || '选择文件' }}</button></td>
                       <td><input v-model.lazy="file.display_name" class="config-input borderless" placeholder="展示名" /></td>
                       <td class="text-center"><button class="icon-btn-small" @click="activeNode.config.files.splice(i, 1)">✕</button></td>
                     </tr>
@@ -405,11 +405,53 @@
         </div>
       </aside>
     </transition>
+
+    <!-- Hidden file inputs -->
+    <input ref="docFileInput" type="file" accept=".pdf,.txt,.doc,.docx,.ppt,.pptx,.md" style="display:none" @change="onDocFileSelected" />
+    <input ref="videoFileInput" type="file" accept=".wmv,.mp4,.m4v,.mov,.avi,.mkv,.mp3" style="display:none" @change="onVideoFileSelected" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+
+// ==================== 文件上传 ====================
+const docFileInput = ref<HTMLInputElement | null>(null)
+const videoFileInput = ref<HTMLInputElement | null>(null)
+const pendingDocIndex = ref(-1)
+
+const openDocUpload = (index: number) => {
+  pendingDocIndex.value = index
+  docFileInput.value?.click()
+}
+
+const openVideoUpload = () => {
+  videoFileInput.value?.click()
+}
+
+const onDocFileSelected = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file || pendingDocIndex.value < 0) return
+  const active = activeNode.value
+  if (!active) return
+  const files = active.config.files
+  if (files && files[pendingDocIndex.value]) {
+    files[pendingDocIndex.value].original_name = file.name
+  }
+  input.value = ''
+  pendingDocIndex.value = -1
+}
+
+const onVideoFileSelected = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const active = activeNode.value
+  if (!active) return
+  active.config.video_file = file.name
+  input.value = ''
+}
 
 // ==================== 1. 数据结构与初始化 ====================
 const MATERIAL_CATEGORIES = [
@@ -698,7 +740,247 @@ const deleteNode = (index: number) => {
 const moveNodeUp = (idx: number) => { onDragStartNode(null as any, idx, null); dropIndicatorIndex.value = idx - 2; onDropCanvas() }
 const moveNodeDown = (idx: number) => { onDragStartNode(null as any, idx, null); dropIndicatorIndex.value = idx + 1; onDropCanvas() }
 
-const handlePublish = () => alert('实训流程保存并发布成功！(请按F12查看控制台数据)')
+const NODE_TYPE_MAP: Record<string, string> = {
+  start: 'START',
+  end: 'END',
+  resource_read: 'RESOURCE_READ',
+  video_watch: 'VIDEO_LEARN',
+  mindmap_preview: 'MINDMAP_PREVIEW',
+  mindmap_draw: 'MINDMAP_DRAW',
+  task_distribute: 'TASK_DISTRIBUTE',
+  req_upload: 'REQ_UPLOAD',
+  plan_upload: 'PLAN_UPLOAD',
+  homework: 'HOMEWORK',
+  student_peer_review: 'STUDENT_PEER_REVIEW',
+  teacher_eval: 'TEACHER_COMMENT',
+  ai_practice: 'AI_PRACTICE',
+  theory_class: 'THEORY_CLASS',
+  coding_class: 'CODING_CLASS'
+}
+
+const buildNodeConfig = (node: any) => {
+  const { type, config, ai_config } = node
+  const cfg: Record<string, any> = {}
+
+  switch (type) {
+    case 'start':
+      cfg.desc = config.desc || ''
+      cfg.student_bg = config.student_bg || ''
+      cfg.enable_ai_welcome = ai_config.ai_welcome_enabled ?? true
+      cfg.welcome_prompt = ai_config.ai_welcome_tpl || ''
+      break
+
+    case 'end':
+      cfg.end_desc = config.end_desc || ''
+      break
+
+    case 'resource_read':
+      cfg.resource_list = (config.files || []).map((f: any) => ({
+        resource_id: f.original_name || '',
+        resource_name: f.display_name || '',
+        require_full_read: f.min_progress ?? 100
+      }))
+      cfg.enable_ai_summary = ai_config.ai_summary ?? true
+      cfg.enable_ai_key_points = ai_config.ai_focus ?? true
+      cfg.enable_ai_quick_nav = ai_config.ai_nav ?? true
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+
+    case 'video_watch':
+      cfg.video_id = config.video_file || ''
+      cfg.video_title = config.video_title || ''
+      cfg.min_watch_progress = config.min_progress ?? 100
+      cfg.allow_drag = config.allow_drag ?? false
+      cfg.allow_speed = config.allowed_speeds || []
+      cfg.enable_ai_subtitle = ai_config.ai_subtitles ?? true
+      cfg.enable_ai_chapter = ai_config.ai_chapters ?? true
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+
+    case 'mindmap_preview':
+    case 'mindmap_draw':
+      cfg.enable_ai_generate_map = config.ai_generated ?? true
+      if (config.ai_generated) {
+        cfg.scenario = config.topic || ''
+        cfg.max_nodes = config.max_nodes ?? (type === 'mindmap_preview' ? 50 : 10)
+      } else {
+        cfg.base_map_data = config.manual_structure || null
+      }
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+
+    case 'task_distribute':
+      cfg.task_title = config.title || ''
+      cfg.task_desc = config.requirement || ''
+      cfg.deadline = config.deadline || ''
+      cfg.resource_list = (config.files || []).map((f: any) => ({
+        resource_id: f.original_name || '',
+        resource_name: f.display_name || ''
+      }))
+      cfg.enable_ai_task_split = ai_config.ai_task_breakdown ?? true
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+
+    case 'req_upload':
+      cfg.scenario = config.scenario || ''
+      cfg.min_length = config.min_words ?? 10
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+
+    case 'plan_upload':
+      cfg.allowed_formats = config.allowed_formats || []
+      cfg.max_size_mb = config.max_size ?? 100
+      cfg.upload_requirements = config.requirement || ''
+      cfg.enable_ai_pre_evaluation = ai_config.ai_pre_eval ?? true
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+
+    case 'homework':
+      cfg.source_mode = config.source_mode === 'bank' ? 'db' : 'ai'
+      cfg.time_limit_mins = config.time_limit ?? 30
+      if (config.source_mode === 'bank') {
+        cfg.db_selection_mode = config.select_mode || 'random'
+        cfg.question_bank_ids = []
+        cfg.question_ids = []
+        cfg.random_count = config.random_count ?? 10
+      } else {
+        cfg.question_type_counts = {
+          single_choice: config.count_single ?? 5,
+          multi_choice: config.count_multi ?? 5,
+          fill_blank: config.count_fill ?? 5,
+          true_false: config.count_judge ?? 5,
+          essay: config.count_essay ?? 5
+        }
+        cfg.difficulty_level = config.difficulty || 'medium'
+        cfg.save_to_db = config.save_to_bank ?? true
+      }
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+
+    case 'student_peer_review':
+      cfg.target_node_id = config.target_node || ''
+      cfg.review_count = config.count ?? 3
+      cfg.evaluation_dimensions = (config.dimensions || []).map((d: any) => ({
+        dimension_name: d.name || '',
+        score_range: d.score_range || ''
+      }))
+      cfg.review_weight_percentage = config.weight ?? 30
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+
+    case 'teacher_eval':
+      cfg.target_node_id = config.target_node || ''
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+
+    case 'ai_practice':
+      cfg.knowledgePoint = config.knowledge_points || ''
+      cfg.pass_criteria = config.pass_criteria || ''
+      cfg.max_rounds = config.max_rounds || ''
+      cfg.enable_adaptive_difficulty = ai_config.ai_adaptive ?? true
+      cfg.enable_concept_check = ai_config.ai_core_concept ?? true
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+
+    case 'theory_class':
+      cfg.topic = config.topic || ''
+      cfg.knowledge_points = config.knowledge_points || ''
+      cfg.card_count = config.max_cards || ''
+      cfg.enable_ai_error_book = ai_config.ai_mistake_book ?? true
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+
+    case 'coding_class':
+      cfg.init_code = config.template || ''
+      cfg.allow_ai_help = ai_config.ai_assist ?? true
+      cfg.ai_help_mode = ai_config.ai_mode || 'guide'
+      cfg.enable_code_review = ai_config.ai_review ?? true
+      cfg.allow_ai_qa = ai_config.ai_qa ?? true
+      break
+  }
+
+  return cfg
+}
+
+const validateRequired = (): string[] => {
+  const errors: string[] = []
+
+  for (const node of orchestrationList.value) {
+    const { type, config, name } = node
+
+    switch (type) {
+      case 'start':
+        if (!config.desc?.trim()) {
+          errors.push(`"${name}"：实训整体说明(场景)为必填项`)
+        }
+        break
+
+      case 'resource_read':
+        if (!config.files || config.files.length === 0 || !config.files[0].display_name?.trim()) {
+          errors.push(`"${name}"：至少添加一个阅读文件并填写展示名`)
+        }
+        break
+
+      case 'video_watch':
+        if (!config.video_file?.trim()) {
+          errors.push(`"${name}"：上传视频文件为必填项`)
+        }
+        break
+
+      case 'mindmap_preview':
+      case 'mindmap_draw':
+        if (config.ai_generated && !config.topic?.trim()) {
+          errors.push(`"${name}"：AI生成模式下导图主题为必填项`)
+        }
+        break
+    }
+  }
+
+  return errors
+}
+
+const handlePublish = () => {
+  const errors = validateRequired()
+  if (errors.length > 0) {
+    alert('请完善以下必填项：\n\n' + errors.join('\n'))
+    return
+  }
+
+  const nodes = orchestrationList.value.map((node) => ({
+    node_id: node.id,
+    node_type: NODE_TYPE_MAP[node.type] || node.type.toUpperCase(),
+    name: node.name,
+    config: buildNodeConfig(node)
+  }))
+
+  const edges: { source: string; target: string }[] = []
+  for (let i = 0; i < nodes.length - 1; i++) {
+    const current = nodes[i]
+    const next = nodes[i + 1]
+    if (current && next) {
+      edges.push({ source: current.node_id, target: next.node_id })
+    }
+  }
+
+  const result = {
+    orchestration_id: `flow_${Date.now().toString(36)}`,
+    nodes,
+    edges
+  }
+
+  console.log('=== 实训编排 JSON ===')
+  console.log(JSON.stringify(result, null, 2))
+
+  // 报告当前页面没有对应设置的字段
+  console.warn('=== 以下字段在当前页面中没有对应设置，输出中使用了占位值 ===')
+  console.warn('1. RESOURCE_READ.resource_list[].resource_id — 页面只有"上传文件名"和"展示名"，无"关联文件唯一标识"字段，暂用 original_name 填充')
+  console.warn('2. VIDEO_LEARN.video_id — 页面只有"上传视频文件"文本输入，无"视频源唯一标识"字段，暂用 video_file 填充')
+  console.warn('3. TASK_DISTRIBUTE.resource_list[].resource_id — 同资源阅读，无"关联文件唯一标识"字段')
+  console.warn('4. HOMEWORK.question_bank_ids / question_ids — 页面无"题库来源集合"和"手动选取题目列表"字段，输出为空数组')
+  console.warn('5. 学情调查(SURVEY) 节点 — 你提供的规范中未包含该类型映射，输出 node_type 为 SURVEY')
+
+  alert('实训流程保存并发布成功！(请按F12查看控制台数据)')
+}
 </script>
 
 <style scoped>
@@ -838,6 +1120,11 @@ const handlePublish = () => alert('实训流程保存并发布成功！(请按F1
 .icon-btn-small:hover { background: #FECACA; transform: scale(1.1); }
 .add-btn { background: #F8FAFC; border: 1px dashed #CBD5E1; color: #4F46E5; font-size: 13px; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; width: 100%; }
 .add-btn:hover { background: #EEF2FF; border-color: #A5B4FC; }
+
+.upload-btn { display: block; width: 100%; padding: 10px 12px; background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 6px; color: #4F46E5; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; transition: 0.2s; box-sizing: border-box; }
+.upload-btn:hover { background: #EEF2FF; border-color: #818CF8; }
+.upload-btn-sm { display: inline-block; padding: 6px 10px; background: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 4px; color: #4F46E5; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; transition: 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
+.upload-btn-sm:hover { background: #EEF2FF; border-color: #818CF8; }
 .hint { text-align: center; color: #94A3B8; font-size: 13px; padding: 30px 0; background: #F8FAFC; border-radius: 8px; border: 1px dashed #E2E8F0; }
 
 /* =========== AI 增强配置区 =========== */

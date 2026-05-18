@@ -131,7 +131,7 @@ function openClassModal(row: AdminClass|null) {
   else { classForm.deptId=null; classForm.majorId=0; classForm.className='' }
   showClassModal.value=true
 }
-async function saveClass() { if(!classForm.className.trim()){message.warning('请输入名称');return}; if(!classForm.majorId){message.warning('请选择专业');return}; saving.value=true; try{ const p:AdminClass={majorId:classForm.majorId,className:classForm.className}; editingClassId.value?await api.updateClass(editingClassId.value,p):await api.addClass(p); message.success('成功'); showClassModal.value=false; await fetchClasses() }catch{message.error('失败')} finally{saving.value=false} }
+async function saveClass() { if(!classForm.className.trim()){message.warning('请输入名称');return}; if(!classForm.majorId){message.warning('请选择专业');return}; saving.value=true; try{ const p:AdminClass={id: editingClassId.value || 0, majorId:classForm.majorId,className:classForm.className}; editingClassId.value?await api.updateClass(editingClassId.value,p):await api.addClass(p); message.success('成功'); showClassModal.value=false; await fetchClasses() }catch{message.error('失败')} finally{saving.value=false} }
 async function handleDeleteClass(row: AdminClass) { try{await api.deleteClass(row.id);message.success('已删除');await fetchClasses()}catch{message.error('失败')} }
 async function fetchClasses() { loading.classes=true; try{const r=await api.getClasses();if(r.code===200)classList.value=r.data||[]}catch(e:any){message.error(e?.response?.data?.message||'获取班级列表失败')}finally{loading.classes=false} }
 

@@ -1,262 +1,587 @@
-CREATE TABLE sys_user (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  username VARCHAR(64) NOT NULL UNIQUE COMMENT '用户名',
-  password_hash VARCHAR(128) COMMENT '哈希密码',
-  phone VARCHAR(20) COMMENT '手机号',
-  avatar_url VARCHAR(255) COMMENT '头像地址',
-  bio VARCHAR(500) COMMENT '个人简介',
-  role_type TINYINT COMMENT '1-管理 2-教师 3-学生',
-  status TINYINT DEFAULT 0 COMMENT '0-正常 1-封禁',
-  created_at DATETIME,
-  updated_at DATETIME
-) COMMENT='系统用户主表';
-
-CREATE TABLE biz_department (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  dept_name VARCHAR(64) COMMENT '院系名称',
-  created_at DATETIME
-) COMMENT='院系字典表';
-
-CREATE TABLE biz_major (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  dept_id BIGINT COMMENT '所属院系ID',
-  major_name VARCHAR(64) COMMENT '专业名称',
-  created_at DATETIME
-) COMMENT='专业字典表';
-
-CREATE TABLE biz_admin_class (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  major_id BIGINT COMMENT '所属专业ID',
-  class_name VARCHAR(64) COMMENT '班级名称(如24级计科1班)',
-  enrollment_year INT COMMENT '入学年份',
-  created_at DATETIME
-) COMMENT='行政班级表';
-
-CREATE TABLE biz_student (
-  user_id BIGINT PRIMARY KEY COMMENT '关联 sys_user',
-  student_no VARCHAR(32) UNIQUE COMMENT '学号',
-  real_name VARCHAR(64) COMMENT '真实姓名',
-  dept_id BIGINT COMMENT '所属院系ID',
-  major_id BIGINT COMMENT '所属专业ID',
-  class_id BIGINT COMMENT '所属行政班级ID'
-) COMMENT='学生业务档案表';
-
-CREATE TABLE biz_teacher (
-  user_id BIGINT PRIMARY KEY COMMENT '关联 sys_user',
-  employee_no VARCHAR(32) UNIQUE COMMENT '工号',
-  real_name VARCHAR(64) COMMENT '姓名',
-  dept_id BIGINT COMMENT '所属院系ID'
-) COMMENT='教师业务档案表';
-
-CREATE TABLE biz_course (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  course_name VARCHAR(128) COMMENT '课程名称',
-  course_code VARCHAR(64) COMMENT '课程代码',
-  description TEXT COMMENT '课程简介',
-  status TINYINT COMMENT '状态:0-草稿 1-已发布/开放',
-  need_enroll_code TINYINT COMMENT '是否需选课码:0-否 1-是',
-  enroll_code VARCHAR(16) COMMENT '选课授权码',
-  created_at DATETIME COMMENT '创建时间',
-  updated_at DATETIME COMMENT '更新时间'
-) COMMENT='教学课程表';
-
-CREATE TABLE biz_student_course (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  student_id BIGINT COMMENT '学生ID',
-  course_id BIGINT COMMENT '课程ID',
-  created_at DATETIME COMMENT '选课时间'
-) COMMENT='学生选课表';
-
-CREATE TABLE biz_question_bank (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  teacher_id BIGINT COMMENT '创建教师ID',
-  bank_name VARCHAR(128) COMMENT '题库名称',
-  is_public TINYINT COMMENT '是否共享',
-  created_at DATETIME,
-  updated_at DATETIME
-) COMMENT='题库主表';
-
-CREATE TABLE biz_question (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  bank_id BIGINT COMMENT '所属题库ID',
-  question_type TINYINT COMMENT '题型',
-  content TEXT COMMENT '题干与选项JSON',
-  standard_answer TEXT COMMENT '标答',
-  default_score DECIMAL(5,2) COMMENT '默认分值',
-  sort_num INT COMMENT '排序序号',
-  created_at DATETIME,
-  updated_at DATETIME
-) COMMENT='题目明细表';
-
-CREATE TABLE wf_node_def (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  node_code VARCHAR(32) UNIQUE COMMENT '节点编码(如UPLOAD)',
-  node_name VARCHAR(64) COMMENT '节点名称',
-  is_active TINYINT COMMENT '节点全局开关'
-) COMMENT='流程节点定义表';
-
-CREATE TABLE wf_training_template (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  template_name VARCHAR(128) COMMENT '模板名称',
-  raw_canvas_json JSON COMMENT '原始编排JSON(含前端UI坐标及初始配置)',
-  standard_payload_json JSON COMMENT '标准执行JSON(经AI处理后挂载真实资源ID)',
-  ai_status TINYINT COMMENT '状态:0-草稿 1-AI处理中 2-已就绪 3-异常',
-  error_reason TEXT COMMENT 'AI处理异常原因',
-  created_at DATETIME,
-  updated_at DATETIME
-) COMMENT='实训模板表';
-
-CREATE TABLE biz_training_task (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  template_id BIGINT COMMENT '使用的模板ID',
-  teacher_id BIGINT COMMENT '发起的教师ID',
-  task_name VARCHAR(128) COMMENT '本次实训名称',
-  start_time DATETIME COMMENT '开始时间',
-  end_time DATETIME COMMENT '结束时间',
-  is_in_class TINYINT COMMENT '0-课后异步 1-课中同步',
-  has_group TINYINT COMMENT '是否包含分组',
-  status TINYINT COMMENT '0-未开始 1-进行中 2-已结束',
-  dispatch_scope TINYINT COMMENT '1-行政班 2-课程名单',
-  dispatch_target_id BIGINT COMMENT '对应的班级ID或课程ID',
-  created_at DATETIME COMMENT '创建时间',
-  updated_at DATETIME COMMENT '更新时间'
-) COMMENT='实训场次(任务)表';
-
-CREATE TABLE biz_training_participation (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  task_id BIGINT COMMENT '关联实训任务',
-  student_id BIGINT COMMENT '关联学生',
-  status TINYINT COMMENT '0-未开始 1-进行中 2-已提交 3-已评价',
-  created_at DATETIME,
-  updated_at DATETIME
-) COMMENT='学生实训参与表';
-
-CREATE TABLE biz_training_upload (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  participation_id BIGINT COMMENT '关联参与表ID',
-  node_id BIGINT COMMENT '关联节点ID',
-  upload_type TINYINT COMMENT '物料类型(1-文档 2-代码)',
-  resource_url VARCHAR(255) COMMENT '资源存储地址',
-  created_at DATETIME COMMENT '上传时间'
-) COMMENT='实训产出上传物表';
-
-CREATE TABLE biz_training_group (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  task_id BIGINT COMMENT '关联实训任务',
-  group_name VARCHAR(64) COMMENT '小组名称',
-  created_at DATETIME
-) COMMENT='实训小组表';
-
-CREATE TABLE biz_group_member (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  group_id BIGINT COMMENT '小组ID',
-  student_id BIGINT COMMENT '学生ID',
-  is_leader TINYINT COMMENT '0-组员 1-组长',
-  created_at DATETIME
-) COMMENT='小组成员关联表';
-
-CREATE TABLE wf_global_activity_state (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  task_id BIGINT COMMENT '关联实训任务',
-  current_node_id BIGINT COMMENT '当前停留的节点ID',
-  updated_at DATETIME
-) COMMENT='全局活动状态表(课中)';
-
-CREATE TABLE wf_student_activity_state (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  participation_id BIGINT COMMENT '关联个人参与实例',
-  current_node_id BIGINT COMMENT '学生推进到的节点ID',
-  updated_at DATETIME
-) COMMENT='学生活动状态表(课后)';
-
-CREATE TABLE dim_eval_indicator (
-  id VARCHAR(32) PRIMARY KEY COMMENT '主键(如 IND_001)',
-  l1_name VARCHAR(64) COMMENT '一级指标(如AI素养)',
-  l2_name VARCHAR(64) COMMENT '二级指标',
-  l3_name VARCHAR(64) COMMENT '三级指标(如代码规范)',
-  target_type TINYINT COMMENT '适用范围(1-个人 2-小组 3-全局 4-班级)',
-  max_score INT COMMENT '满分值',
-  calc_prompt TEXT COMMENT '大模型计算基准逻辑'
-) COMMENT='评价指标字典表';
-
-CREATE TABLE fact_eval_result (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  task_id BIGINT COMMENT '关联实训任务',
-  target_type TINYINT COMMENT '评分对象类型(1-人 2-组 3-实训 4-班)',
-  target_id BIGINT COMMENT '对应的学生/组/实训/班级ID',
-  indicator_id VARCHAR(32) COMMENT '关联字典表指标',
-  raw_score DECIMAL(5,2) COMMENT '原始分',
-  calc_score DECIMAL(5,2) COMMENT '计算图表分',
-  ai_comment TEXT COMMENT '大模型给出的评语',
-  teacher_comment TEXT COMMENT '教师给出的评语',
-  created_at DATETIME
-) COMMENT='评价事实结果表';
-
-CREATE TABLE sys_ticket (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  creator_id BIGINT COMMENT '提交人',
-  title VARCHAR(128) COMMENT '标题',
-  content TEXT COMMENT '工单详情',
-  status TINYINT COMMENT '处理状态',
-  created_at DATETIME,
-  updated_at DATETIME
-) COMMENT='运维工单表';
-
-CREATE TABLE sys_feedback (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  user_id BIGINT COMMENT '反馈人ID',
-  content TEXT COMMENT '反馈内容',
-  created_at DATETIME COMMENT '时间'
-) COMMENT='系统反馈表';
-
-CREATE TABLE sys_operation_log (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  user_id BIGINT COMMENT '操作人',
-  action_type VARCHAR(64) COMMENT '动作类型',
-  ip_address VARCHAR(64) COMMENT 'IP地址',
-  created_at DATETIME COMMENT '时间'
-) COMMENT='系统操作日志表';
 
 
--- 1. 思维导图主记录表 (直接存储JSON结构，解决读写性能瓶颈)
-CREATE TABLE biz_mindmap_record (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  participation_id BIGINT NOT NULL COMMENT '关联个人实训参与表ID',
-  node_id BIGINT NOT NULL COMMENT '编排节点ID(区分是预习还是绘制节点)',
-  map_topology_json JSON COMMENT '思维导图完整拓扑结构(前端画板直出)',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uk_part_node (participation_id, node_id)
-) COMMENT='思维导图实训产出表';
+-- 系统用户主表
+CREATE TABLE `sys_user` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `username` VARCHAR(64) NOT NULL COMMENT '用户名',
+  `password_hash` VARCHAR(128) NOT NULL COMMENT '哈希密码',
+  `phone` VARCHAR(20) DEFAULT NULL COMMENT '手机号',
+  `avatar_url` VARCHAR(255) DEFAULT NULL COMMENT '头像地址',
+  `bio` VARCHAR(500) DEFAULT NULL COMMENT '个人简介',
+  `role_type` TINYINT NOT NULL COMMENT '1-管理 2-教师 3-学生',
+  `status` TINYINT DEFAULT 0 COMMENT '0-正常 1-封禁',
+  `created_at` DATETIME NOT NULL COMMENT '账号创建时间',
+  `updated_at` DATETIME NOT NULL COMMENT '账号最后更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统用户主表';
 
--- 2. 思维导图知识点评级明细表 (针对节点13：难度评价)
-CREATE TABLE biz_mindmap_eval_detail (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  participation_id BIGINT NOT NULL COMMENT '关联个人实训参与表ID',
-  map_node_uid VARCHAR(64) NOT NULL COMMENT '前端导图节点生成的唯一UID',
-  node_text VARCHAR(255) COMMENT '节点文本内容(冗余展示)',
-  difficulty_level TINYINT COMMENT '难度评级: 1-易 2-中 3-难',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-) COMMENT='知识点难度评级明细表';
+-- 院系字典表
+CREATE TABLE `biz_department` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `dept_name` VARCHAR(64) NOT NULL COMMENT '院系名称',
+  `created_at` DATETIME NOT NULL COMMENT '记录创建时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='院系字典表';
 
--- 3. AI实训问答记录表 (针对节点4：理论实训)
-CREATE TABLE biz_training_chat_log (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  participation_id BIGINT NOT NULL COMMENT '关联个人参与ID',
-  role_type VARCHAR(16) COMMENT '角色: user / assistant',
-  content TEXT COMMENT '对话内容',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-) COMMENT='AI理论对练日志表';
+-- 专业字典表
+CREATE TABLE `biz_major` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `dept_id` BIGINT NOT NULL COMMENT '所属院系ID',
+  `major_name` VARCHAR(64) NOT NULL COMMENT '专业名称',
+  `created_at` DATETIME NOT NULL COMMENT '记录创建时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`dept_id`) REFERENCES `biz_department` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='专业字典表';
 
--- 4. 课后作业与考试答题记录表 (针对节点9、10：作业与考核)
-CREATE TABLE biz_training_exam_record (
-  id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键',
-  participation_id BIGINT NOT NULL COMMENT '关联个人参与ID',
-  node_id BIGINT NOT NULL COMMENT '编排节点ID',
-  answers_json JSON COMMENT '学生提交的答案包(题号与答案映射)',
-  score DECIMAL(5,2) COMMENT '客观题机评分数',
-  time_spent_seconds INT COMMENT '作答耗时(秒)',
-  is_submitted TINYINT DEFAULT 0 COMMENT '0-暂存 1-已交卷',
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) COMMENT='作业与考核答题记录表';
+-- 行政班级表
+CREATE TABLE `biz_admin_class` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `major_id` BIGINT NOT NULL COMMENT '所属专业ID',
+  `class_name` VARCHAR(64) NOT NULL COMMENT '班级名称(如24级计科1班)',
+  `enrollment_year` INT NOT NULL COMMENT '入学年份',
+  `created_at` DATETIME NOT NULL COMMENT '记录创建时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`major_id`) REFERENCES `biz_major` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='行政班级表';
+
+-- 学生业务档案表
+CREATE TABLE `biz_student` (
+  `user_id` BIGINT NOT NULL COMMENT '关联sys_user',
+  `student_no` VARCHAR(32) NOT NULL COMMENT '学号',
+  `real_name` VARCHAR(64) NOT NULL COMMENT '真实姓名',
+  `dept_id` BIGINT NOT NULL COMMENT '所属院系ID',
+  `major_id` BIGINT NOT NULL COMMENT '所属专业ID',
+  `class_id` BIGINT NOT NULL COMMENT '所属行政班级ID',
+  `created_at` DATETIME NOT NULL COMMENT '档案建立时间',
+  `updated_at` DATETIME NOT NULL COMMENT '档案最后更新时间',
+  PRIMARY KEY (`user_id`),
+  UNIQUE KEY `uk_student_no` (`student_no`),
+  FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`),
+  FOREIGN KEY (`dept_id`) REFERENCES `biz_department` (`id`),
+  FOREIGN KEY (`major_id`) REFERENCES `biz_major` (`id`),
+  FOREIGN KEY (`class_id`) REFERENCES `biz_admin_class` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生业务档案表';
+
+-- 教师业务档案表
+CREATE TABLE `biz_teacher` (
+  `user_id` BIGINT NOT NULL COMMENT '关联sys_user',
+  `employee_no` VARCHAR(32) NOT NULL COMMENT '工号',
+  `real_name` VARCHAR(64) NOT NULL COMMENT '姓名',
+  `dept_id` BIGINT NOT NULL COMMENT '所属院系ID',
+  `created_at` DATETIME NOT NULL COMMENT '档案建立时间',
+  `updated_at` DATETIME NOT NULL COMMENT '档案最后更新时间',
+  PRIMARY KEY (`user_id`),
+  UNIQUE KEY `uk_employee_no` (`employee_no`),
+  FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`),
+  FOREIGN KEY (`dept_id`) REFERENCES `biz_department` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='教师业务档案表';
+
+-- Notebook智记表
+CREATE TABLE `biz_student_note` (
+  `id` BIGINT NOT NULL COMMENT '笔记记录主键',
+  `student_id` BIGINT NOT NULL COMMENT '所属学生ID',
+  `title` VARCHAR(128) NOT NULL COMMENT '笔记标题(默认为摘录前N个字或用户自拟)',
+  `content` LONGTEXT NOT NULL COMMENT '笔记核心内容(支持Markdown富文本)',
+  `created_at` DATETIME NOT NULL COMMENT '笔记创建时间',
+  `updated_at` DATETIME NOT NULL COMMENT '笔记最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`student_id`) REFERENCES `biz_student` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Notebook智记表';
+
+-- 教学课程表
+CREATE TABLE `biz_course` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `course_name` VARCHAR(128) NOT NULL COMMENT '课程名称',
+  `course_code` VARCHAR(64) NOT NULL COMMENT '课程代码',
+  `description` TEXT DEFAULT NULL COMMENT '课程简介',
+  `status` TINYINT NOT NULL COMMENT '状态：0-草稿 1-已发布/开放',
+  `need_enroll_code` TINYINT NOT NULL COMMENT '是否需选课码：0-否 1-是',
+  `enroll_code` VARCHAR(16) DEFAULT NULL COMMENT '选课授权码',
+  `created_at` DATETIME NOT NULL COMMENT '课程记录创建时间',
+  `updated_at` DATETIME NOT NULL COMMENT '课程记录最后更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='教学课程表';
+
+-- 学生选课表
+CREATE TABLE `biz_student_course` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `student_id` BIGINT NOT NULL COMMENT '学生ID',
+  `course_id` BIGINT NOT NULL COMMENT '课程ID',
+  `created_at` DATETIME NOT NULL COMMENT '选课操作记录时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_student_course` (`student_id`, `course_id`),
+  FOREIGN KEY (`student_id`) REFERENCES `biz_student` (`user_id`),
+  FOREIGN KEY (`course_id`) REFERENCES `biz_course` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生选课表';
+
+-- 题库主表
+CREATE TABLE `biz_question_bank` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `teacher_id` BIGINT NOT NULL COMMENT '创建教师ID',
+  `bank_name` VARCHAR(128) NOT NULL COMMENT '题库名称',
+  `is_public` TINYINT NOT NULL COMMENT '是否共享：0-私有 1-公开',
+  `created_at` DATETIME NOT NULL COMMENT '题库创建时间',
+  `updated_at` DATETIME NOT NULL COMMENT '题库最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`teacher_id`) REFERENCES `biz_teacher` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='题库主表';
+
+-- 题目明细表
+CREATE TABLE `biz_question` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `bank_id` BIGINT NOT NULL COMMENT '所属题库ID',
+  `question_type` TINYINT NOT NULL COMMENT '题型：1-单选 2-多选 3-简答 4-代码',
+  `content` TEXT NOT NULL COMMENT '题干与选项JSON',
+  `standard_answer` TEXT NOT NULL COMMENT '标准答案',
+  `default_score` DECIMAL(5,2) NOT NULL COMMENT '默认分值',
+  `sort_num` INT NOT NULL COMMENT '排序序号',
+  `created_at` DATETIME NOT NULL COMMENT '题目创建时间',
+  `updated_at` DATETIME NOT NULL COMMENT '题目最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`bank_id`) REFERENCES `biz_question_bank` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='题目明细表';
+
+-- 标准知识点字典表
+CREATE TABLE `biz_knowledge_point` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `course_id` BIGINT NOT NULL COMMENT '关联课程ID',
+  `kp_name` VARCHAR(128) NOT NULL COMMENT '知识点名称',
+  `parent_id` BIGINT DEFAULT NULL COMMENT '父知识点ID',
+  `created_at` DATETIME NOT NULL COMMENT '知识点录入时间',
+  `updated_at` DATETIME NOT NULL COMMENT '知识点最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`course_id`) REFERENCES `biz_course` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='标准知识点字典表';
+
+-- 统一资源管理表
+CREATE TABLE `sys_resource` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `resource_type` TINYINT NOT NULL COMMENT '资源类型：1-PDF 2-PPT 3-文档 4-视频 5-其他',
+  `resource_name` VARCHAR(128) NOT NULL COMMENT '资源名称',
+  `file_url` VARCHAR(255) NOT NULL COMMENT '文件存储地址',
+  `file_size` BIGINT NOT NULL COMMENT '文件大小(字节)',
+  `file_hash` VARCHAR(64) NOT NULL COMMENT '文件哈希值(去重用)',
+  `uploader_id` BIGINT NOT NULL COMMENT '上传人ID(关联sys_user)',
+  `created_at` DATETIME NOT NULL COMMENT '资源归档时间',
+  `updated_at` DATETIME NOT NULL COMMENT '资源属性最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`uploader_id`) REFERENCES `sys_user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='统一资源管理表';
+
+-- 流程节点定义表
+CREATE TABLE `wf_node_def` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `node_code` VARCHAR(32) NOT NULL COMMENT '节点编码(如UPLOAD)',
+  `node_type` VARCHAR(32) NOT NULL COMMENT '节点类型(如START/RESOURCE_READ)',
+  `node_name` VARCHAR(64) NOT NULL COMMENT '节点名称',
+  `is_active` TINYINT NOT NULL COMMENT '节点全局开关',
+  `created_at` DATETIME NOT NULL COMMENT '节点定义注册时间',
+  `updated_at` DATETIME NOT NULL COMMENT '节点定义最后更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_node_code` (`node_code`),
+  UNIQUE KEY `uk_node_type` (`node_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='流程节点定义表';
+
+-- 实训模板表
+CREATE TABLE `wf_training_template` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `template_name` VARCHAR(128) NOT NULL COMMENT '模板名称',
+  `raw_canvas_json` JSON NOT NULL COMMENT '原始编排JSON(含前端UI坐标及初始配置)',
+  `standard_payload_json` JSON DEFAULT NULL COMMENT '标准执行JSON(经AI处理后挂载真实资源ID)',
+  `ai_status` TINYINT NOT NULL COMMENT '状态：0-草稿 1-AI处理中 2-已就绪 3-异常',
+  `error_reason` TEXT DEFAULT NULL COMMENT 'AI处理异常原因',
+  `created_at` DATETIME NOT NULL COMMENT '模板创建时间',
+  `updated_at` DATETIME NOT NULL COMMENT '模板内容最后更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='实训模板表';
+
+-- 实训场次(任务)表
+CREATE TABLE `biz_training_task` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `template_id` BIGINT NOT NULL COMMENT '使用的模板ID',
+  `teacher_id` BIGINT NOT NULL COMMENT '发起的教师ID',
+  `task_name` VARCHAR(128) NOT NULL COMMENT '本次实训名称',
+  `start_time` DATETIME NOT NULL COMMENT '开始时间',
+  `end_time` DATETIME NOT NULL COMMENT '结束时间',
+  `is_in_class` TINYINT NOT NULL COMMENT '0-课后异步 1-课中同步',
+  `has_group` TINYINT NOT NULL COMMENT '是否包含分组',
+  `group_config_json` JSON DEFAULT NULL COMMENT '分组配置(自动/手动分组、每组人数等)',
+  `status` TINYINT NOT NULL COMMENT '0-未开始 1-进行中 2-已结束',
+  `dispatch_scope` TINYINT NOT NULL COMMENT '1-行政班 2-课程名单',
+  `dispatch_target_id` BIGINT NOT NULL COMMENT '对应的班级ID或课程ID',
+  `created_at` DATETIME NOT NULL COMMENT '实训任务生成时间',
+  `updated_at` DATETIME NOT NULL COMMENT '实训任务最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`template_id`) REFERENCES `wf_training_template` (`id`),
+  FOREIGN KEY (`teacher_id`) REFERENCES `biz_teacher` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='实训场次(任务)表';
+
+-- 实训节点实例表
+CREATE TABLE `wf_node_instance` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `task_id` BIGINT NOT NULL COMMENT '关联实训任务ID',
+  `node_def_id` BIGINT NOT NULL COMMENT '关联全局节点定义ID',
+  `node_type` VARCHAR(32) NOT NULL COMMENT '节点类型(冗余，快速查询用)',
+  `node_name` VARCHAR(64) NOT NULL COMMENT '节点自定义名称',
+  `sort_num` INT NOT NULL COMMENT '流程排序序号',
+  `config_json` JSON NOT NULL COMMENT '节点配置属性(完全对应您系统设计的Config定义)',
+  `status` TINYINT NOT NULL COMMENT '全局状态：0-未开始 1-进行中 2-已结束',
+  `started_at` DATETIME DEFAULT NULL COMMENT '节点实例开始时间',
+  `ended_at` DATETIME DEFAULT NULL COMMENT '节点实例结束时间',
+  `created_at` DATETIME NOT NULL COMMENT '记录创建时间',
+  `updated_at` DATETIME NOT NULL COMMENT '记录最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`task_id`) REFERENCES `biz_training_task` (`id`),
+  FOREIGN KEY (`node_def_id`) REFERENCES `wf_node_def` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='实训节点实例表';
+
+-- 实训卷
+CREATE TABLE `biz_training_paper` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `task_id` BIGINT NOT NULL COMMENT '关联实训任务ID',
+  `node_instance_id` BIGINT NOT NULL COMMENT '关联节点实例ID',
+  `paper_name` VARCHAR(128) NOT NULL COMMENT '试卷/作业名称',
+  `paper_total_score` DECIMAL(5,2) NOT NULL COMMENT '本卷满分值',
+  `created_at` DATETIME NOT NULL COMMENT '试卷快照生成时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`task_id`) REFERENCES `biz_training_task` (`id`),
+  FOREIGN KEY (`node_instance_id`) REFERENCES `wf_node_instance` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='实训卷';
+
+-- 实训题目
+CREATE TABLE `biz_training_paper_question` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `paper_id` BIGINT NOT NULL COMMENT '关联实训卷ID',
+  `question_id` BIGINT NOT NULL COMMENT '关联全局题目ID',
+  `score` DECIMAL(5,2) NOT NULL COMMENT '该题在本实训卷中的实际设定分值',
+  `sort_num` INT NOT NULL COMMENT '题号排序',
+  `created_at` DATETIME NOT NULL COMMENT '试题映射记录时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`paper_id`) REFERENCES `biz_training_paper` (`id`),
+  FOREIGN KEY (`question_id`) REFERENCES `biz_question` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='实训题目';
+
+-- 学生实训参与表
+CREATE TABLE `biz_training_participation` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `task_id` BIGINT NOT NULL COMMENT '关联实训任务',
+  `student_id` BIGINT NOT NULL COMMENT '关联学生',
+  `status` TINYINT NOT NULL COMMENT '0-未开始 1-进行中 2-已提交 3-已评价',
+  `total_score` DECIMAL(5,2) DEFAULT NULL COMMENT '本次实训最终总分',
+  `satisfaction_detail_json` JSON DEFAULT NULL COMMENT '满意度明细(含内容、难度、AI辅助评分及建议)',
+  `created_at` DATETIME NOT NULL COMMENT '参与记录生成时间',
+  `updated_at` DATETIME NOT NULL COMMENT '参与记录最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`task_id`) REFERENCES `biz_training_task` (`id`),
+  FOREIGN KEY (`student_id`) REFERENCES `biz_student` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生实训参与表';
+
+-- 实训产出上传物表
+CREATE TABLE `biz_training_upload` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `participation_id` BIGINT NOT NULL COMMENT '关联参与表ID',
+  `node_instance_id` BIGINT NOT NULL COMMENT '关联节点实例ID',
+  `upload_type` TINYINT NOT NULL COMMENT '物料类型(1-文档 2-代码)',
+  `resource_id` BIGINT NOT NULL COMMENT '关联统一资源管理表ID',
+  `status` TINYINT NOT NULL COMMENT '0-待AI审 1-AI打回 2-待教师审 3-教师打回 4-终审通过',
+  `ai_score` DECIMAL(5,2) DEFAULT NULL COMMENT 'AI初评分',
+  `ai_comment` TEXT DEFAULT NULL COMMENT 'AI审查意见与修改指引',
+  `teacher_score` DECIMAL(5,2) DEFAULT NULL COMMENT '教师核定分',
+  `teacher_comment` TEXT DEFAULT NULL COMMENT '教师批注评语',
+  `created_at` DATETIME NOT NULL COMMENT '产出物归档时间',
+  `updated_at` DATETIME NOT NULL COMMENT '产出物状态最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`participation_id`) REFERENCES `biz_training_participation` (`id`),
+  FOREIGN KEY (`node_instance_id`) REFERENCES `wf_node_instance` (`id`),
+  FOREIGN KEY (`resource_id`) REFERENCES `sys_resource` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='实训产出上传物表';
+
+-- 实训小组表
+CREATE TABLE `biz_training_group` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `task_id` BIGINT NOT NULL COMMENT '关联实训任务',
+  `group_name` VARCHAR(64) NOT NULL COMMENT '小组名称',
+  `created_at` DATETIME NOT NULL COMMENT '小组创建时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`task_id`) REFERENCES `biz_training_task` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='实训小组表';
+
+-- 小组成员关联表
+CREATE TABLE `biz_group_member` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `group_id` BIGINT NOT NULL COMMENT '小组ID',
+  `student_id` BIGINT NOT NULL COMMENT '学生ID',
+  `is_leader` TINYINT NOT NULL COMMENT '0-组员 1-组长',
+  `created_at` DATETIME NOT NULL COMMENT '入组分配时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_group_student` (`group_id`, `student_id`),
+  FOREIGN KEY (`group_id`) REFERENCES `biz_training_group` (`id`),
+  FOREIGN KEY (`student_id`) REFERENCES `biz_student` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='小组成员关联表';
+
+-- 全局活动状态表(课中)
+CREATE TABLE `wf_global_activity_state` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `task_id` BIGINT NOT NULL COMMENT '关联实训任务',
+  `current_node_instance_id` BIGINT NOT NULL COMMENT '关联当前节点实例ID',
+  `created_at` DATETIME NOT NULL COMMENT '全局状态机建立时间',
+  `updated_at` DATETIME NOT NULL COMMENT '全局状态机最后跃迁时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`task_id`) REFERENCES `biz_training_task` (`id`),
+  FOREIGN KEY (`current_node_instance_id`) REFERENCES `wf_node_instance` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='全局活动状态表(课中)';
+
+-- 学生活动状态表(课后)
+CREATE TABLE `wf_student_activity_state` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `participation_id` BIGINT NOT NULL COMMENT '关联个人参与实例',
+  `current_node_instance_id` BIGINT NOT NULL COMMENT '关联当前节点实例ID',
+  `created_at` DATETIME NOT NULL COMMENT '个人状态机建立时间',
+  `updated_at` DATETIME NOT NULL COMMENT '个人状态机最后跃迁时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`participation_id`) REFERENCES `biz_training_participation` (`id`),
+  FOREIGN KEY (`current_node_instance_id`) REFERENCES `wf_node_instance` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生活动状态表(课后)';
+
+-- 思维导图实训产出表
+CREATE TABLE `biz_mindmap_record` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `participation_id` BIGINT NOT NULL COMMENT '关联个人实训参与表ID',
+  `node_instance_id` BIGINT NOT NULL COMMENT '关联节点实例ID',
+  `map_topology_json` JSON NOT NULL COMMENT '思维导图完整拓扑结构(前端画板直出)',
+  `created_at` DATETIME NOT NULL COMMENT '导图产出记录时间',
+  `updated_at` DATETIME NOT NULL COMMENT '导图记录最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`participation_id`) REFERENCES `biz_training_participation` (`id`),
+  FOREIGN KEY (`node_instance_id`) REFERENCES `wf_node_instance` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='思维导图实训产出表';
+
+-- 知识点难度评价明细
+CREATE TABLE `biz_mindmap_eval_detail` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `participation_id` BIGINT NOT NULL COMMENT '关联个人实训参与表ID',
+  `knowledge_point_id` BIGINT NOT NULL COMMENT '关联标准知识点',
+  `difficulty_level` TINYINT NOT NULL COMMENT '1-易 2-中 3-难',
+  `student_doubt` VARCHAR(500) DEFAULT NULL COMMENT '学生针对该知识点提出的具体疑问或理解难点',
+  `created_at` DATETIME NOT NULL COMMENT '评价明细记录时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`participation_id`) REFERENCES `biz_training_participation` (`id`),
+  FOREIGN KEY (`knowledge_point_id`) REFERENCES `biz_knowledge_point` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='知识点难度评价明细';
+
+-- 学生卷
+CREATE TABLE `biz_student_paper` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `paper_id` BIGINT NOT NULL COMMENT '关联实训卷ID',
+  `participation_id` BIGINT NOT NULL COMMENT '关联个人实训参与ID',
+  `student_id` BIGINT NOT NULL COMMENT '作答学生ID',
+  `total_score` DECIMAL(5,2) DEFAULT NULL COMMENT '学生本卷最终总分',
+  `ai_comment` TEXT DEFAULT NULL COMMENT 'AI针对整卷做出的整体评价与学情分析',
+  `teacher_comment` TEXT DEFAULT NULL COMMENT '教师针对整卷给出的最终评语',
+  `status` TINYINT NOT NULL COMMENT '状态：0-作答中 1-已交卷未评 2-AI已评 3-教师终评',
+  `time_spent_seconds` INT DEFAULT NULL COMMENT '总作答耗时',
+  `created_at` DATETIME NOT NULL COMMENT '答卷实例生成时间',
+  `updated_at` DATETIME NOT NULL COMMENT '答卷记录最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`paper_id`) REFERENCES `biz_training_paper` (`id`),
+  FOREIGN KEY (`participation_id`) REFERENCES `biz_training_participation` (`id`),
+  FOREIGN KEY (`student_id`) REFERENCES `biz_student` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生卷';
+
+-- 学生单题作答明细表
+CREATE TABLE `biz_student_answer_detail` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `student_paper_id` BIGINT NOT NULL COMMENT '关联学生卷ID',
+  `paper_question_id` BIGINT NOT NULL COMMENT '关联实训题目快照ID',
+  `student_answer` TEXT NOT NULL COMMENT '学生提交的具体答案/代码',
+  `ai_score` DECIMAL(5,2) DEFAULT NULL COMMENT 'AI针对本题给出的评分',
+  `ai_comment` TEXT DEFAULT NULL COMMENT 'AI给出的单题批改意见与逻辑解析',
+  `teacher_score` DECIMAL(5,2) DEFAULT NULL COMMENT '教师针对本题的核查得分',
+  `teacher_comment` TEXT DEFAULT NULL COMMENT '教师单题批注与人工纠偏说明',
+  `created_at` DATETIME NOT NULL COMMENT '作答明细生成时间',
+  `updated_at` DATETIME NOT NULL COMMENT '作答明细最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`student_paper_id`) REFERENCES `biz_student_paper` (`id`),
+  FOREIGN KEY (`paper_question_id`) REFERENCES `biz_training_paper_question` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生单题作答明细表';
+
+-- AI对话会话主表
+CREATE TABLE `biz_ai_session` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `student_id` BIGINT NOT NULL COMMENT '关联学生ID',
+  `title` VARCHAR(128) NOT NULL COMMENT '会话标题',
+  `task_id` BIGINT DEFAULT NULL COMMENT '关联实训(可空)',
+  `node_instance_id` BIGINT DEFAULT NULL COMMENT '关联节点(可空)',
+  `session_type` TINYINT NOT NULL COMMENT '1-全局悬浮 2-ai对练 3-理论实训 4-编码实训 5-答疑',
+  `summary` VARCHAR(255) DEFAULT NULL COMMENT 'AI生成的会话摘要',
+  `is_deleted` TINYINT DEFAULT 0 COMMENT '软删除',
+  `created_at` DATETIME NOT NULL COMMENT '会话建立时间',
+  `updated_at` DATETIME NOT NULL COMMENT '会话状态最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`student_id`) REFERENCES `biz_student` (`user_id`),
+  FOREIGN KEY (`task_id`) REFERENCES `biz_training_task` (`id`),
+  FOREIGN KEY (`node_instance_id`) REFERENCES `wf_node_instance` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI对话会话主表';
+
+-- AI对话消息明细
+CREATE TABLE `biz_ai_message` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `session_id` BIGINT NOT NULL COMMENT '关联会话ID',
+  `role` VARCHAR(16) NOT NULL COMMENT 'user/assistant/system',
+  `content` TEXT NOT NULL COMMENT '消息内容',
+  `tokens_used` INT NOT NULL COMMENT '消耗Token数',
+  `created_at` DATETIME NOT NULL COMMENT '消息生成时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`session_id`) REFERENCES `biz_ai_session` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI对话消息明细';
+
+-- 学生节点进度明细表
+CREATE TABLE `wf_student_node_progress` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `participation_id` BIGINT NOT NULL COMMENT '关联学生实训参与表ID',
+  `node_instance_id` BIGINT NOT NULL COMMENT '关联节点实例ID',
+  `status` TINYINT NOT NULL COMMENT '个人状态：0-未开始 1-进行中 2-已完成 3-已跳过',
+  `entered_at` DATETIME DEFAULT NULL COMMENT '进入节点时间',
+  `exited_at` DATETIME DEFAULT NULL COMMENT '离开节点时间',
+  `stay_duration_seconds` INT DEFAULT NULL COMMENT '总停留时长(秒)',
+  `is_forced_complete` TINYINT DEFAULT 0 COMMENT '是否被教师强制完成',
+  `node_specific_data_json` JSON DEFAULT NULL COMMENT '节点专属采集数据(如阅读完成度、播放进度等)',
+  `created_at` DATETIME NOT NULL COMMENT '进度明细生成时间',
+  `updated_at` DATETIME NOT NULL COMMENT '进度明细最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`participation_id`) REFERENCES `biz_training_participation` (`id`),
+  FOREIGN KEY (`node_instance_id`) REFERENCES `wf_node_instance` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生节点进度明细表';
+
+-- 教师节点操作记录表
+CREATE TABLE `wf_teacher_node_operation` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `task_id` BIGINT NOT NULL COMMENT '关联实训任务ID',
+  `node_instance_id` BIGINT NOT NULL COMMENT '关联节点实例ID',
+  `teacher_id` BIGINT NOT NULL COMMENT '操作教师ID',
+  `operation_type` TINYINT NOT NULL COMMENT '操作类型：1-开始节点 2-结束节点 3-催办学生 4-强制完成 5-强制开启实训',
+  `target_student_id` BIGINT DEFAULT NULL COMMENT '目标学生ID(空表示全局操作)',
+  `operation_content` TEXT DEFAULT NULL COMMENT '操作内容(如催办消息)',
+  `created_at` DATETIME NOT NULL COMMENT '操作指令下发时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`task_id`) REFERENCES `biz_training_task` (`id`),
+  FOREIGN KEY (`node_instance_id`) REFERENCES `wf_node_instance` (`id`),
+  FOREIGN KEY (`teacher_id`) REFERENCES `biz_teacher` (`user_id`),
+  FOREIGN KEY (`target_student_id`) REFERENCES `biz_student` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='教师节点操作记录表';
+
+-- 互评分配表
+CREATE TABLE `biz_peer_review_assignment` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `node_instance_id` BIGINT NOT NULL COMMENT '关联互评节点实例ID',
+  `reviewer_id` BIGINT NOT NULL COMMENT '评价人学生ID',
+  `reviewee_id` BIGINT NOT NULL COMMENT '被评价人学生ID',
+  `target_snapshot_json` JSON NOT NULL COMMENT '被评产出物快照(记录所评代码/文档的具体ID集合，防篡改)',
+  `comprehensive_score` DECIMAL(5,2) DEFAULT NULL COMMENT '系统汇总的互评总分(各维度加权计算结果)',
+  `comprehensive_comment` TEXT DEFAULT NULL COMMENT '原型图中的综合评语建议',
+  `status` TINYINT NOT NULL COMMENT '状态：0-未开始 1-已暂存(草稿) 2-已正式提交',
+  `submitted_at` DATETIME DEFAULT NULL COMMENT '正式提交全部互评的时间(草稿不记录)',
+  `is_abnormal` TINYINT DEFAULT 0 COMMENT '异常评价标志(如全打满分/恶意低分，由AI判定)',
+  `created_at` DATETIME NOT NULL COMMENT '互评关系分配时间',
+  `updated_at` DATETIME NOT NULL COMMENT '评审状态或草稿最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`node_instance_id`) REFERENCES `wf_node_instance` (`id`),
+  FOREIGN KEY (`reviewer_id`) REFERENCES `biz_student` (`user_id`),
+  FOREIGN KEY (`reviewee_id`) REFERENCES `biz_student` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='互评分配表';
+
+-- 评价指标字典表
+CREATE TABLE `dim_eval_indicator` (
+  `id` VARCHAR(32) NOT NULL COMMENT '主键(如IND_001)',
+  `l1_name` VARCHAR(64) NOT NULL COMMENT '一级指标(如AI素养)',
+  `l2_name` VARCHAR(64) NOT NULL COMMENT '二级指标',
+  `l3_name` VARCHAR(64) NOT NULL COMMENT '三级指标(如代码规范)',
+  `target_type` TINYINT NOT NULL COMMENT '适用范围(1-个人 2-小组 3-全局 4-班级)',
+  `max_score` INT NOT NULL COMMENT '满分值',
+  `calc_prompt` TEXT NOT NULL COMMENT '大模型计算基准逻辑',
+  `created_at` DATETIME NOT NULL COMMENT '指标录入时间',
+  `updated_at` DATETIME NOT NULL COMMENT '指标内容最后更新时间',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='评价指标字典表';
+
+-- 评价事实结果表
+CREATE TABLE `fact_eval_result` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `task_id` BIGINT NOT NULL COMMENT '关联实训任务',
+  `target_type` TINYINT NOT NULL COMMENT '评分对象类型(1-人 2-组 3-实训 4-班)',
+  `target_id` BIGINT NOT NULL COMMENT '对应的学生/组/实训/班级ID',
+  `indicator_id` VARCHAR(32) NOT NULL COMMENT '关联字典表指标',
+  `raw_score` DECIMAL(5,2) NOT NULL COMMENT '原始分',
+  `calc_score` DECIMAL(5,2) NOT NULL COMMENT '计算图表分',
+  `ai_comment` TEXT DEFAULT NULL COMMENT '大模型给出的评语',
+  `teacher_comment` TEXT DEFAULT NULL COMMENT '教师给出的评语',
+  `peer_review_id` BIGINT DEFAULT NULL COMMENT '关联互评分配表ID',
+  `created_at` DATETIME NOT NULL COMMENT '评价结果落库时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`task_id`) REFERENCES `biz_training_task` (`id`),
+  FOREIGN KEY (`indicator_id`) REFERENCES `dim_eval_indicator` (`id`),
+  FOREIGN KEY (`peer_review_id`) REFERENCES `biz_peer_review_assignment` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='评价事实结果表';
+
+-- 成就徽章定义表
+CREATE TABLE `biz_achievement_def` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `achievement_code` VARCHAR(32) NOT NULL COMMENT '成就编码',
+  `achievement_name` VARCHAR(64) NOT NULL COMMENT '成就名称',
+  `description` TEXT NOT NULL COMMENT '成就描述',
+  `icon_url` VARCHAR(255) NOT NULL COMMENT '徽章图标地址',
+  `trigger_condition` TEXT NOT NULL COMMENT '触发条件(JSON规则)',
+  `created_at` DATETIME NOT NULL COMMENT '成就定义注册时间',
+  `updated_at` DATETIME NOT NULL COMMENT '成就定义最后更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_achievement_code` (`achievement_code`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='成就徽章定义表';
+
+-- 学生成就获得表
+CREATE TABLE `biz_student_achievement` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `student_id` BIGINT NOT NULL COMMENT '学生ID',
+  `achievement_id` BIGINT NOT NULL COMMENT '关联成就定义ID',
+  `task_id` BIGINT NOT NULL COMMENT '获得成就的实训任务ID',
+  `obtained_at` DATETIME NOT NULL COMMENT '获得时间',
+  `created_at` DATETIME NOT NULL COMMENT '系统发成记录生成时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`student_id`) REFERENCES `biz_student` (`user_id`),
+  FOREIGN KEY (`achievement_id`) REFERENCES `biz_achievement_def` (`id`),
+  FOREIGN KEY (`task_id`) REFERENCES `biz_training_task` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生成就获得表';
+
+-- 运维工单表
+CREATE TABLE `sys_ticket` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `creator_id` BIGINT NOT NULL COMMENT '提交人',
+  `title` VARCHAR(128) NOT NULL COMMENT '标题',
+  `content` TEXT NOT NULL COMMENT '工单详情',
+  `status` TINYINT NOT NULL COMMENT '处理状态',
+  `created_at` DATETIME NOT NULL COMMENT '工单创建时间',
+  `updated_at` DATETIME NOT NULL COMMENT '工单状态最后更新时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`creator_id`) REFERENCES `sys_user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='运维工单表';
+
+-- 系统反馈表
+CREATE TABLE `sys_feedback` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `user_id` BIGINT NOT NULL COMMENT '反馈人ID',
+  `content` TEXT NOT NULL COMMENT '反馈内容',
+  `created_at` DATETIME NOT NULL COMMENT '反馈提交时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统反馈表';
+
+-- 系统操作日志表
+CREATE TABLE `sys_operation_log` (
+  `id` BIGINT NOT NULL COMMENT '主键',
+  `user_id` BIGINT NOT NULL COMMENT '操作人',
+  `action_type` VARCHAR(64) NOT NULL COMMENT '动作类型',
+  `ip_address` VARCHAR(64) NOT NULL COMMENT 'IP地址',
+  `created_at` DATETIME NOT NULL COMMENT '操作流水记录时间',
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (`user_id`) REFERENCES `sys_user` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统操作日志表';

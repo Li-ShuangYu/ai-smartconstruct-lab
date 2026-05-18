@@ -44,7 +44,7 @@ const ticketCols: DataTableColumns<Ticket> = [
   {title:'ID',key:'id',width:60},
   {title:'标题',key:'title'},
   {title:'内容',key:'content',ellipsis:{tooltip:true},width:300},
-  {title:'状态',key:'status',width:90,render(row){const s=sm[row.status]||sm[0];return h(NTag,{type:s.type as any,size:'small'},{default:()=>s.label})}},
+  {title:'状态',key:'status',width:90,render(row){const s=sm[row.status]||sm[0];return h(NTag,{type:s?.type as any,size:'small'},{default:()=>s?.label||'未知'})}},
   {title:'提交时间',key:'createdAt',width:160},
   {title:'操作',key:'actions',width:160,render(row){return h('div',{style:'display:flex;gap:6px'},[
     h(NButton,{size:'tiny',type:'success',onClick:()=>doTicketStatus(row,2),disabled:row.status===2},{default:()=>'解决'}),
