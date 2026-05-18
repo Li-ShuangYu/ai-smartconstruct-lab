@@ -23,8 +23,6 @@ public class BizCourse {
     private Long id;
     /** 课程名称 */
     private String courseName;
-    /** 课程编码 */
-    private String courseCode;
     /** 课程描述 */
     private String description;
     /** 课程状态：0=禁用，1=启用 */

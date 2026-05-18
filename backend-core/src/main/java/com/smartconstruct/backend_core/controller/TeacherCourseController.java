@@ -30,7 +30,7 @@ public class TeacherCourseController {
             @RequestParam(required = false) String keyword) {
         LambdaQueryWrapper<BizCourse> qw = new LambdaQueryWrapper<>();
         if (keyword != null && !keyword.isEmpty()) {
-            qw.like(BizCourse::getCourseName, keyword).or().like(BizCourse::getCourseCode, keyword);
+            qw.like(BizCourse::getCourseName, keyword);
         }
         qw.orderByDesc(BizCourse::getCreatedAt);
         Page<BizCourse> p = courseService.page(new Page<>(page, pageSize), qw);
@@ -40,9 +40,7 @@ public class TeacherCourseController {
     @OperationLog(action = "教师新增课程")
     @PostMapping
     public ApiResult<Void> create(@RequestBody BizCourse course) {
-        SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         course.setStatus(0);
-        course.setCourseCode("C-" + System.currentTimeMillis());
         course.setCreatedAt(LocalDateTime.now());
         course.setUpdatedAt(LocalDateTime.now());
         courseService.save(course);

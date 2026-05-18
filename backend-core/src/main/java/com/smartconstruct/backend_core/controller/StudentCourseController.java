@@ -46,7 +46,7 @@ public class StudentCourseController {
         LambdaQueryWrapper<BizCourse> qw = new LambdaQueryWrapper<>();
         qw.eq(BizCourse::getStatus, 1);
         if (keyword != null && !keyword.isEmpty()) {
-            qw.and(w -> w.like(BizCourse::getCourseName, keyword).or().like(BizCourse::getCourseCode, keyword));
+            qw.and(w -> w.like(BizCourse::getCourseName, keyword));
         }
         qw.orderByDesc(BizCourse::getCreatedAt);
         Page<BizCourse> p = courseService.page(new Page<>(page, pageSize), qw);
@@ -65,7 +65,6 @@ public class StudentCourseController {
             Map<String, Object> map = new java.util.LinkedHashMap<>();
             map.put("id", course.getId());
             map.put("courseName", course.getCourseName());
-            map.put("courseCode", course.getCourseCode());
             map.put("description", course.getDescription());
             map.put("status", course.getStatus());
             map.put("needEnrollCode", course.getNeedEnrollCode());
@@ -134,7 +133,6 @@ public class StudentCourseController {
             Map<String, Object> map = new java.util.LinkedHashMap<>();
             map.put("id", course.getId());
             map.put("courseName", course.getCourseName());
-            map.put("courseCode", course.getCourseCode());
             map.put("description", course.getDescription());
             map.put("status", course.getStatus());
             map.put("createdAt", course.getCreatedAt());

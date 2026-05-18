@@ -28,7 +28,7 @@ public class AdminCourseController {
             @RequestParam(required = false) String keyword) {
         LambdaQueryWrapper<BizCourse> qw = new LambdaQueryWrapper<>();
         if (keyword != null && !keyword.isEmpty()) {
-            qw.like(BizCourse::getCourseName, keyword).or().like(BizCourse::getCourseCode, keyword);
+            qw.like(BizCourse::getCourseName, keyword);
         }
         qw.orderByDesc(BizCourse::getCreatedAt);
         Page<BizCourse> p = courseService.page(new Page<>(page, pageSize), qw);

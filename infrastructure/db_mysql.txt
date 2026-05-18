@@ -79,8 +79,8 @@ CREATE TABLE `biz_student_note` (
 -- 教学课程表
 CREATE TABLE `biz_course` (
   `id` BIGINT NOT NULL COMMENT '主键',
+  `teacher_id` bigint NOT NULL COMMENT '授课教师 ID (关联 sys_user)',
   `course_name` VARCHAR(128) NOT NULL COMMENT '课程名称',
-  `course_code` VARCHAR(64) NOT NULL COMMENT '课程代码',
   `description` TEXT DEFAULT NULL COMMENT '课程简介',
   `status` TINYINT NOT NULL COMMENT '状态：0-草稿 1-已发布/开放',
   `need_enroll_code` TINYINT NOT NULL COMMENT '是否需选课码：0-否 1-是',

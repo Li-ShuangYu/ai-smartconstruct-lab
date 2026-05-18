@@ -30,11 +30,10 @@
       <!-- 课程列表 -->
       <main v-if="activeTab === 'course'">
         <div class="data-grid-header">
-          <span>课程名称</span><span>课程代码</span><span>状态</span><span class="action-header">操作</span>
+          <span>课程名称</span><span>状态</span><span class="action-header">操作</span>
         </div>
         <div v-for="crs in courses" :key="crs.id" class="grid-row">
           <span class="name">{{ crs.courseName }}</span>
-          <span class="time">{{ crs.courseCode }}</span>
           <span><n-tag :type="crs.status === 1 ? 'success' : 'default'" size="small">{{ crs.status === 1 ? '已发布' : '草稿' }}</n-tag></span>
           <div class="actions">
             <button class="text-btn primary" @click="openCourseStudents(crs)">查看学生</button>
@@ -91,7 +90,7 @@ const classes = ref<AdminClass[]>([])
 const courses = ref<Course[]>([])
 const coursePage = ref(1); const coursePageSize = ref(10); const courseTotal = ref(0)
 const showModal = ref(false); const editingId = ref<number|null>(null); const formRef = ref<FormInst|null>(null)
-const form = reactive<Course>({ courseName:'', courseCode:'', description:'', status:0, needEnrollCode:0, enrollCode:'' })
+const form = reactive<Course>({ courseName:'', description:'', status:0, needEnrollCode:0, enrollCode:'' })
 const rules: FormRules = { courseName: [{required:true,message:'请输入课程名称'}] }
 
 // 学生 Drawer
@@ -175,8 +174,8 @@ onMounted(() => loadClasses())
 .tab-item { padding: 12px 4px; cursor: pointer; color: #64748B; font-weight: 600; border-bottom: 2px solid transparent; transition: all .3s; }
 .tab-item.active { color: #4F46E5; border-bottom-color: #4F46E5; }
 .data-grid-header, .grid-row { display: grid; align-items: center; padding: 12px 24px; }
-.data-grid-header { grid-template-columns: 2fr 1fr 1fr 240px; background: #F1F5F9; border-radius: 8px; font-weight: 700; color: #475569; }
-.grid-row { grid-template-columns: 2fr 1fr 1fr 240px; background: white; margin-top: 10px; border-radius: 12px; border: 1px solid #F1F5F9; transition: all .2s; }
+.data-grid-header { grid-template-columns: 2fr 1fr 240px; background: #F1F5F9; border-radius: 8px; font-weight: 700; color: #475569; }
+.grid-row { grid-template-columns: 2fr 1fr 240px; background: white; margin-top: 10px; border-radius: 12px; border: 1px solid #F1F5F9; transition: all .2s; }
 .grid-row:hover { background: #F8FAFC; border-color: #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0,0,0,.05); }
 .name { font-weight: 600; color: #1E293B; }
 .time { font-size: 13px; color: #64748B; }
