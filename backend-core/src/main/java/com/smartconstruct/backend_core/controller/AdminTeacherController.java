@@ -26,7 +26,7 @@ public class AdminTeacherController {
             @RequestParam(required = false) String keyword) {
         LambdaQueryWrapper<BizTeacher> qw = new LambdaQueryWrapper<>();
         if (keyword != null && !keyword.isEmpty()) {
-            qw.like(BizTeacher::getRealName, keyword).or().like(BizTeacher::getEmployeeNo, keyword);
+            qw.like(BizTeacher::getRealName, keyword);
         }
         qw.orderByDesc(BizTeacher::getUserId);
         Page<BizTeacher> p = teacherService.page(new Page<>(page, pageSize), qw);

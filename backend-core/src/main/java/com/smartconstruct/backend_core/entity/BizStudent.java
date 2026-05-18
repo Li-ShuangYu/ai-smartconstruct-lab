@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 public class BizStudent {
     @TableId(type = IdType.INPUT)
     private Long userId;
-    private String studentNo;
     private String realName;
     private Long deptId;
     private Long majorId;

@@ -123,9 +123,10 @@ export interface OperationLog {
 
 export interface Teacher {
   userId: number
-  employeeNo: string
+  username: string
   realName: string
   deptId: number
+  createdAt?: string
 }
 
 export interface Student {

@@ -112,7 +112,6 @@ public class TeacherDashboardController {
         data.put("bio", user.getBio());
         if (teacher != null) {
             data.put("realName", teacher.getRealName());
-            data.put("employeeNo", teacher.getEmployeeNo());
             data.put("deptId", teacher.getDeptId());
             BizDepartment dept = departmentService.getById(teacher.getDeptId());
             data.put("deptName", dept != null ? dept.getDeptName() : "");
@@ -142,12 +141,13 @@ public class TeacherDashboardController {
             if (u == null) continue;
             if (keyword != null && !keyword.isBlank()) {
                 String kw = keyword.toLowerCase();
-                if (!(s.getRealName() != null && s.getRealName().toLowerCase().contains(kw))
-                    && !(s.getStudentNo() != null && s.getStudentNo().toLowerCase().contains(kw))) continue;
+                boolean nameMatch = s.getRealName() != null && s.getRealName().toLowerCase().contains(kw);
+                boolean userMatch = u.getUsername() != null && u.getUsername().toLowerCase().contains(kw);
+                if (!nameMatch && !userMatch) continue;
             }
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("userId", s.getUserId());
-            m.put("studentNo", s.getStudentNo());
+            m.put("studentNo", u.getUsername());
             m.put("realName", s.getRealName());
             m.put("username", u.getUsername());
             list.add(m);
@@ -168,12 +168,13 @@ public class TeacherDashboardController {
             if (u == null) continue;
             if (keyword != null && !keyword.isBlank()) {
                 String kw = keyword.toLowerCase();
-                if (!(s.getRealName() != null && s.getRealName().toLowerCase().contains(kw))
-                    && !(s.getStudentNo() != null && s.getStudentNo().toLowerCase().contains(kw))) continue;
+                boolean nameMatch = s.getRealName() != null && s.getRealName().toLowerCase().contains(kw);
+                boolean userMatch = u.getUsername() != null && u.getUsername().toLowerCase().contains(kw);
+                if (!nameMatch && !userMatch) continue;
             }
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("userId", s.getUserId());
-            m.put("studentNo", s.getStudentNo());
+            m.put("studentNo", u.getUsername());
             m.put("realName", s.getRealName());
             m.put("username", u.getUsername());
             list.add(m);

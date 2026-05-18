@@ -131,7 +131,7 @@ const roles = [
 ]
 
 const idPlaceholder = computed(() => {
-  return currentRole.value === 'student' ? '请输入学号' : '请输入工号'
+  return currentRole.value === 'student' ? '请输入学号' : '请输入账号'
 })
 
 function switchRole(roleId: string) {
@@ -211,8 +211,7 @@ const handleRegister = async () => {
       deptId: selectedDeptId.value ? Number(selectedDeptId.value) : undefined,
       majorId: selectedMajorId.value ? Number(selectedMajorId.value) : undefined,
       classId: selectedClassId.value ? Number(selectedClassId.value) : undefined,
-      studentNo: currentRole.value === 'student' ? form.username : undefined,
-      employeeNo: currentRole.value === 'teacher' ? form.username : undefined
+      studentNo: currentRole.value === 'student' ? form.username : undefined
     })
     if (res.code === 200) {
       successMsg.value = '注册成功，即将跳转登录页...'

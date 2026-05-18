@@ -26,7 +26,7 @@ public class AdminStudentController {
             @RequestParam(required = false) String keyword) {
         LambdaQueryWrapper<BizStudent> qw = new LambdaQueryWrapper<>();
         if (keyword != null && !keyword.isEmpty()) {
-            qw.like(BizStudent::getRealName, keyword).or().like(BizStudent::getStudentNo, keyword);
+            qw.like(BizStudent::getRealName, keyword);
         }
         qw.orderByDesc(BizStudent::getUserId);
         Page<BizStudent> p = studentService.page(new Page<>(page, pageSize), qw);

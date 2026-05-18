@@ -16,8 +16,6 @@ public class RegisterRequest {
     @NotNull(message = "角色类型不能为空")
     private Integer roleType;
 
-    private String studentNo;
-    private String employeeNo;
     private String realName;
     private Long deptId;
     private Long majorId;

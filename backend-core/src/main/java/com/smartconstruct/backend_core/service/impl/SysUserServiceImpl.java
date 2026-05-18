@@ -110,7 +110,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         if (request.getRoleType() == 3) {
             BizStudent student = new BizStudent();
             student.setUserId(user.getId());
-            student.setStudentNo(request.getStudentNo());
             student.setRealName(request.getRealName());
             student.setDeptId(request.getDeptId());
             student.setMajorId(request.getMajorId());
@@ -121,7 +120,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
         } else if (request.getRoleType() == 2) {
             BizTeacher teacher = new BizTeacher();
             teacher.setUserId(user.getId());
-            teacher.setEmployeeNo(request.getEmployeeNo());
             teacher.setRealName(request.getRealName());
             teacher.setDeptId(request.getDeptId());
             teacher.setCreatedAt(now);

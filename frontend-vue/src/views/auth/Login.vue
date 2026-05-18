@@ -153,7 +153,7 @@ const defaultCredentials: Record<string, { account: string; password: string }> 
  */
 const accountPlaceholder = computed(() => {
   if (currentRole.value === 'student') return '请输入学生学号'
-  if (currentRole.value === 'teacher') return '请输入教师工号'
+  if (currentRole.value === 'teacher') return '请输入教师账号'
   return '请输入管理员账号'
 })
 

@@ -13,17 +13,19 @@
     </div>
 
     <div class="data-grid">
-      <div class="grid-header" style="grid-template-columns: 80px 1fr 1fr 150px;">
-        <span>ID</span>
+      <div class="grid-header" style="grid-template-columns: 150px 100px 1fr 160px 120px;">
+        <span>账号</span>
         <span>姓名</span>
         <span>院系</span>
+        <span>创建时间</span>
         <span>操作</span>
       </div>
       <div class="grid-body">
-        <div v-for="row in data.records" :key="row.userId" class="grid-row" style="grid-template-columns: 80px 1fr 1fr 150px;">
-          <span>{{ row.userId }}</span>
+        <div v-for="row in data.records" :key="row.userId" class="grid-row" style="grid-template-columns: 150px 100px 1fr 160px 120px;">
+          <span class="text-truncate" :title="row.username">{{ row.username }}</span>
           <span>{{ row.realName }}</span>
           <span>{{ getDeptName(row.deptId) }}</span>
+          <span class="text-truncate" :title="formatDate(row.createdAt)">{{ formatDate(row.createdAt) }}</span>
           <div class="action-cell">
             <button class="text-btn" @click="openModal(row)">编辑</button>
             <div class="v-divider"></div>
@@ -42,12 +44,18 @@
     </div>
 
     <n-modal v-model:show="showModal" preset="card" :title="editingId ? '编辑教师' : '新增教师'" style="width: 500px;">
-      <n-form :model="form" label-placement="top">
+      <n-form :model="form" label-placement="top" autocomplete="off">
+        <n-form-item label="账号">
+          <n-input v-model:value="form.username" :disabled="editingId !== null" placeholder="请输入账号" autocomplete="off" />
+        </n-form-item>
         <n-form-item label="姓名">
-          <n-input v-model:value="form.realName" placeholder="请输入姓名" />
+          <n-input v-model:value="form.realName" placeholder="请输入姓名" autocomplete="off" />
         </n-form-item>
         <n-form-item label="院系">
           <n-select v-model:value="form.deptId" :options="deptOptions" placeholder="请选择院系" style="width: 100%;" />
+        </n-form-item>
+        <n-form-item label="登录密码">
+          <n-input type="password" v-model:value="form.password" :placeholder="editingId ? '设置新密码（不修改请留空）' : '请设置登录密码'" autocomplete="new-password" />
         </n-form-item>
       </n-form>
       <template #footer>
@@ -76,7 +84,7 @@ const pageSize = ref(10)
 const editingId = ref<number | null>(null)
 const data = ref<PageResult<Teacher>>({ records: [], total: 0, page: 1, pageSize: 10 })
 const depts = ref<Department[]>([])
-const form = reactive<Partial<Teacher>>({ realName: '', deptId: 0 })
+const form = reactive<Partial<Teacher>>({ username: '', realName: '', deptId: 0, password: '' })
 
 const deptOptions = computed(() => {
   return depts.value.map(dept => ({
@@ -118,19 +126,43 @@ function getDeptName(deptId: number | undefined): string {
   return dept?.deptName || String(deptId)
 }
 
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
+}
+
 function openModal(row: Teacher | null) {
   editingId.value = row?.userId ?? null
   if (row) {
-    Object.assign(form, { realName: row.realName, deptId: row.deptId })
+    Object.assign(form, { username: row.username, realName: row.realName, deptId: row.deptId, password: '' })
   } else {
-    Object.assign(form, { realName: '', deptId: 0 })
+    Object.assign(form, { username: '', realName: '', deptId: 0, password: '' })
   }
   showModal.value = true
 }
 
 async function save() {
+  if (!form.username?.trim()) { message.warning('请输入账号'); return }
   if (!form.realName?.trim()) { message.warning('请输入姓名'); return }
   if (!form.deptId) { message.warning('请选择院系'); return }
+  if (editingId.value === null && !form.password?.trim()) { 
+    message.warning('请设置登录密码'); 
+    return 
+  }
+  if (editingId.value === null && form.password.length < 6) {
+    message.warning('密码长度不能少于 6 位');
+    return
+  }
+  if (editingId.value !== null && form.password && form.password.length < 6) {
+    message.warning('密码长度不能少于 6 位');
+    return
+  }
   saving.value = true
   try {
     if (editingId.value) {
@@ -187,6 +219,7 @@ onMounted(async () => {
 .text-btn.danger { color: #EF4444; }
 .text-btn.danger:hover { background: #FEF2F2; }
 .v-divider { width: 1px; height: 12px; background: #E2E8F0; margin: 0 4px; }
+.text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .empty-state { padding: 48px; text-align: center; color: #94A3B8; font-size: 14px; }
 .pagination-wrap { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 16px; font-size: 13px; color: #64748B; }
 .page-btn { padding: 6px 12px; border: 1px solid #E2E8F0; background: #fff; border-radius: 6px; cursor: pointer; font-size: 13px; }

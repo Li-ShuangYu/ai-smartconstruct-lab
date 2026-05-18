@@ -205,7 +205,6 @@ public class StudentDashboardController {
         for (BizStudent s : classmates) {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("userId", s.getUserId());
-            map.put("studentNo", s.getStudentNo());
             map.put("realName", s.getRealName());
             list.add(map);
         }
@@ -236,7 +235,6 @@ public class StudentDashboardController {
         data.put("bio", user.getBio());
         if (student != null) {
             data.put("realName", student.getRealName());
-            data.put("studentNo", student.getStudentNo());
             data.put("deptId", student.getDeptId());
             data.put("majorId", student.getMajorId());
             data.put("classId", student.getClassId());

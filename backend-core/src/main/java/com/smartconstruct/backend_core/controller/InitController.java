@@ -16,12 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 
-/**
- * 系统初始化控制器
- *
- * 仅在首次启动时调用，初始化院系、建表、初始化院系、专业、班级和初始用户及初始种子数据。
- * 幂等设计：如数据已存在则直接跳过，不会重复插入。
- */
 @RestController
 @RequestMapping("/api/public")
 public class InitController {
@@ -59,30 +53,25 @@ public class InitController {
     @PostMapping("/init")
     @Transactional(rollbackFor = Exception.class)
     public ApiResult<String> initSystemData() {
-        // 1. 检查是否已初始化（通过部门数据判断）
         if (departmentService.count() > 0) {
             return ApiResult.ok("系统数据已初始化，无需重复操作");
         }
 
-        // 2. 执行建表/加列迁移（兼容旧的 Hibernate ddl-auto=update 未管理的表）
         migrateSchema();
 
         LocalDateTime now = LocalDateTime.now();
 
-        // ========== 3. 初始化院系 ==========
         BizDepartment dept = new BizDepartment();
         dept.setDeptName("信息工程学院");
         dept.setCreatedAt(now);
         departmentService.save(dept);
 
-        // ========== 4. 初始化专业 ==========
         BizMajor major = new BizMajor();
         major.setDeptId(dept.getId());
         major.setMajorName("软件工程");
         major.setCreatedAt(now);
         majorService.save(major);
 
-        // ========== 5. 初始化班级 ==========
         BizAdminClass adminClass = new BizAdminClass();
         adminClass.setMajorId(major.getId());
         adminClass.setClassName("26软件工程1班");
@@ -90,7 +79,6 @@ public class InitController {
         adminClass.setCreatedAt(now);
         adminClassService.save(adminClass);
 
-        // ========== 6. 初始化管理员用户 ==========
         SysUser admin = new SysUser();
         admin.setUsername("user1");
         admin.setPasswordHash(passwordEncoder.encode("123456"));
@@ -100,22 +88,18 @@ public class InitController {
         admin.setUpdatedAt(now);
         sysUserService.save(admin);
 
-        // ========== 7. 初始化教师 ==========
         RegisterRequest teacherReq = new RegisterRequest();
         teacherReq.setUsername("teacher");
         teacherReq.setPassword("123456");
         teacherReq.setRoleType(2);
-        teacherReq.setEmployeeNo("T001");
         teacherReq.setRealName("李欣欣");
         teacherReq.setDeptId(dept.getId());
         sysUserService.registerUser(teacherReq);
 
-        // ========== 8. 初始化学生 ==========
         RegisterRequest studentReq = new RegisterRequest();
         studentReq.setUsername("student");
         studentReq.setPassword("123456");
         studentReq.setRoleType(3);
-        studentReq.setStudentNo("S001");
         studentReq.setRealName("张三");
         studentReq.setDeptId(dept.getId());
         studentReq.setMajorId(major.getId());
@@ -126,56 +110,118 @@ public class InitController {
     }
 
     /**
-     * 迁移数据库 schema，为 MyBatis-Plus 实体补充 Hibernate 未管理的列
+     * Schema migration: drop all FK constraints, drop obsolete columns, add missing columns
      */
     private void migrateSchema() {
-        // biz_department: add created_at if missing
-        safeAlter("ALTER TABLE biz_department ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-        // biz_major: add created_at if missing
-        safeAlter("ALTER TABLE biz_major ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-        // biz_admin_class: add enrollment_year if missing
-        safeAlter("ALTER TABLE biz_admin_class ADD COLUMN enrollment_year INT NOT NULL DEFAULT 2026");
-        safeAlter("ALTER TABLE biz_admin_class ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-        // biz_student: add columns if missing
-        safeAlter("ALTER TABLE biz_student ADD COLUMN student_no VARCHAR(32) NOT NULL DEFAULT ''");
-        safeAlter("ALTER TABLE biz_student ADD COLUMN real_name VARCHAR(64) NOT NULL DEFAULT ''");
-        safeAlter("ALTER TABLE biz_student ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-        safeAlter("ALTER TABLE biz_student ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-        safeAlter("ALTER TABLE biz_student ADD UNIQUE INDEX uk_student_no (student_no)");
-        // biz_teacher: add columns if missing
-        safeAlter("ALTER TABLE biz_teacher ADD COLUMN employee_no VARCHAR(32) NOT NULL DEFAULT ''");
-        safeAlter("ALTER TABLE biz_teacher ADD COLUMN real_name VARCHAR(64) NOT NULL DEFAULT ''");
-        safeAlter("ALTER TABLE biz_teacher ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-        safeAlter("ALTER TABLE biz_teacher ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-        safeAlter("ALTER TABLE biz_teacher ADD UNIQUE INDEX uk_employee_no (employee_no)");
-        // wf_node_def: add node_type if missing
-        safeAlter("ALTER TABLE wf_node_def ADD COLUMN node_type VARCHAR(32) NOT NULL DEFAULT ''");
-        safeAlter("ALTER TABLE wf_node_def ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-        safeAlter("ALTER TABLE wf_node_def ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-        safeAlter("ALTER TABLE wf_node_def ADD UNIQUE INDEX uk_node_type (node_type)");
-        // biz_training_task: add group_config_json if missing
-        safeAlter("ALTER TABLE biz_training_task ADD COLUMN group_config_json JSON DEFAULT NULL");
-        // biz_training_participation: add total_score, satisfaction_detail_json
-        safeAlter("ALTER TABLE biz_training_participation ADD COLUMN total_score DECIMAL(5,2) DEFAULT NULL");
-        safeAlter("ALTER TABLE biz_training_participation ADD COLUMN satisfaction_detail_json JSON DEFAULT NULL");
-        // biz_mindmap_record: add node_instance_id / map_topology_json
-        safeAlter("ALTER TABLE biz_mindmap_record ADD COLUMN node_instance_id BIGINT DEFAULT NULL");
-        safeAlter("ALTER TABLE biz_mindmap_record ADD COLUMN map_topology_json JSON DEFAULT NULL");
-        // wf_global_activity_state: add created_at if missing
-        safeAlter("ALTER TABLE wf_global_activity_state ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-        safeAlter("ALTER TABLE wf_global_activity_state ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
-        // wf_student_activity_state: add created_at if missing
-        safeAlter("ALTER TABLE wf_student_activity_state ADD COLUMN current_node_instance_id BIGINT DEFAULT NULL");
-        safeAlter("ALTER TABLE wf_student_activity_state ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP");
+        // ===== 1. Drop all foreign key constraints =====
+        String[] fkDropSqls = {
+            "ALTER TABLE biz_student DROP FOREIGN KEY IF EXISTS fk_student_user",
+            "ALTER TABLE biz_student DROP FOREIGN KEY IF EXISTS fk_student_dept",
+            "ALTER TABLE biz_student DROP FOREIGN KEY IF EXISTS fk_student_major",
+            "ALTER TABLE biz_student DROP FOREIGN KEY IF EXISTS fk_student_class",
+            "ALTER TABLE biz_teacher DROP FOREIGN KEY IF EXISTS fk_teacher_user",
+            "ALTER TABLE biz_teacher DROP FOREIGN KEY IF EXISTS fk_teacher_dept",
+            "ALTER TABLE biz_course DROP FOREIGN KEY IF EXISTS fk_course_creator",
+            "ALTER TABLE biz_student_course DROP FOREIGN KEY IF EXISTS fk_sc_student",
+            "ALTER TABLE biz_student_question_biz_course DROP FOREIGN KEY IF EXISTS fk_sc_course",
+            "ALTER TABLE fiz_question_bank DROP FOREIGN KEY IF EXISTS fk_qb_teacher",
+            "ALTER TABLE biz_question DROP FOREIGN KEY IF EXISTS fk_q_bank",
+            "ALTER TABLE biz_knowledge_point DROP FOREIGN KEY IF EXISTS fk_kp_course",
+            "ALTER TABLE sys_resource DROP FOREIGN KEY IF EXISTS fk_resource_uploader",
+            "ALTER TABLE biz_training_task DROP FOREIGN KEY IF EXISTS fk_tt_template",
+            "ALTER TABLE biz_training_task DROP FOREIGN KEY IF EXISTS fk_tt_teacher",
+            "ALTER TABLE biz_training_participation DROP FOREIGN KEY IF EXISTS fk_tp_task",
+            "ALTER TABLE biz_training_participation DROP FOREIGN KEY IF EXISTS fk_tp_student",
+            "ALTER TABLE biz_training_paper DROP FOREIGN KEY IF EXISTS fk_tp_task",
+            "ALTER TABLE biz_training_paper DROP FOREIGN KEY IF EXISTS fk_tp_node",
+            "ALTER TABLE biz_training_paper_question DROP FOREIGN KEY IF EXISTS fk_tpq_paper",
+            "ALTER TABLE biz_training_paper_question DROP FOREIGN KEY IF EXISTS fk_tpq_question",
+            "ALTER TABLE biz_training_upload DROP FOREIGN KEY IF EXISTS fk_tu_participation",
+            "ALTER TABLE biz_training_upload DROP FOREIGN KEY IF EXISTS fk_tu_node",
+            "ALTER TABLE biz_training_upload DROP FOREIGN KEY IF EXISTS fk_tu_resource",
+            "ALTER TABLE biz_training_group DROP FOREIGN KEY IF EXISTS fk_tg_task",
+            "ALTER TABLE biz_group_member DROP FOREIGN KEY IF EXISTS fk_gm_group",
+            "ALTER TABLE biz_group_member DROP FOREIGN KEY IF EXISTS IF EXISTS fk_gm_student",
+            "ALTER TABLE wf_node_instance DROP FOREIGN KEY IF EXISTS fk_ni_task",
+            "ALTER TABLE wf_node_instance DROP FOREIGN KEY IF EXISTS fk_ni_def",
+            "ALTER TABLE wf_global_activity_state DROP FOREIGN KEY IF EXISTS fk_gas_task",
+            "ALTER TABLE wf_global_activity_state DROP FOREIGN KEY IF EXISTS fk_gas_node",
+            "ALTER TABLE wf_student_activity_state DROP FOREIGN KEY IF EXISTS fk_sas_participation",
+            "ALTER TABLE wf_student_activity_state DROP FOREIGN KEY IF EXISTS fk_sas_node",
+            "ALTER TABLE biz_mindmap_record DROP FOREIGN KEY IF EXISTS fk_mr_participation",
+            "ALTER TABLE biz_mindmap_record DROP FOREIGN KEY IF EXISTS fk_mr_node",
+            "ALTER TABLE biz_mindmap_eval_detail DROP FOREIGN KEY IF EXISTS fk_med_participation",
+            "ALTER TABLE biz_mindmap_eval_detail DROP FOREIGN KEY IF EXISTS fk_med_kp",
+            "ALTER TABLE biz_student_paper DROP FOREIGN KEY IF EXISTS fk_sp_paper",
+            "ALTER TABLE biz_student_paper DROP FOREIGN KEY IF EXISTS fk_sp_participation",
+            "ALTER TABLE biz_student_paper DROP FOREIGN KEY IF EXISTS fk_sp_student",
+            "ALTER TABLE biz_student_answer_detail DROP FOREIGN KEY IF EXISTS fk_sad_student_paper",
+            "ALTER TABLE biz_student_answer_detail DROP FOREIGN KEY IF EXISTS fk_sad_paper_question",
+            "ALTER TABLE biz_ai_session DROP FOREIGN KEY IF EXISTS fk_ais_student",
+            "ALTER TABLE biz_ai_session DROP FOREIGN KEY IF EXISTS fk_ais_task",
+            "ALTER TABLE biz_ai_session DROP FOREIGN KEY IF EXISTS fk_ais_node",
+            "ALTER TABLE biz_ai_message DROP FOREIGN KEY IF EXISTS fk_aim_session",
+            "ALTER TABLE wf_student_node_progress DROP FOREIGN KEY IF EXISTS fk_snp_participation",
+            "ALTER TABLE wf_student_node_progress DROP FOREIGN KEY IF EXISTS fk_snp_node",
+            "ALTER TABLE wf_teacher_node_drop DROP FOREIGN KEY IF EXISTS fk_tno_task",
+            "ALTER TABLE wf_teacher_node_operation DROP FOREIGN KEY IF EXISTS fk_tno_node",
+            "ALTER TABLE wf_teacher_node_operation DROP FOREIGN KEY IF EXISTS fk_tno_teacher",
+            "ALTER TABLE biz_peer_review_assignment DROP FOREIGN KEY IF EXISTS fk_pra_node",
+            "ALTER TABLE biz_peer_review_assignment DROP FOREIGN KEY IF EXISTS fk_pra_reviewer",
+            "ALTER TABLE biz_peer_review_assignment DROP FOREIGN KEY IF EXISTS fk_pra_reviewee",
+            "ALTER TABLE fact_eval_result DROP FOREIGN KEY IF EXISTS fk_fer_task",
+            "ALTER TABLE fact_eval_result DROP FOREIGN KEY IF EXISTS fk_fer_indicator",
+            "ALTER TABLE biz_student_achievement DROP FOREIGN KEY IF EXISTS fk_sa_student",
+            "ALTER TABLE biz_student_achievement DROP FOREIGN KEY IF EXISTS fk_sa_achievement",
+            "ALTER TABLE biz_student_achievement DROP FOREIGN KEY IF EXISTS fk_sa_task",
+            "ALTER TABLE sys_ticket DROP FOREIGN KEY IF EXISTS fk_ticket_creator",
+            "ALTER TABLE sys_feedback DROP FOREIGN KEY IF EXISTS fk_feedback_user",
+            "ALTER TABLE sys_operation_log DROP FOREIGN KEY IF EXISTS fk_operation_log_user"
+        };
+        for (String sql : fkDropSqls) {
+            executeIgnoreError(sql);
+        }
+
+        // ===== 2. Drop obsolete columns and indexes =====
+        String[] dropColSqls = {
+            "ALTER TABLE biz_student DROP INDEX IF EXISTS uk_student_no",
+            "ALTER TABLE biz_student DROP COLUMN IF EXISTS student_no",
+            "ALTER TABLE biz_teacher DROP INDEX IF EXISTS uk_employee_no",
+            "ALTER TABLE biz_teacher DROP COLUMN IF EXISTS employee_no"
+        };
+        for (String sql : dropColSqls) {
+            executeIgnoreError(sql);
+        }
+
+        // ===== 3. Add missing columns =====
+        String[] addColSqls = {
+            "ALTER TABLE biz_department ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_major ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_admin_class ADD COLUMN IF NOT EXISTS enrollment_year INT NOT NULL DEFAULT 2026",
+            "ALTER TABLE biz_admin_class ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_student ADD COLUMN IF NOT EXISTS real_name VARCHAR(64) NOT NULL DEFAULT ''",
+            "ALTER TABLE biz_student ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_student ADD COLUMN IF NOT EXISTS updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_teacher ADD COLUMN IF NOT EXISTS real_name VARCHAR(64) NOT NULL DEFAULT ''",
+            "ALTER TABLE biz_teacher ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_teacher ADD COLUMN IF NOT EXISTS updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE wf_node_def ADD COLUMN IF NOT EXISTS node_type VARCHAR(32) NOT NULL DEFAULT ''",
+            "ALTER TABLE wf_node_def ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE wf_node_def ADD COLUMN IF NOT EXISTS updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE wf_global_activity_state ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE wf_global_activity_state ADD COLUMN IF NOT EXISTS updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+        };
+        for (String sql : addColSqls) {
+            executeIgnoreError(sql);
+        }
     }
 
-    private void safeAlter(String sql) {
+    private void executeIgnoreError(String sql) {
         try {
             jdbcTemplate.execute(sql);
-            log.info("Schema migration OK: {}", sql.substring(0, Math.min(sql.length(), 80)));
+            log.info("Schema OK: {}", sql.substring(0, Math.min(sql.length(), 100)));
         } catch (Exception e) {
-            // Column/index already exists — this is expected on re-run
-            log.debug("Schema migration skipped (likely already exists): {}", e.getMessage());
+            log.debug("Schema skip: {}", e.getMessage());
         }
     }
 }
