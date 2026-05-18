@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 /**
  * 院系实体
  *
@@ -16,9 +18,11 @@ import lombok.Data;
 @Data
 @TableName("biz_department")
 public class BizDepartment {
-    /** 主键ID */
-    @TableId(type = IdType.AUTO)
+    /** 主键ID（雪花算法） */
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     /** 院系名称 */
     private String deptName;
+    /** 记录创建时间 */
+    private LocalDateTime createdAt;
 }

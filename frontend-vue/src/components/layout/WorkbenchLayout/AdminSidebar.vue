@@ -45,8 +45,8 @@ const adminMenus = ref([
     children: [
       { name: '临时测试', path: '/admin/training-test', icon: 'fa-solid fa-user-tie' },
       { name: '教师管理', path: '/admin/teacher', icon: 'fa-solid fa-user-tie' },
-      { name: '学生统管', path: '/admin/student', icon: 'fa-solid fa-user-graduate' },
-      { name: '菜单权限', path: '/admin/menu', icon: 'fa-solid fa-list' }
+      { name: '学生统管', path: '/admin/student', icon: 'fa-solid fa-user-graduate' }
+      // { name: '菜单权限', path: '/admin/menu', icon: 'fa-solid fa-list' }
     ]
   },
   {

@@ -34,8 +34,8 @@ import java.util.Collections;
 @TableName("sys_user")
 public class SysUser implements UserDetails {
 
-    /** 用户ID（主键，自增） */
-    @TableId(type = IdType.AUTO)
+    /** 用户ID（主键，雪花算法） */
+    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
     
     /** 用户名（登录账号） */

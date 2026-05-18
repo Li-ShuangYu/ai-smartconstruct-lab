@@ -55,8 +55,7 @@ public class TeacherDashboardController {
 
         long ongoingTasks = trainingTaskService.count(
                 new LambdaQueryWrapper<BizTrainingTask>().eq(BizTrainingTask::getTeacherId, teacherId).eq(BizTrainingTask::getStatus, 1));
-        long totalCourses = courseService.count(
-                new LambdaQueryWrapper<BizCourse>().eq(BizCourse::getCreatorId, teacherId));
+        long totalCourses = courseService.count();
 
         Map<String, Object> stats = new LinkedHashMap<>();
         stats.put("ongoingTasks", ongoingTasks);

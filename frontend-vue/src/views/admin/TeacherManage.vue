@@ -7,25 +7,23 @@
     <div class="toolbar">
       <div class="search-box">
         <span class="search-icon">🔍</span>
-        <input type="text" v-model="keyword" placeholder="搜索教师姓名或工号..." class="search-input" @keyup.enter="fetchData" />
+        <input type="text" v-model="keyword" placeholder="搜索教师姓名..." class="search-input" @keyup.enter="fetchData" />
       </div>
       <button class="primary-btn" @click="openModal(null)">+ 新增教师</button>
     </div>
 
     <div class="data-grid">
-      <div class="grid-header" style="grid-template-columns: 80px 1fr 1fr 120px 150px;">
+      <div class="grid-header" style="grid-template-columns: 80px 1fr 1fr 150px;">
         <span>ID</span>
         <span>姓名</span>
-        <span>工号</span>
-        <span>部门ID</span>
+        <span>院系</span>
         <span>操作</span>
       </div>
       <div class="grid-body">
-        <div v-for="row in data.records" :key="row.userId" class="grid-row" style="grid-template-columns: 80px 1fr 1fr 120px 150px;">
+        <div v-for="row in data.records" :key="row.userId" class="grid-row" style="grid-template-columns: 80px 1fr 1fr 150px;">
           <span>{{ row.userId }}</span>
           <span>{{ row.realName }}</span>
-          <span>{{ row.employeeNo }}</span>
-          <span>{{ row.deptId }}</span>
+          <span>{{ getDeptName(row.deptId) }}</span>
           <div class="action-cell">
             <button class="text-btn" @click="openModal(row)">编辑</button>
             <div class="v-divider"></div>
@@ -48,11 +46,8 @@
         <n-form-item label="姓名">
           <n-input v-model:value="form.realName" placeholder="请输入姓名" />
         </n-form-item>
-        <n-form-item label="工号">
-          <n-input v-model:value="form.employeeNo" placeholder="请输入工号" />
-        </n-form-item>
-        <n-form-item label="部门ID">
-          <n-input-number v-model:value="form.deptId" placeholder="请输入部门ID" style="width: 100%;" />
+        <n-form-item label="院系">
+          <n-select v-model:value="form.deptId" :options="deptOptions" placeholder="请选择院系" style="width: 100%;" />
         </n-form-item>
       </n-form>
       <template #footer>
@@ -66,10 +61,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, h } from 'vue'
-import { NButton, NModal, NForm, NFormItem, NInput, NInputNumber, NSpace, NPagination, NTag, useMessage } from 'naive-ui'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { NButton, NModal, NForm, NFormItem, NInput, NSelect, useMessage } from 'naive-ui'
 import * as api from '@/services/modules/admin.service'
-import type { Teacher, PageResult } from '@/services/types/admin.types'
+import type { Teacher, PageResult, Department } from '@/services/types/admin.types'
 
 const message = useMessage()
 const loading = ref(false)
@@ -80,7 +75,15 @@ const page = ref(1)
 const pageSize = ref(10)
 const editingId = ref<number | null>(null)
 const data = ref<PageResult<Teacher>>({ records: [], total: 0, page: 1, pageSize: 10 })
-const form = reactive<Partial<Teacher>>({ realName: '', employeeNo: '', deptId: 0 })
+const depts = ref<Department[]>([])
+const form = reactive<Partial<Teacher>>({ realName: '', deptId: 0 })
+
+const deptOptions = computed(() => {
+  return depts.value.map(dept => ({
+    label: dept.deptName,
+    value: dept.id
+  }))
+})
 
 async function fetchData() {
   loading.value = true
@@ -98,19 +101,36 @@ async function fetchData() {
   }
 }
 
+async function fetchDepts() {
+  try {
+    const r = await api.getDepts()
+    if (r.code === 200) {
+      depts.value = r.data
+    }
+  } catch (e: any) {
+    message.error('获取院系数据失败')
+  }
+}
+
+function getDeptName(deptId: number | undefined): string {
+  if (!deptId) return '-'
+  const dept = depts.value.find(d => d.id === deptId)
+  return dept?.deptName || String(deptId)
+}
+
 function openModal(row: Teacher | null) {
   editingId.value = row?.userId ?? null
   if (row) {
-    Object.assign(form, { realName: row.realName, employeeNo: row.employeeNo, deptId: row.deptId })
+    Object.assign(form, { realName: row.realName, deptId: row.deptId })
   } else {
-    Object.assign(form, { realName: '', employeeNo: '', deptId: 0 })
+    Object.assign(form, { realName: '', deptId: 0 })
   }
   showModal.value = true
 }
 
 async function save() {
   if (!form.realName?.trim()) { message.warning('请输入姓名'); return }
-  if (!form.employeeNo?.trim()) { message.warning('请输入工号'); return }
+  if (!form.deptId) { message.warning('请选择院系'); return }
   saving.value = true
   try {
     if (editingId.value) {
@@ -138,7 +158,10 @@ async function handleDelete(row: Teacher) {
   }
 }
 
-onMounted(() => fetchData())
+onMounted(async () => {
+  await fetchDepts()
+  await fetchData()
+})
 </script>
 
 <style scoped>

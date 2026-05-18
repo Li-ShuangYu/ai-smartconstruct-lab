@@ -31,10 +31,8 @@ public class BizCourse {
     private Integer status;
     /** 是否需要选课码：0=不需要，1=需要 */
     private Integer needEnrollCode;
-    /** 选课码 */
+    /** 选课授权码 */
     private String enrollCode;
-    /** 创建者ID */
-    private Long creatorId;
     /** 创建时间 */
     private LocalDateTime createdAt;
     /** 更新时间 */

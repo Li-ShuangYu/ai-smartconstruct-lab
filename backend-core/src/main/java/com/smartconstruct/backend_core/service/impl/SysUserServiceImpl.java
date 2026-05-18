@@ -97,13 +97,14 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             throw new RuntimeException("用户名已被注册");
         }
 
+        LocalDateTime now = LocalDateTime.now();
         SysUser user = new SysUser();
         user.setUsername(request.getUsername());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRoleType(request.getRoleType());
         user.setStatus(0);
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
+        user.setCreatedAt(now);
+        user.setUpdatedAt(now);
         save(user);
 
         if (request.getRoleType() == 3) {
@@ -114,6 +115,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             student.setDeptId(request.getDeptId());
             student.setMajorId(request.getMajorId());
             student.setClassId(request.getClassId());
+            student.setCreatedAt(now);
+            student.setUpdatedAt(now);
             studentService.save(student);
         } else if (request.getRoleType() == 2) {
             BizTeacher teacher = new BizTeacher();
@@ -121,6 +124,8 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             teacher.setEmployeeNo(request.getEmployeeNo());
             teacher.setRealName(request.getRealName());
             teacher.setDeptId(request.getDeptId());
+            teacher.setCreatedAt(now);
+            teacher.setUpdatedAt(now);
             teacherService.save(teacher);
         }
     }

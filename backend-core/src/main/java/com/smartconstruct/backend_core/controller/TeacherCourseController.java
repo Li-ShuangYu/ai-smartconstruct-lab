@@ -41,7 +41,6 @@ public class TeacherCourseController {
     @PostMapping
     public ApiResult<Void> create(@RequestBody BizCourse course) {
         SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        course.setCreatorId(user.getId());
         course.setStatus(0);
         course.setCourseCode("C-" + System.currentTimeMillis());
         course.setCreatedAt(LocalDateTime.now());
