@@ -31,6 +31,8 @@ public class BizCourse {
     private Integer needEnrollCode;
     /** 选课授权码 */
     private String enrollCode;
+    /** 授课教师ID（关联 sys_user） */
+    private Long teacherId;
     /** 创建时间 */
     private LocalDateTime createdAt;
     /** 更新时间 */

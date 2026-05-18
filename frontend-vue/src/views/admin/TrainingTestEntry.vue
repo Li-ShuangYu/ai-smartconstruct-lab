@@ -2,7 +2,7 @@
   <div class="admin-page">
     <div class="page-header">
       <h1>实训页面测试入口</h1>
-      <p class="text-gray-500 text-sm mt-2">快速访问各实训页面进行测试</p>
+      <p class="text-gray-500 text-sm mt-2">快速访问各实训页面进行预览</p>
     </div>
 
     <!-- 学生端实训入口 -->

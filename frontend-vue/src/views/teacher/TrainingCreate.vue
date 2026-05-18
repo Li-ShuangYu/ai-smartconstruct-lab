@@ -469,7 +469,7 @@ const MATERIAL_CATEGORIES = [
     items: [
       { type: 'mindmap_draw', label: '导图绘制', icon: '✍️' },
       { type: 'ai_practice', label: 'AI 对练', icon: '🤖' },
-      { type: 'theory_class', label: '理论学习', icon: '📚' }
+      { type: 'theory_class', label: '理论实训', icon: '📚' }
     ]
   },
   {

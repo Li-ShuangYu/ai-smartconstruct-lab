@@ -24,7 +24,7 @@ public class AdminNodeController {
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize) {
         LambdaQueryWrapper<WfNodeDef> qw = new LambdaQueryWrapper<>();
-        qw.orderByAsc(WfNodeDef::getNodeCode);
+        qw.orderByAsc(WfNodeDef::getNodeType);
         Page<WfNodeDef> p = nodeDefService.page(new Page<>(page, pageSize), qw);
         return ApiResult.ok(new PageResult<>(p.getRecords(), p.getTotal(), p.getCurrent(), p.getSize()));
     }

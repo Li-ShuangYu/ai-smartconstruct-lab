@@ -13,8 +13,6 @@ public class WfNodeDef {
     /** 主键ID（雪花算法） */
     @TableId(type = IdType.ASSIGN_ID)
     private Long id;
-    /** 节点编码（如 UPLOAD） */
-    private String nodeCode;
     /** 节点类型（如 START/RESOURCE_READ） */
     private String nodeType;
     /** 节点名称 */
