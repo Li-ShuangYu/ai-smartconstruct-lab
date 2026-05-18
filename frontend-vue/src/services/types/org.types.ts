@@ -1,16 +1,16 @@
 export interface Department {
-  id: number
+  id: string
   deptName: string
 }
 
 export interface Major {
-  id: number
-  deptId: number
+  id: string
+  deptId: string
   majorName: string
 }
 
 export interface AdminClass {
-  id: number
-  majorId: number
+  id: string
+  majorId: string
   className: string
 }

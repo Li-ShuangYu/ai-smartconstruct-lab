@@ -26,9 +26,9 @@
         <div v-for="row in data.records" :key="row.userId" class="grid-row" style="grid-template-columns: 120px 100px 1fr 1fr 1fr 160px 120px;">
           <span class="text-truncate" :title="row.username">{{ row.username }}</span>
           <span>{{ row.realName }}</span>
-          <span>{{ getDeptName(row.deptId) }}</span>
-          <span>{{ getMajorName(row.majorId) }}</span>
-          <span>{{ getClassName(row.classId) }}</span>
+          <span>{{ row.deptName || '-' }}</span>
+          <span>{{ row.majorName || '-' }}</span>
+          <span>{{ row.className || '-' }}</span>
           <span class="text-truncate" :title="formatDate(row.createdAt)">{{ formatDate(row.createdAt) }}</span>
           <div class="action-cell">
             <button class="text-btn" @click="openModal(row)">编辑</button>
@@ -75,12 +75,23 @@
         </div>
       </template>
     </n-modal>
+
+    <!-- 二次确认删除弹窗 -->
+    <n-modal v-model:show="showDeleteModal" preset="card" title="确认删除" style="max-width: 420px;">
+      <p style="margin:12px 0;">确定要删除学生 <strong>{{ deleteTarget?.realName }}</strong>（账号：{{ deleteTarget?.username }}）吗？此操作不可恢复。</p>
+      <template #footer>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="secondary-btn" @click="showDeleteModal = false">取消</button>
+          <button class="primary-btn danger-btn" @click="doDelete" :disabled="deleting">{{ deleting ? '删除中...' : '确认删除' }}</button>
+        </div>
+      </template>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
-import { NButton, NModal, NForm, NFormItem, NInput, NSelect, useMessage } from 'naive-ui'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { NModal, NForm, NFormItem, NInput, NSelect, useMessage } from 'naive-ui'
 import * as api from '@/services/modules/admin.service'
 import { getDepartments, getMajors, getClasses } from '@/services/modules/org.service'
 import type { Student, PageResult, Department, Major, AdminClass } from '@/services/types/admin.types'
@@ -88,16 +99,19 @@ import type { Student, PageResult, Department, Major, AdminClass } from '@/servi
 const message = useMessage()
 const loading = ref(false)
 const saving = ref(false)
+const deleting = ref(false)
 const showModal = ref(false)
+const showDeleteModal = ref(false)
+const deleteTarget = ref<Student | null>(null)
 const keyword = ref('')
 const page = ref(1)
 const pageSize = ref(10)
-const editingId = ref<number | null>(null)
+const editingId = ref<string | null>(null)
 const data = ref<PageResult<Student>>({ records: [], total: 0, page: 1, pageSize: 10 })
 const depts = ref<Department[]>([])
 const majors = ref<Major[]>([])
-const classes = ref<AdminClass[]>([])
-const form = reactive<Partial<Student>>({ username: '', realName: '', deptId: 0, majorId: 0, classId: 0, password: '' })
+const classes = ref<any[]>([])
+const form = reactive({ username: '', realName: '', deptId: '' as string, majorId: '' as string, classId: '' as string, password: '' })
 
 const deptOptions = computed(() => {
   return depts.value.map(dept => ({
@@ -147,9 +161,9 @@ async function fetchDepts() {
   }
 }
 
-async function fetchMajors(deptId: number) {
+async function fetchMajors(deptId: string) {
   try {
-    const r = await getMajors(deptId)
+    const r = await getMajors(Number(deptId))
     if (r.code === 200) {
       majors.value = r.data || []
     }
@@ -158,9 +172,9 @@ async function fetchMajors(deptId: number) {
   }
 }
 
-async function fetchClasses(majorId: number) {
+async function fetchClasses(majorId: string) {
   try {
-    const r = await getClasses(majorId)
+    const r = await getClasses(Number(majorId))
     if (r.code === 200) {
       classes.value = r.data || []
     }
@@ -169,9 +183,9 @@ async function fetchClasses(majorId: number) {
   }
 }
 
-function handleDeptChange(deptId: number) {
-  form.majorId = 0
-  form.classId = 0
+function handleDeptChange(deptId: string) {
+  form.majorId = ''
+  form.classId = ''
   majors.value = []
   classes.value = []
   if (deptId) {
@@ -179,30 +193,24 @@ function handleDeptChange(deptId: number) {
   }
 }
 
-function handleMajorChange(majorId: number) {
-  form.classId = 0
+function handleMajorChange(majorId: string) {
+  form.classId = ''
   classes.value = []
   if (majorId) {
     fetchClasses(majorId)
   }
 }
 
-function getDeptName(deptId: number | undefined): string {
-  if (!deptId) return '-'
-  const dept = depts.value.find(d => d.id === deptId)
-  return dept?.deptName || String(deptId)
+function getDeptName(deptName: string | undefined): string {
+  return deptName || '-'
 }
 
-function getMajorName(majorId: number | undefined): string {
-  if (!majorId) return '-'
-  const major = majors.value.find(m => m.id === majorId)
-  return major?.majorName || String(majorId)
+function getMajorName(majorName: string | undefined): string {
+  return majorName || '-'
 }
 
-function getClassName(classId: number | undefined): string {
-  if (!classId) return '-'
-  const cls = classes.value.find(c => c.id === classId)
-  return cls?.className || String(classId)
+function getClassName(className: string | undefined): string {
+  return className || '-'
 }
 
 function formatDate(dateStr: string | undefined): string {
@@ -223,7 +231,7 @@ function openModal(row: Student | null) {
     if (row.deptId) fetchMajors(row.deptId)
     if (row.majorId) fetchClasses(row.majorId)
   } else {
-    Object.assign(form, { username: '', realName: '', deptId: 0, majorId: 0, classId: 0, password: '' })
+    Object.assign(form, { username: '', realName: '', deptId: '', majorId: '', classId: '', password: '' })
     majors.value = []
     classes.value = []
   }
@@ -236,24 +244,25 @@ async function save() {
   if (!form.deptId) { message.warning('请选择院系'); return }
   if (!form.majorId) { message.warning('请选择专业'); return }
   if (!form.classId) { message.warning('请选择班级'); return }
-  if (editingId.value === null && !form.password?.trim()) { 
-    message.warning('请设置登录密码'); 
-    return 
-  }
-  if (editingId.value === null && form.password.length < 6) {
-    message.warning('密码长度不能少于 6 位');
-    return
-  }
-  if (editingId.value !== null && form.password && form.password.length < 6) {
-    message.warning('密码长度不能少于 6 位');
-    return
-  }
+  if (!editingId.value && !form.password?.trim()) { message.warning('请设置登录密码'); return }
+  if (form.password && form.password.length < 6) { message.warning('密码长度不能少于 6 位'); return }
   saving.value = true
   try {
     if (editingId.value) {
-      await api.updateStudent(editingId.value, form as Student)
+      const params: any = { realName: form.realName, deptId: form.deptId, majorId: form.majorId, classId: form.classId }
+      if (form.password?.trim()) params.password = form.password
+      const res = await api.updateStudent(editingId.value, params)
+      if (res.code !== 200) { message.error(res.message || '保存失败'); return }
     } else {
-      await api.addStudent(form as Student)
+      const res = await api.addStudent({
+        username: form.username!,
+        realName: form.realName!,
+        deptId: form.deptId,
+        majorId: form.majorId,
+        classId: form.classId,
+        password: form.password!
+      })
+      if (res.code !== 200) { message.error(res.message || '保存失败'); return }
     }
     message.success('保存成功')
     showModal.value = false
@@ -266,12 +275,25 @@ async function save() {
 }
 
 async function handleDelete(row: Student) {
+  deleteTarget.value = row
+  showDeleteModal.value = true
+}
+
+async function doDelete() {
+async function doDelete() {
+  if (!deleteTarget.value?.userId) return
+  deleting.value = true
   try {
-    await api.deleteStudent(row.userId!)
+    const res = await api.deleteStudent(deleteTarget.value.userId)
+    if (res.code !== 200) { message.error(res.message || '删除失败'); return }
     message.success('已删除')
+    showDeleteModal.value = false
+    deleteTarget.value = null
     await fetchData()
   } catch (e: any) {
     message.error(e?.response?.data?.message || '删除失败')
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -292,6 +314,8 @@ onMounted(async () => {
 .primary-btn { padding: 8px 16px; background: #4F46E5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
 .primary-btn:hover { background: #4338CA; }
 .primary-btn:disabled { background: #A5B4FC; cursor: not-allowed; }
+.primary-btn.danger-btn { background: #EF4444; }
+.primary-btn.danger-btn:hover { background: #DC2626; }
 .secondary-btn { padding: 8px 16px; background: #fff; color: #4F46E5; border: 1px solid #4F46E5; border-radius: 6px; cursor: pointer; font-size: 13px; }
 .data-grid { border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; }
 .grid-header { display: grid; gap: 0; padding: 12px 16px; background: #F8FAFC; font-weight: 600; font-size: 13px; color: #64748B; }

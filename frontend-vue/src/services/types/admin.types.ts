@@ -6,21 +6,21 @@ export interface PageResult<T> {
 }
 
 export interface Department {
-  id: number
+  id: string
   deptName: string
   createdAt?: string
 }
 
 export interface Major {
-  id: number
-  deptId: number
+  id: string
+  deptId: string
   majorName: string
   createdAt?: string
 }
 
 export interface AdminClass {
-  id: number
-  majorId: number
+  id: string
+  majorId: string
   className: string
   enrollmentYear?: number
   createdAt?: string
@@ -127,19 +127,22 @@ export interface OperationLog {
 }
 
 export interface Teacher {
-  userId: number
+  userId: string
   username: string
   realName: string
-  deptId: number
+  deptId: string
   createdAt?: string
 }
 
 export interface Student {
-  userId: number
+  userId: string
   username: string
   realName: string
-  deptId: number
-  majorId: number
-  classId: number
+  deptId: string
+  deptName?: string
+  majorId: string
+  majorName?: string
+  classId: string
+  className?: string
   createdAt?: string
 }

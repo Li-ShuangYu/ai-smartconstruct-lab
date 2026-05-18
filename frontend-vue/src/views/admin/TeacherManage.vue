@@ -65,12 +65,23 @@
         </div>
       </template>
     </n-modal>
+
+    <!-- 二次确认删除弹窗 -->
+    <n-modal v-model:show="showDeleteModal" preset="card" title="确认删除" style="max-width: 420px;">
+      <p style="margin:12px 0;">确定要删除教师 <strong>{{ deleteTarget?.realName }}</strong>（账号：{{ deleteTarget?.username }}）吗？此操作不可恢复。</p>
+      <template #footer>
+        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button class="secondary-btn" @click="showDeleteModal = false">取消</button>
+          <button class="primary-btn danger-btn" @click="doDelete" :disabled="deleting">{{ deleting ? '删除中...' : '确认删除' }}</button>
+        </div>
+      </template>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
-import { NButton, NModal, NForm, NFormItem, NInput, NSelect, useMessage } from 'naive-ui'
+import { NModal, NForm, NFormItem, NInput, NSelect, useMessage } from 'naive-ui'
 import * as api from '@/services/modules/admin.service'
 import type { Teacher, PageResult, Department } from '@/services/types/admin.types'
 
@@ -81,10 +92,13 @@ const showModal = ref(false)
 const keyword = ref('')
 const page = ref(1)
 const pageSize = ref(10)
-const editingId = ref<number | null>(null)
+const editingId = ref<string | null>(null)
+const showDeleteModal = ref(false)
+const deleteTarget = ref<Teacher | null>(null)
+const deleting = ref(false)
 const data = ref<PageResult<Teacher>>({ records: [], total: 0, page: 1, pageSize: 10 })
 const depts = ref<Department[]>([])
-const form = reactive<Partial<Teacher>>({ username: '', realName: '', deptId: 0, password: '' })
+const form = reactive({ username: '', realName: '', deptId: '' as string, password: '' })
 
 const deptOptions = computed(() => {
   return depts.value.map(dept => ({
@@ -142,7 +156,7 @@ function openModal(row: Teacher | null) {
   if (row) {
     Object.assign(form, { username: row.username, realName: row.realName, deptId: row.deptId, password: '' })
   } else {
-    Object.assign(form, { username: '', realName: '', deptId: 0, password: '' })
+    Object.assign(form, { username: '', realName: '', deptId: '', password: '' })
   }
   showModal.value = true
 }
@@ -151,24 +165,24 @@ async function save() {
   if (!form.username?.trim()) { message.warning('请输入账号'); return }
   if (!form.realName?.trim()) { message.warning('请输入姓名'); return }
   if (!form.deptId) { message.warning('请选择院系'); return }
-  if (editingId.value === null && !form.password?.trim()) { 
-    message.warning('请设置登录密码'); 
-    return 
-  }
-  if (editingId.value === null && form.password.length < 6) {
-    message.warning('密码长度不能少于 6 位');
-    return
-  }
-  if (editingId.value !== null && form.password && form.password.length < 6) {
-    message.warning('密码长度不能少于 6 位');
-    return
-  }
+  if (!editingId.value && !form.password?.trim()) { message.warning('请设置登录密码'); return }
+  if (form.password && form.password.length < 6) { message.warning('密码长度不能少于 6 位'); return }
   saving.value = true
   try {
     if (editingId.value) {
-      await api.updateTeacher(editingId.value, form as Teacher)
+      const params: any = { realName: form.realName }
+      if (form.deptId) params.deptId = form.deptId
+      if (form.password?.trim()) params.password = form.password
+      const res = await api.updateTeacher(editingId.value, params)
+      if (res.code !== 200) { message.error(res.message || '保存失败'); return }
     } else {
-      await api.addTeacher(form as Teacher)
+      const res = await api.addTeacher({
+        username: form.username!,
+        realName: form.realName!,
+        deptId: form.deptId,
+        password: form.password!
+      })
+      if (res.code !== 200) { message.error(res.message || '保存失败'); return }
     }
     message.success('保存成功')
     showModal.value = false
@@ -180,13 +194,25 @@ async function save() {
   }
 }
 
-async function handleDelete(row: Teacher) {
+function handleDelete(row: Teacher) {
+  deleteTarget.value = row
+  showDeleteModal.value = true
+}
+
+async function doDelete() {
+  if (!deleteTarget.value?.userId) return
+  deleting.value = true
   try {
-    await api.deleteTeacher(row.userId!)
+    const res = await api.deleteTeacher(String(deleteTarget.value.userId))
+    if (res.code !== 200) { message.error(res.message || '删除失败'); return }
     message.success('已删除')
+    showDeleteModal.value = false
+    deleteTarget.value = null
     await fetchData()
   } catch (e: any) {
     message.error(e?.response?.data?.message || '删除失败')
+  } finally {
+    deleting.value = false
   }
 }
 
@@ -207,6 +233,8 @@ onMounted(async () => {
 .primary-btn { padding: 8px 16px; background: #4F46E5; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
 .primary-btn:hover { background: #4338CA; }
 .primary-btn:disabled { background: #A5B4FC; cursor: not-allowed; }
+.primary-btn.danger-btn { background: #EF4444; }
+.primary-btn.danger-btn:hover { background: #DC2626; }
 .secondary-btn { padding: 8px 16px; background: #fff; color: #4F46E5; border: 1px solid #4F46E5; border-radius: 6px; cursor: pointer; font-size: 13px; }
 .data-grid { border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden; }
 .grid-header { display: grid; gap: 0; padding: 12px 16px; background: #F8FAFC; font-weight: 600; font-size: 13px; color: #64748B; }

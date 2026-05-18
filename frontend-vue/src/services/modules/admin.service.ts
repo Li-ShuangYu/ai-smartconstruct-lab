@@ -86,13 +86,17 @@ export const getLogs = (page = 1, pageSize = 10, actionType?: string, userId?: n
 // ===== 用户中心 - 教师 =====
 export const getTeachers = (page = 1, pageSize = 10, keyword?: string) =>
   http.get<ApiResult<PageResult<Teacher>>>('/api/admin/teachers', { params: { page, pageSize, keyword } }).then(r => r.data)
-export const addTeacher = (t: Teacher) => http.post<ApiResult<void>>('/api/admin/teachers', t).then(r => r.data)
-export const updateTeacher = (id: number, t: Teacher) => http.put<ApiResult<void>>(`/api/admin/teachers/${id}`, t).then(r => r.data)
-export const deleteTeacher = (id: number) => http.delete<ApiResult<void>>(`/api/admin/teachers/${id}`).then(r => r.data)
+export const addTeacher = (params: { username: string; realName: string; deptId: string; password: string }) =>
+  http.post<ApiResult<void>>('/api/admin/teachers', params).then(r => r.data)
+export const updateTeacher = (id: string, params: { realName?: string; deptId?: string; password?: string }) =>
+  http.put<ApiResult<void>>(`/api/admin/teachers/${id}`, params).then(r => r.data)
+export const deleteTeacher = (id: string) => http.delete<ApiResult<void>>(`/api/admin/teachers/${id}`).then(r => r.data)
 
 // ===== 用户中心 - 学生 =====
 export const getStudents = (page = 1, pageSize = 10, keyword?: string) =>
   http.get<ApiResult<PageResult<Student>>>('/api/admin/students', { params: { page, pageSize, keyword } }).then(r => r.data)
-export const addStudent = (s: Student) => http.post<ApiResult<void>>('/api/admin/students', s).then(r => r.data)
-export const updateStudent = (id: number, s: Student) => http.put<ApiResult<void>>(`/api/admin/students/${id}`, s).then(r => r.data)
-export const deleteStudent = (id: number) => http.delete<ApiResult<void>>(`/api/admin/students/${id}`).then(r => r.data)
+export const addStudent = (params: { username: string; realName: string; deptId: string; majorId: string; classId: string; password: string }) =>
+  http.post<ApiResult<void>>('/api/admin/students', params).then(r => r.data)
+export const updateStudent = (id: string, params: { realName?: string; deptId?: string; majorId?: string; classId?: string; password?: string }) =>
+  http.put<ApiResult<void>>(`/api/admin/students/${id}`, params).then(r => r.data)
+export const deleteStudent = (id: string) => http.delete<ApiResult<void>>(`/api/admin/students/${id}`).then(r => r.data)
