@@ -8,12 +8,14 @@ export interface PageResult<T> {
 export interface Department {
   id: number
   deptName: string
+  createdAt?: string
 }
 
 export interface Major {
   id: number
   deptId: number
   majorName: string
+  createdAt?: string
 }
 
 export interface AdminClass {
@@ -21,6 +23,7 @@ export interface AdminClass {
   majorId: number
   className: string
   enrollmentYear?: number
+  createdAt?: string
 }
 
 export interface Course {
@@ -131,9 +134,10 @@ export interface Teacher {
 
 export interface Student {
   userId: number
-  studentNo: string
+  username: string
   realName: string
   deptId: number
   majorId: number
   classId: number
+  createdAt?: string
 }

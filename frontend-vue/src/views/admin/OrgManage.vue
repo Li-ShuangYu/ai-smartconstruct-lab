@@ -73,8 +73,8 @@ const deptForm = reactive<Department>({ id: 0, deptName: '' })
 const deptOptions = computed(() => deptList.value.map(d => ({ label: d.deptName, value: d.id })))
 
 const deptColumns: DataTableColumns<Department> = [
-  { title: 'ID', key: 'id', width: 80 },
   { title: '院系名称', key: 'deptName' },
+  { title: '创建时间', key: 'createdAt', render(row) { return formatDate(row.createdAt) } },
   { title: '操作', key: 'actions', width: 160, render(row) { return h('div', { style: 'display:flex;gap:8px' }, [h(NButton, { size:'tiny', onClick:()=>openDeptModal(row) }, { default:()=>'编辑' }), h(NButton, { size:'tiny', type:'error', onClick:()=>handleDeleteDept(row) }, { default:()=>'删除' })]) } }
 ]
 
@@ -94,9 +94,9 @@ const showMajorModal = ref(false); const editingMajorId = ref<number | null>(nul
 const majorForm = reactive<Major>({ id:0, deptId:0, majorName:'' })
 
 const majorColumns: DataTableColumns<Major> = [
-  { title: 'ID', key: 'id', width: 80 },
   { title: '专业名称', key: 'majorName' },
   { title: '所属院系', key: 'deptId', render(row){ return deptList.value.find(d=>d.id===row.deptId)?.deptName??'-' } },
+  { title: '创建时间', key: 'createdAt', render(row) { return formatDate(row.createdAt) } },
   { title: '操作', key: 'actions', width: 160, render(row){ return h('div',{style:'display:flex;gap:8px'},[h(NButton,{size:'tiny',onClick:()=>openMajorModal(row)},{default:()=>'编辑'}),h(NButton,{size:'tiny',type:'error',onClick:()=>handleDeleteMajor(row)},{default:()=>'删除'})]) } }
 ]
 const filteredMajors = computed(()=> majorDeptFilter.value ? majorList.value.filter(m=>m.deptId===majorDeptFilter.value) : majorList.value)
@@ -112,9 +112,10 @@ const showClassModal = ref(false); const editingClassId = ref<number|null>(null)
 const classForm = reactive<AdminClass & { deptId: number|null }>({ id:0, majorId:0, className:'', deptId:null })
 
 const classColumns: DataTableColumns<AdminClass> = [
-  { title: 'ID', key: 'id', width: 80 },
   { title: '班级名称', key: 'className' },
   { title: '所属专业', key: 'majorId', render(row){ return majorList.value.find(m=>m.id===row.majorId)?.majorName??'-' } },
+  { title: '所属院系', key: 'deptId', render(row){ const major=majorList.value.find(m=>m.id===row.majorId); return major ? deptList.value.find(d=>d.id===major.deptId)?.deptName??'-' : '-' } },
+  { title: '创建时间', key: 'createdAt', render(row) { return formatDate(row.createdAt) } },
   { title: '操作', key: 'actions', width: 160, render(row){ return h('div',{style:'display:flex;gap:8px'},[h(NButton,{size:'tiny',onClick:()=>openClassModal(row)},{default:()=>'编辑'}),h(NButton,{size:'tiny',type:'error',onClick:()=>handleDeleteClass(row)},{default:()=>'删除'})]) } }
 ]
 
@@ -134,6 +135,17 @@ function openClassModal(row: AdminClass|null) {
 async function saveClass() { if(!classForm.className.trim()){message.warning('请输入名称');return}; if(!classForm.majorId){message.warning('请选择专业');return}; saving.value=true; try{ const p:AdminClass={id: editingClassId.value || 0, majorId:classForm.majorId,className:classForm.className}; editingClassId.value?await api.updateClass(editingClassId.value,p):await api.addClass(p); message.success('成功'); showClassModal.value=false; await fetchClasses() }catch{message.error('失败')} finally{saving.value=false} }
 async function handleDeleteClass(row: AdminClass) { try{await api.deleteClass(row.id);message.success('已删除');await fetchClasses()}catch{message.error('失败')} }
 async function fetchClasses() { loading.classes=true; try{const r=await api.getClasses();if(r.code===200)classList.value=r.data||[]}catch(e:any){message.error(e?.response?.data?.message||'获取班级列表失败')}finally{loading.classes=false} }
+
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
+}
 
 onMounted(async ()=>{ await fetchDepts(); await fetchMajors(); await fetchClasses() })
 </script>
