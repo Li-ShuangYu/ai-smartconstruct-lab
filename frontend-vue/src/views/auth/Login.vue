@@ -93,7 +93,7 @@ const authStore = useAuthStore()
 const currentRole = ref('student')
 
 /** 账号输入 */
-const account = ref('2270410234')
+const account = ref('student')
 
 /** 密码输入 */
 const password = ref('123456')
