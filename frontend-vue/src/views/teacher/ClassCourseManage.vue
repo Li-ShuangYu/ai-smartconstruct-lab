@@ -75,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { NButton, NPagination, NSpin, NTag, NModal, NForm, NFormItem, NInput, NSwitch, NDataTable, useMessage } from 'naive-ui'
 import type { FormRules, FormInst, DataTableColumn } from 'naive-ui'
 import type { Course, AdminClass, Major, Department } from '@/services/types/admin.types'

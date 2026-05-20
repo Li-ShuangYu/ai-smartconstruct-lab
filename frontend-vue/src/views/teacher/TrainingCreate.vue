@@ -409,6 +409,26 @@
     <!-- Hidden file inputs -->
     <input ref="docFileInput" type="file" accept=".pdf,.txt,.doc,.docx,.ppt,.pptx,.md" style="display:none" @change="onDocFileSelected" />
     <input ref="videoFileInput" type="file" accept=".wmv,.mp4,.m4v,.mov,.avi,.mkv,.mp3" style="display:none" @change="onVideoFileSelected" />
+
+    <!-- 发布模板弹窗 -->
+    <div v-if="showPublishModal" class="modal-overlay" @click.self="showPublishModal = false">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>发布实训模板</h3>
+          <button class="modal-close" @click="showPublishModal = false">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>模板名称</label>
+            <input v-model="templateName" type="text" class="modal-input" placeholder="请输入模板名称" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" @click="showPublishModal = false">取消</button>
+          <button class="btn btn-primary" @click="confirmPublish">发布</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -420,6 +440,10 @@ import { getActiveNodes } from '@/services/modules/admin.service'
 const docFileInput = ref<HTMLInputElement | null>(null)
 const videoFileInput = ref<HTMLInputElement | null>(null)
 const pendingDocIndex = ref(-1)
+
+// 发布模板弹窗相关
+const showPublishModal = ref(false)
+const templateName = ref('')
 
 const openDocUpload = (index: number) => {
   pendingDocIndex.value = index
@@ -984,6 +1008,17 @@ const validateRequired = (): string[] => {
 }
 
 const handlePublish = () => {
+  // 先显示弹窗让用户输入模板名称
+  templateName.value = ''
+  showPublishModal.value = true
+}
+
+const confirmPublish = () => {
+  if (!templateName.value.trim()) {
+    alert('请输入模板名称')
+    return
+  }
+
   const errors = validateRequired()
   if (errors.length > 0) {
     alert('请完善以下必填项：\n\n' + errors.join('\n'))
@@ -1007,6 +1042,7 @@ const handlePublish = () => {
   }
 
   const result = {
+    templateName: templateName.value,
     orchestration_id: `flow_${Date.now().toString(36)}`,
     nodes,
     edges
@@ -1023,7 +1059,8 @@ const handlePublish = () => {
   console.warn('4. HOMEWORK.question_bank_ids / question_ids — 页面无"题库来源集合"和"手动选取题目列表"字段，输出为空数组')
   console.warn('5. 学情调查(SURVEY) 节点 — 你提供的规范中未包含该类型映射，输出 node_type 为 SURVEY')
 
-  alert('实训流程保存并发布成功！(请按F12查看控制台数据)')
+  showPublishModal.value = false
+  alert(`实训模板「${templateName.value}」保存并发布成功！(请按F12查看控制台数据)`)
 }
 </script>
 
@@ -1181,4 +1218,33 @@ const handlePublish = () => {
 
 .panel-slide-enter-active, .panel-slide-leave-active { transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1); }
 .panel-slide-enter-from, .panel-slide-leave-to { width: 0 !important; opacity: 0; transform: translateX(30px); margin-left: -1px; }
+
+/* =========== 发布模板弹窗 =========== */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; animation: fadeIn 0.2s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-content { background: #FFF; border-radius: 12px; width: 90%; max-width: 450px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); animation: slideUp 0.2s ease; }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #E2E8F0; }
+.modal-header h3 { margin: 0; font-size: 16px; font-weight: 700; color: #0F172A; }
+
+.modal-close { width: 28px; height: 28px; border: none; background: #F1F5F9; border-radius: 6px; color: #64748B; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+.modal-close:hover { background: #E2E8F0; color: #334155; }
+
+.modal-body { padding: 20px; }
+.modal-body .form-group { margin-bottom: 0; }
+.modal-body .form-group label { display: block; font-size: 13px; font-weight: 600; color: #334155; margin-bottom: 8px; }
+
+.modal-input { width: 100%; padding: 12px 14px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; background: #F8FAFC; transition: 0.2s; color: #0F172A; box-sizing: border-box; }
+.modal-input:focus { border-color: #4F46E5; background: #FFF; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+.modal-input::placeholder { color: #94A3B8; }
+
+.modal-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px; border-top: 1px solid #E2E8F0; }
+
+.btn { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: 0.2s; border: none; }
+.btn-secondary { background: #F1F5F9; color: #64748B; }
+.btn-secondary:hover { background: #E2E8F0; color: #475569; }
+.btn-primary { background: #4F46E5; color: #FFF; }
+.btn-primary:hover { background: #4338CA; box-shadow: 0 4px 12px rgba(79,70,229,0.3); }
 </style>

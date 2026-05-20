@@ -18,13 +18,7 @@
       <main :class="['content-area', { 'is-fullscreen': renderFullscreen }]">
         <n-message-provider>
           <router-view v-slot="{ Component, route }">
-            <transition
-              name="fade"
-              mode="out-in"
-              @after-leave="applyLayoutChange"
-            >
-              <component :is="Component" :key="route.path" />
-            </transition>
+            <component :is="Component" :key="route.path" />
           </router-view>
         </n-message-provider>
       </main>
@@ -48,25 +42,15 @@ const route = useRoute()
 
 const isStudentSide = computed(() => route.path.startsWith('/student'))
 const isAdminSide = computed(() => route.path.startsWith('/admin'))
-const renderFullscreen = ref(route.meta.hideSidebar === true)
-let pendingLayoutState: boolean | null = null
+const renderFullscreen = ref(false)
 
 watch(
-  () => route.meta.hideSidebar,
-  (newVal) => {
-    const isNowFullscreen = newVal === true
-    if (isNowFullscreen !== renderFullscreen.value) {
-      pendingLayoutState = isNowFullscreen
-    }
-  }
+  () => route.path,
+  (path) => {
+    renderFullscreen.value = route.meta.hideSidebar === true
+  },
+  { immediate: true }
 )
-
-const applyLayoutChange = () => {
-  if (pendingLayoutState !== null) {
-    renderFullscreen.value = pendingLayoutState
-    pendingLayoutState = null
-  }
-}
 </script>
 
 <style>
