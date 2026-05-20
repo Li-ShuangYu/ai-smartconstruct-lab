@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 @RestController
 @RequestMapping("/api/teacher/courses")
 public class TeacherCourseController {
@@ -46,7 +48,7 @@ public class TeacherCourseController {
         Long teacherId = getCurrentUserId();
         LambdaQueryWrapper<BizCourse> qw = new LambdaQueryWrapper<>();
         qw.eq(BizCourse::getTeacherId, teacherId);
-        if (keyword != null && !keyword.isBlank()) {
+        if (keyword != null && !Java8Compat.isBlank(keyword)) {
             qw.like(BizCourse::getCourseName, keyword);
         }
         qw.orderByDesc(BizCourse::getCreatedAt);
@@ -99,7 +101,7 @@ public class TeacherCourseController {
                                                                     @RequestParam(required = false) String keyword) {
         List<BizStudentCourse> scList = studentCourseService.list(
                 new LambdaQueryWrapper<BizStudentCourse>().eq(BizStudentCourse::getCourseId, courseId));
-        if (scList.isEmpty()) return ApiResult.ok(List.of());
+        if (scList.isEmpty()) return ApiResult.ok(Java8Compat.emptyList());
 
         Set<Long> studentIds = new HashSet<>();
         for (BizStudentCourse sc : scList) studentIds.add(sc.getStudentId());
@@ -109,7 +111,7 @@ public class TeacherCourseController {
         for (BizStudent s : students) {
             SysUser u = sysUserService.getById(s.getUserId());
             if (u == null) continue;
-            if (keyword != null && !keyword.isBlank()) {
+            if (keyword != null && !Java8Compat.isBlank(keyword)) {
                 String kw = keyword.toLowerCase();
                 boolean match = (s.getRealName() != null && s.getRealName().toLowerCase().contains(kw))
                         || (u.getUsername() != null && u.getUsername().toLowerCase().contains(kw));

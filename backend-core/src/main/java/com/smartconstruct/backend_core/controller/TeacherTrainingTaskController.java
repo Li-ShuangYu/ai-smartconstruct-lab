@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 /**
  * 教师实训任务控制器
  * 
@@ -99,7 +101,7 @@ public class TeacherTrainingTaskController {
         Integer dispatchScope = body.get("dispatchScope") != null ? Integer.valueOf(body.get("dispatchScope").toString()) : null;
         Long targetId = body.get("dispatchTargetId") != null ? Long.valueOf(body.get("dispatchTargetId").toString()) : null;
 
-        if (templateId == null || taskName == null || taskName.isBlank() || dispatchScope == null || targetId == null) {
+        if (templateId == null || taskName == null || Java8Compat.isBlank(taskName) || dispatchScope == null || targetId == null) {
             return ApiResult.error("参数不完整：需要 templateId, taskName, dispatchScope, dispatchTargetId");
         }
 
@@ -147,6 +149,6 @@ public class TeacherTrainingTaskController {
         }
         participationService.saveBatch(participations);
 
-        return ApiResult.ok(Map.of("taskId", task.getId(), "studentCount", participations.size()));
+        return ApiResult.ok(Java8Compat.mapOf("taskId", task.getId(), "studentCount", participations.size()));
     }
 }

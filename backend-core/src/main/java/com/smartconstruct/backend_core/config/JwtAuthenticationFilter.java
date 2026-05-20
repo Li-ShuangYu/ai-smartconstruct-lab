@@ -31,6 +31,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.objectMapper = objectMapper;
     }
 
+    private void sendError(HttpServletResponse response, int status, String errorCode, String message) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json;charset=UTF-8");
+        Map<String, Object> body = new HashMap<>();
+        body.put("code", status);
+        body.put("message", message);
+        body.put("errorCode", errorCode);
+        body.put("data", null);
+        response.getWriter().write(objectMapper.writeValueAsString(body));
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -46,7 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             username = jwtUtil.parseToken(token);
         } catch (Exception e) {
-            sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "Token无效或已过期");
+            sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "AUTH_LOGIN_EXPIRED", "Token无效或已过期");
             return;
         }
 
@@ -61,14 +72,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
-    }
-
-    private void sendError(HttpServletResponse response, int status, String message) throws IOException {
-        response.setStatus(status);
-        response.setContentType("application/json;charset=UTF-8");
-        Map<String, Object> body = new HashMap<>();
-        body.put("code", status);
-        body.put("message", message);
-        response.getWriter().write(objectMapper.writeValueAsString(body));
     }
 }

@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 @RestController
 @RequestMapping("/api/student/training")
 public class StudentTrainingFlowController {
@@ -103,7 +105,7 @@ public class StudentTrainingFlowController {
     public ApiResult<TrainingNodeProgressDTO> proceedNext(@PathVariable Long participationId,
                                                            @RequestBody Map<String, Object> body) {
         String currentNodeId = body.get("currentNodeId") != null ? body.get("currentNodeId").toString() : null;
-        if (currentNodeId == null || currentNodeId.isBlank()) return ApiResult.error("缺少当前节点ID");
+        if (currentNodeId == null || Java8Compat.isBlank(currentNodeId)) return ApiResult.error("缺少当前节点ID");
 
         BizTrainingParticipation pt = participationService.getById(participationId);
         if (pt == null) return ApiResult.error("实训参与记录不存在");

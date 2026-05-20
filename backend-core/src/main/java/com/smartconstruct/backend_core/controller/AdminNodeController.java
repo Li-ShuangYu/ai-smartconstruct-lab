@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 /**
  * 编排节点定义管理
  */
@@ -39,10 +41,10 @@ public class AdminNodeController {
     @OperationLog(action = "新增编排节点API")
     @PostMapping
     public ApiResult<Void> create(@RequestBody WfNodeDef node) {
-        if (node.getNodeType() == null || node.getNodeType().isBlank()) {
+        if (node.getNodeType() == null || Java8Compat.isBlank(node.getNodeType())) {
             return ApiResult.error("节点类型不能为空");
         }
-        if (node.getNodeName() == null || node.getNodeName().isBlank()) {
+        if (node.getNodeName() == null || Java8Compat.isBlank(node.getNodeName())) {
             return ApiResult.error("节点名称不能为空");
         }
         long dup = nodeDefService.count(new LambdaQueryWrapper<WfNodeDef>()
@@ -68,7 +70,7 @@ public class AdminNodeController {
         if ("START".equals(exists.getNodeType()) || "END".equals(exists.getNodeType())) {
             return ApiResult.error("开始节点和结束节点不允许修改");
         }
-        if (node.getNodeType() != null && !node.getNodeType().isBlank()
+        if (node.getNodeType() != null && !Java8Compat.isBlank(node.getNodeType())
                 && !node.getNodeType().equals(exists.getNodeType())) {
             long dup = nodeDefService.count(new LambdaQueryWrapper<WfNodeDef>()
                     .eq(WfNodeDef::getNodeType, node.getNodeType())

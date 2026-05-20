@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 /**
  * 学生仪表板控制器
  * 
@@ -122,7 +124,7 @@ public class StudentDashboardController {
         List<BizTrainingParticipation> participations = participationService.list(pqw);
 
         if (participations.isEmpty()) {
-            return ApiResult.ok(new PageResult<>(List.of(), 0, page, pageSize));
+            return ApiResult.ok(new PageResult<>(Java8Compat.emptyList(), 0, page, pageSize));
         }
 
         List<Long> taskIds = participations.stream().map(BizTrainingParticipation::getTaskId).distinct().collect(java.util.stream.Collectors.toList());
@@ -161,7 +163,7 @@ public class StudentDashboardController {
     public ApiResult<List<Map<String, Object>>> classTrainingTasks() {
         Long userId = getCurrentUserId();
         BizStudent self = studentService.getOne(new LambdaQueryWrapper<BizStudent>().eq(BizStudent::getUserId, userId));
-        if (self == null || self.getClassId() == null) return ApiResult.ok(List.of());
+        if (self == null || self.getClassId() == null) return ApiResult.ok(Java8Compat.emptyList());
 
         List<BizTrainingTask> tasks = trainingTaskService.list(
                 new LambdaQueryWrapper<BizTrainingTask>().eq(BizTrainingTask::getDispatchScope, 1)

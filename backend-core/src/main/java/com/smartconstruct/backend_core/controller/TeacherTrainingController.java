@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 /**
  * 教师实训控制器
  * 
@@ -94,7 +96,7 @@ public class TeacherTrainingController {
         if (!teacherId.equals(task.getTeacherId())) return ApiResult.error("无权操作该实训任务");
 
         String nextNodeId = body.get("nextNodeId") != null ? body.get("nextNodeId").toString() : null;
-        if (nextNodeId == null || nextNodeId.isBlank()) return ApiResult.error("缺少 nextNodeId");
+        if (nextNodeId == null || Java8Compat.isBlank(nextNodeId)) return ApiResult.error("缺少 nextNodeId");
 
         // 2. 写入/更新 MySQL wf_global_activity_state
         WfGlobalActivityState state = globalStateService.getOne(
@@ -129,6 +131,6 @@ public class TeacherTrainingController {
             return ApiResult.error("广播失败: " + e.getMessage());
         }
 
-        return ApiResult.ok(Map.of("taskId", taskId, "currentNodeId", nextNodeId));
+        return ApiResult.ok(Java8Compat.mapOf("taskId", taskId, "currentNodeId", nextNodeId));
     }
 }

@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 @RestController
 @RequestMapping("/api/admin/teachers")
 public class AdminTeacherController {
@@ -44,14 +46,14 @@ public class AdminTeacherController {
             @RequestParam(defaultValue = "10") long pageSize,
             @RequestParam(required = false) String keyword) {
         LambdaQueryWrapper<BizTeacher> qw = new LambdaQueryWrapper<>();
-        if (keyword != null && !keyword.isBlank()) {
+        if (keyword != null && !Java8Compat.isBlank(keyword)) {
             qw.like(BizTeacher::getRealName, keyword);
         }
         qw.orderByDesc(BizTeacher::getUserId);
         Page<BizTeacher> p = teacherService.page(new Page<>(page, pageSize), qw);
 
         if (p.getRecords().isEmpty()) {
-            return ApiResult.ok(new PageResult<>(List.of(), p.getTotal(), p.getCurrent(), p.getSize()));
+            return ApiResult.ok(new PageResult<>(Java8Compat.emptyList(), p.getTotal(), p.getCurrent(), p.getSize()));
         }
 
         Set<Long> userIds = p.getRecords().stream().map(BizTeacher::getUserId).collect(Collectors.toSet());
@@ -111,7 +113,7 @@ public class AdminTeacherController {
             return ApiResult.error("教师不存在");
         }
         boolean changed = false;
-        if (req.getRealName() != null && !req.getRealName().isBlank()) {
+        if (req.getRealName() != null && !Java8Compat.isBlank(req.getRealName())) {
             bt.setRealName(req.getRealName());
             changed = true;
         }
@@ -124,7 +126,7 @@ public class AdminTeacherController {
             teacherService.updateById(bt);
         }
 
-        if (req.getPassword() != null && !req.getPassword().isBlank()) {
+        if (req.getPassword() != null && !Java8Compat.isBlank(req.getPassword())) {
             SysUser u = sysUserService.getById(id);
             if (u != null) {
                 u.setPasswordHash(passwordEncoder.encode(req.getPassword()));

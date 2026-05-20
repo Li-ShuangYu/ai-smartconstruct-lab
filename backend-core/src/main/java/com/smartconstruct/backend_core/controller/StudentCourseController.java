@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 @RestController
 @RequestMapping("/api/student/courses")
 public class StudentCourseController {
@@ -52,7 +54,7 @@ public class StudentCourseController {
         Page<BizCourse> p = courseService.page(new Page<>(page, pageSize), qw);
 
         List<Long> courseIds = p.getRecords().stream().map(BizCourse::getId).collect(Collectors.toList());
-        Set<Long> enrolledCourseIds = Set.of();
+        Set<Long> enrolledCourseIds = new java.util.HashSet<>();
         if (!courseIds.isEmpty()) {
             LambdaQueryWrapper<BizStudentCourse> scQw = new LambdaQueryWrapper<>();
             scQw.eq(BizStudentCourse::getStudentId, studentId).in(BizStudentCourse::getCourseId, courseIds);
@@ -122,7 +124,7 @@ public class StudentCourseController {
                 .map(BizStudentCourse::getCourseId).collect(Collectors.toList());
 
         if (courseIds.isEmpty()) {
-            return ApiResult.ok(new PageResult<>(List.of(), 0, page, pageSize));
+            return ApiResult.ok(new PageResult<>(Java8Compat.emptyList(), 0, page, pageSize));
         }
 
         LambdaQueryWrapper<BizCourse> qw = new LambdaQueryWrapper<>();

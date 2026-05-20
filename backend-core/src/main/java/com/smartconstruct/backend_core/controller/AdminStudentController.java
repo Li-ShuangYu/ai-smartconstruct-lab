@@ -15,6 +15,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 @RestController
 @RequestMapping("/api/admin/students")
 public class AdminStudentController {
@@ -43,14 +45,14 @@ public class AdminStudentController {
             @RequestParam(defaultValue = "10") long pageSize,
             @RequestParam(required = false) String keyword) {
         LambdaQueryWrapper<BizStudent> qw = new LambdaQueryWrapper<>();
-        if (keyword != null && !keyword.isBlank()) {
+        if (keyword != null && !Java8Compat.isBlank(keyword)) {
             qw.like(BizStudent::getRealName, keyword);
         }
         qw.orderByDesc(BizStudent::getUserId);
         Page<BizStudent> p = studentService.page(new Page<>(page, pageSize), qw);
 
         if (p.getRecords().isEmpty()) {
-            return ApiResult.ok(new PageResult<>(List.of(), p.getTotal(), p.getCurrent(), p.getSize()));
+            return ApiResult.ok(new PageResult<>(Java8Compat.emptyList(), p.getTotal(), p.getCurrent(), p.getSize()));
         }
 
         Set<Long> userIds = p.getRecords().stream().map(BizStudent::getUserId).collect(Collectors.toSet());
@@ -133,7 +135,7 @@ public class AdminStudentController {
             return ApiResult.error("学生不存在");
         }
         boolean changed = false;
-        if (req.getRealName() != null && !req.getRealName().isBlank()) {
+        if (req.getRealName() != null && !Java8Compat.isBlank(req.getRealName())) {
             bs.setRealName(req.getRealName());
             changed = true;
         }
@@ -154,7 +156,7 @@ public class AdminStudentController {
             studentService.updateById(bs);
         }
 
-        if (req.getPassword() != null && !req.getPassword().isBlank()) {
+        if (req.getPassword() != null && !Java8Compat.isBlank(req.getPassword())) {
             SysUser u = sysUserService.getById(userId);
             if (u != null) {
                 u.setPasswordHash(passwordEncoder.encode(req.getPassword()));

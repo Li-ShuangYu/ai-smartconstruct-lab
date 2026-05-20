@@ -24,6 +24,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 @RestController
 @RequestMapping("/api/admin/courses")
 public class AdminCourseController {
@@ -56,7 +58,7 @@ public class AdminCourseController {
             @RequestParam(defaultValue = "10") long pageSize,
             @RequestParam(required = false) String keyword) {
         LambdaQueryWrapper<BizCourse> qw = new LambdaQueryWrapper<>();
-        if (keyword != null && !keyword.isBlank()) {
+        if (keyword != null && !Java8Compat.isBlank(keyword)) {
             qw.like(BizCourse::getCourseName, keyword);
         }
         qw.orderByDesc(BizCourse::getCreatedAt);
@@ -168,7 +170,7 @@ public class AdminCourseController {
         Long cId = Long.parseLong(courseId);
         List<BizStudentCourse> scList = studentCourseService.list(
                 new LambdaQueryWrapper<BizStudentCourse>().eq(BizStudentCourse::getCourseId, cId));
-        if (scList.isEmpty()) return ApiResult.ok(List.of());
+        if (scList.isEmpty()) return ApiResult.ok(Java8Compat.emptyList());
 
         Set<Long> studentIds = scList.stream().map(BizStudentCourse::getStudentId).collect(Collectors.toSet());
         List<BizStudent> students = studentService.list(new LambdaQueryWrapper<BizStudent>().in(BizStudent::getUserId, studentIds));

@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.Map;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 /**
  * 教师模板控制器
  * 
@@ -79,7 +81,7 @@ public class TeacherTemplateController {
     public ApiResult<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
         String templateName = (String) body.get("templateName");
         Object canvasData = body.get("canvasData");
-        if (templateName == null || templateName.isBlank()) {
+        if (templateName == null || Java8Compat.isBlank(templateName)) {
             return ApiResult.error("模板名称不能为空");
         }
 
@@ -93,7 +95,7 @@ public class TeacherTemplateController {
 
         templateService.processTemplateMockAi(template.getId(), canvasData);
 
-        return ApiResult.ok(Map.of("id", template.getId(), "aiStatus", 1));
+        return ApiResult.ok(Java8Compat.mapOf("id", template.getId(), "aiStatus", 1));
     }
 
     /**

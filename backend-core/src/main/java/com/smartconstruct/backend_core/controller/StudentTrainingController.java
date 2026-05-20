@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import com.smartconstruct.backend_core.util.Java8Compat;
+
 /**
  * 学生实训控制器
  * 
@@ -150,7 +152,7 @@ public class StudentTrainingController {
             return ApiResult.error("无效的参与记录ID");
         }
         String startNodeId = body.get("startNodeId") != null ? body.get("startNodeId").toString() : null;
-        if (startNodeId == null || startNodeId.isBlank()) {
+        if (startNodeId == null || Java8Compat.isBlank(startNodeId)) {
             return ApiResult.error("缺少起始节点ID");
         }
 
@@ -168,7 +170,7 @@ public class StudentTrainingController {
         state.setUpdatedAt(LocalDateTime.now());
         activityStateService.save(state);
 
-        return ApiResult.ok(Map.of("currentNodeId", startNodeId));
+        return ApiResult.ok(Java8Compat.mapOf("currentNodeId", startNodeId));
     }
 
     /**
@@ -190,7 +192,7 @@ public class StudentTrainingController {
         String nextNodeId = body.get("nextNodeId") != null ? body.get("nextNodeId").toString() : null;
         boolean isEnd = body.get("isEnd") != null && Boolean.TRUE.equals(body.get("isEnd"));
 
-        if (nextNodeId == null || nextNodeId.isBlank()) {
+        if (nextNodeId == null || Java8Compat.isBlank(nextNodeId)) {
             return ApiResult.error("缺少下一节点ID");
         }
 
@@ -220,22 +222,22 @@ public class StudentTrainingController {
                 pt.setStatus(2);
                 pt.setUpdatedAt(LocalDateTime.now());
                 participationService.updateById(pt);
-                return ApiResult.ok(Map.of("completed", true, "currentNodeId", nextNodeId));
+                return ApiResult.ok(Java8Compat.mapOf("completed", true, "currentNodeId", nextNodeId));
             }
-            return ApiResult.ok(Map.of("currentNodeId", nextNodeId, "completed", false));
+            return ApiResult.ok(Java8Compat.mapOf("currentNodeId", nextNodeId, "completed", false));
         }
 
         if (isEnd) {
             pt.setStatus(2);
             pt.setUpdatedAt(LocalDateTime.now());
             participationService.updateById(pt);
-            return ApiResult.ok(Map.of("completed", true, "currentNodeId", nextNodeId));
+            return ApiResult.ok(Java8Compat.mapOf("completed", true, "currentNodeId", nextNodeId));
         }
 
         state.setCurrentNodeId(nextNodeId);
         state.setUpdatedAt(LocalDateTime.now());
         activityStateService.updateById(state);
 
-        return ApiResult.ok(Map.of("currentNodeId", nextNodeId, "completed", false));
+        return ApiResult.ok(Java8Compat.mapOf("currentNodeId", nextNodeId, "completed", false));
     }
 }
