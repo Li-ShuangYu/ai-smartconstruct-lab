@@ -25,13 +25,12 @@ public class TeacherDashboardController {
     private final IDepartmentService departmentService;
     private final IStudentService studentService;
     private final IStudentCourseService studentCourseService;
-    private final IAdminClassService adminClassService;
     private final PasswordEncoder passwordEncoder;
 
     public TeacherDashboardController(ITrainingTaskService trainingTaskService, ICourseService courseService,
                                        SysUserService sysUserService, ITeacherService teacherService,
                                        IDepartmentService departmentService, IStudentService studentService,
-                                       IStudentCourseService studentCourseService, IAdminClassService adminClassService,
+                                       IStudentCourseService studentCourseService,
                                        PasswordEncoder passwordEncoder) {
         this.trainingTaskService = trainingTaskService;
         this.courseService = courseService;
@@ -40,7 +39,6 @@ public class TeacherDashboardController {
         this.departmentService = departmentService;
         this.studentService = studentService;
         this.studentCourseService = studentCourseService;
-        this.adminClassService = adminClassService;
         this.passwordEncoder = passwordEncoder;
     }
 

@@ -14,12 +14,13 @@
     <n-spin :show="loading">
       <!-- 班级列表 -->
       <main v-if="activeTab === 'class'">
-        <div class="data-grid-header">
-          <span>班级名称</span><span>学生人数</span><span class="action-header">操作</span>
+        <div class="data-grid-header class-header">
+          <span>班级名称</span><span>所属专业</span><span>所属院系</span><span class="action-header">操作</span>
         </div>
-        <div v-for="cls in classes" :key="cls.id" class="grid-row">
+        <div v-for="cls in classes" :key="cls.id" class="grid-row class-row">
           <span class="name">{{ cls.className }}</span>
-          <span class="time">-</span>
+          <span>{{ getMajorName(cls.majorId) }}</span>
+          <span>{{ getDeptName(cls.majorId) }}</span>
           <div class="actions">
             <button class="text-btn primary" @click="openClassStudents(cls)">查看学生</button>
           </div>
@@ -29,16 +30,19 @@
 
       <!-- 课程列表 -->
       <main v-if="activeTab === 'course'">
-        <div class="data-grid-header">
-          <span>课程名称</span><span>状态</span><span class="action-header">操作</span>
+        <div class="data-grid-header course-header">
+          <span>课程名称</span><span>状态</span><span>需选课码</span><span>选课码</span><span>创建时间</span><span class="action-header">操作</span>
         </div>
-        <div v-for="crs in courses" :key="crs.id" class="grid-row">
+        <div v-for="crs in courses" :key="crs.id" class="grid-row course-row">
           <span class="name">{{ crs.courseName }}</span>
           <span><n-tag :type="crs.status === 1 ? 'success' : 'default'" size="small">{{ crs.status === 1 ? '已发布' : '草稿' }}</n-tag></span>
+          <span>{{ crs.needEnrollCode === 1 ? '是' : '否' }}</span>
+          <span>{{ crs.enrollCode || '-' }}</span>
+          <span>{{ formatDate(crs.createdAt) }}</span>
           <div class="actions">
-            <button class="text-btn primary" @click="openCourseStudents(crs)">查看学生</button>
+            <button class="text-btn" :class="crs.status === 1 ? 'warning' : 'success'" @click="handleToggleStatus(crs)">{{ crs.status === 1 ? '关闭' : '开放' }}</button>
             <button class="text-btn" @click="openEdit(crs)">编辑</button>
-            <button class="text-btn" :class="crs.status === 1 ? 'warning' : ''" @click="handleToggleStatus(crs)">{{ crs.status === 1 ? '下线' : '发布' }}</button>
+            <button class="text-btn primary" @click="openCourseStudents(crs)">查看学生</button>
             <button class="text-btn danger" @click="handleDeleteCourse(crs)">删除</button>
           </div>
         </div>
@@ -51,10 +55,8 @@
     </n-spin>
 
     <!-- 学生列表 Drawer -->
-    <n-modal v-model:show="drawerShow" preset="card" :title="drawerTitle" style="width: 600px" :mask-closable="false">
-      <n-input v-model:value="studentKeyword" placeholder="搜索姓名或学号..." clearable style="margin-bottom: 12px" @update:value="onStudentSearch" />
-      <n-data-table :columns="studentCols" :data="drawerStudents" :loading="drawerLoading" :row-key="(r:any)=>r.userId" size="small" :bordered="false" />
-      <template #footer><div class="modal-footer"><n-button @click="drawerShow=false">关闭</n-button></div></template>
+    <n-modal v-model:show="drawerShow" preset="card" :title="drawerTitle" style="width: 700px" :mask-closable="false">
+      <n-data-table :columns="studentCols" :data="drawerStudents" :loading="drawerLoading" :bordered="true" size="small" />
     </n-modal>
 
     <!-- 新建/编辑课程 Modal -->
@@ -63,7 +65,9 @@
         <n-form-item label="课程名称" path="courseName"><n-input v-model:value="form.courseName" placeholder="请输入课程名称" /></n-form-item>
         <n-form-item label="课程简介"><n-input v-model:value="form.description" type="textarea" placeholder="请输入课程简介" :autosize="{minRows:3,maxRows:5}" /></n-form-item>
         <n-form-item label="需要选课码"><n-switch v-model:value="form.needEnrollCode" :checked-value="1" :unchecked-value="0" /></n-form-item>
-        <n-form-item v-if="form.needEnrollCode === 1" label="选课授权码"><n-input v-model:value="form.enrollCode" placeholder="请输入选课授权码" /></n-form-item>
+        <n-form-item v-if="form.needEnrollCode === 1" label="选课授权码">
+          <n-input :value="form.enrollCode || '由系统自动生成'" :readonly="true" style="color: #64748B; background: #F8FAFC;" />
+        </n-form-item>
       </n-form>
       <template #footer><div class="modal-footer"><n-button @click="showModal=false">取消</n-button><n-button type="primary" :loading="submitting" @click="handleSubmit">保存</n-button></div></template>
     </n-modal>
@@ -74,10 +78,10 @@
 import { ref, reactive, onMounted } from 'vue'
 import { NButton, NPagination, NSpin, NTag, NModal, NForm, NFormItem, NInput, NSwitch, NDataTable, useMessage } from 'naive-ui'
 import type { FormRules, FormInst, DataTableColumn } from 'naive-ui'
-import type { Course, AdminClass } from '@/services/types/admin.types'
+import type { Course, AdminClass, Major, Department } from '@/services/types/admin.types'
 import { getTeacherCourses, createCourse, updateCourse, deleteCourse, toggleCourseStatus } from '@/services/modules/teacher.service'
 import { getClassStudents, getCourseStudents } from '@/services/modules/teacher-dashboard.service'
-import { getClasses } from '@/services/modules/admin.service'
+import { getClasses, getMajors, getDepts } from '@/services/modules/admin.service'
 
 const message = useMessage()
 const activeTab = ref('class')
@@ -85,29 +89,52 @@ const loading = ref(false); const submitting = ref(false)
 
 // 班级
 const classes = ref<AdminClass[]>([])
+const majors = ref<Major[]>([])
+const depts = ref<Department[]>([])
 
 // 课程
 const courses = ref<Course[]>([])
 const coursePage = ref(1); const coursePageSize = ref(10); const courseTotal = ref(0)
-const showModal = ref(false); const editingId = ref<number|null>(null); const formRef = ref<FormInst|null>(null)
-const form = reactive<Course>({ courseName:'', description:'', status:0, needEnrollCode:0, enrollCode:'' })
+const showModal = ref(false); const editingId = ref<string|null>(null); const formRef = ref<FormInst|null>(null)
+const form = reactive<any>({ courseName:'', description:'', status:0, needEnrollCode:0, enrollCode:'' })
 const rules: FormRules = { courseName: [{required:true,message:'请输入课程名称'}] }
 
 // 学生 Drawer
 const drawerShow = ref(false); const drawerLoading = ref(false)
 const drawerTitle = ref(''); const drawerStudents = ref<any[]>([]); const studentKeyword = ref('')
-let drawerTargetId = 0; let drawerType = ref<'class'|'course'>('class')
+let drawerTargetId = ''; let drawerType = ref<'class'|'course'>('class')
 let searchTimer: any
 
 const studentCols: DataTableColumn[] = [
-  { title:'姓名', key:'realName' }, { title:'学号', key:'studentNo' }, { title:'用户名', key:'username' }
+  { title:'账号', key:'username', width: 120 },
+  { title:'姓名', key:'realName', width: 100 },
+  { title:'注册时间', key:'createdAt', render(row: any) { return formatDate(row.createdAt) } }
 ]
 
 function switchTab(t: string) { activeTab.value = t; if (t==='class') loadClasses(); else loadCourses() }
 
 async function loadClasses() {
   loading.value = true
-  try { const r = await getClasses(); if (r.code===200) classes.value = r.data } finally { loading.value = false }
+  try { 
+    const [classRes, majorRes, deptRes] = await Promise.all([getClasses(), getMajors(), getDepts()])
+    if (classRes.code===200) classes.value = classRes.data
+    if (majorRes.code===200) majors.value = majorRes.data
+    if (deptRes.code===200) depts.value = deptRes.data
+  } finally { loading.value = false }
+}
+
+function getMajorName(majorId: string | undefined): string {
+  if (!majorId) return '-'
+  const major = majors.value.find(m => m.id === majorId)
+  return major?.majorName || '-'
+}
+
+function getDeptName(majorId: string | undefined): string {
+  if (!majorId) return '-'
+  const major = majors.value.find(m => m.id === majorId)
+  if (!major) return '-'
+  const dept = depts.value.find(d => d.id === major.deptId || String(d.id) === major.deptId)
+  return dept?.deptName || '-'
 }
 
 async function loadCourses() {
@@ -116,7 +143,7 @@ async function loadCourses() {
 }
 
 async function openClassStudents(cls: AdminClass) {
-  drawerType.value = 'class'; drawerTargetId = cls.id; drawerTitle.value = `${cls.className} - 学生列表`
+  drawerType.value = 'class'; drawerTargetId = cls.id!; drawerTitle.value = `${cls.className} - 学生列表`
   studentKeyword.value = ''; drawerShow.value = true
   await loadDrawerStudents()
 }
@@ -163,6 +190,17 @@ async function handleDeleteCourse(row: Course) {
   try { await deleteCourse(row.id!); message.success('课程已删除'); loadCourses() } catch { message.error('删除失败') }
 }
 
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
+}
+
 onMounted(() => loadClasses())
 </script>
 
@@ -176,6 +214,10 @@ onMounted(() => loadClasses())
 .data-grid-header, .grid-row { display: grid; align-items: center; padding: 12px 24px; }
 .data-grid-header { grid-template-columns: 2fr 1fr 240px; background: #F1F5F9; border-radius: 8px; font-weight: 700; color: #475569; }
 .grid-row { grid-template-columns: 2fr 1fr 240px; background: white; margin-top: 10px; border-radius: 12px; border: 1px solid #F1F5F9; transition: all .2s; }
+.data-grid-header.class-header { grid-template-columns: 1.5fr 1fr 1fr 160px; }
+.grid-row.class-row { grid-template-columns: 1.5fr 1fr 1fr 160px; }
+.data-grid-header.course-header { grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 280px; }
+.grid-row.course-row { grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 280px; }
 .grid-row:hover { background: #F8FAFC; border-color: #E2E8F0; box-shadow: 0 4px 6px -1px rgba(0,0,0,.05); }
 .name { font-weight: 600; color: #1E293B; }
 .time { font-size: 13px; color: #64748B; }

@@ -6,18 +6,14 @@ import com.smartconstruct.backend_core.dto.ApiResult;
 import com.smartconstruct.backend_core.dto.ClassRequest;
 import com.smartconstruct.backend_core.dto.DeptRequest;
 import com.smartconstruct.backend_core.dto.MajorRequest;
-import com.smartconstruct.backend_core.entity.BizAdminClass;
-import com.smartconstruct.backend_core.entity.BizDepartment;
-import com.smartconstruct.backend_core.entity.BizMajor;
-import com.smartconstruct.backend_core.service.IAdminClassService;
-import com.smartconstruct.backend_core.service.IDepartmentService;
-import com.smartconstruct.backend_core.service.IMajorService;
+import com.smartconstruct.backend_core.entity.*;
+import com.smartconstruct.backend_core.service.*;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/admin/org")
@@ -26,11 +22,17 @@ public class AdminOrgController {
     private final IDepartmentService departmentService;
     private final IMajorService majorService;
     private final IAdminClassService adminClassService;
+    private final IStudentService studentService;
+    private final SysUserService sysUserService;
 
-    public AdminOrgController(IDepartmentService departmentService, IMajorService majorService, IAdminClassService adminClassService) {
+    public AdminOrgController(IDepartmentService departmentService, IMajorService majorService,
+                               IAdminClassService adminClassService,
+                               IStudentService studentService, SysUserService sysUserService) {
         this.departmentService = departmentService;
         this.majorService = majorService;
         this.adminClassService = adminClassService;
+        this.studentService = studentService;
+        this.sysUserService = sysUserService;
     }
 
     @GetMapping("/depts")
@@ -185,5 +187,23 @@ public class AdminOrgController {
     public ApiResult<Void> deleteClass(@PathVariable String id) {
         adminClassService.removeById(Long.parseLong(id));
         return ApiResult.ok();
+    }
+
+    @GetMapping("/classes/{classId}/students")
+    public ApiResult<List<Map<String, Object>>> getClassStudents(@PathVariable String classId) {
+        Long cId = Long.parseLong(classId);
+        List<BizStudent> students = studentService.list(new LambdaQueryWrapper<BizStudent>().eq(BizStudent::getClassId, cId));
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (BizStudent s : students) {
+            SysUser u = sysUserService.getById(s.getUserId());
+            if (u == null) continue;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("userId", s.getUserId());
+            m.put("realName", s.getRealName());
+            m.put("username", u.getUsername());
+            m.put("createdAt", u.getCreatedAt());
+            result.add(m);
+        }
+        return ApiResult.ok(result);
     }
 }

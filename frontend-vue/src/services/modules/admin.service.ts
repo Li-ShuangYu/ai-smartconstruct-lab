@@ -11,18 +11,18 @@ import type {
 // ===== 教务中心 - 组织架构 =====
 export const getDepts = () => http.get<ApiResult<Department[]>>('/api/admin/org/depts').then(r => r.data)
 export const addDept = (d: Department) => http.post<ApiResult<void>>('/api/admin/org/depts', d).then(r => r.data)
-export const updateDept = (id: number, d: Department) => http.put<ApiResult<void>>(`/api/admin/org/depts/${id}`, d).then(r => r.data)
-export const deleteDept = (id: number) => http.delete<ApiResult<void>>(`/api/admin/org/depts/${id}`).then(r => r.data)
+export const updateDept = (id: string, d: Department) => http.put<ApiResult<void>>(`/api/admin/org/depts/${id}`, d).then(r => r.data)
+export const deleteDept = (id: string) => http.delete<ApiResult<void>>(`/api/admin/org/depts/${id}`).then(r => r.data)
 
 export const getMajors = () => http.get<ApiResult<Major[]>>('/api/admin/org/majors').then(r => r.data)
 export const addMajor = (m: Major) => http.post<ApiResult<void>>('/api/admin/org/majors', m).then(r => r.data)
-export const updateMajor = (id: number, m: Major) => http.put<ApiResult<void>>(`/api/admin/org/majors/${id}`, m).then(r => r.data)
-export const deleteMajor = (id: number) => http.delete<ApiResult<void>>(`/api/admin/org/majors/${id}`).then(r => r.data)
+export const updateMajor = (id: string, m: Major) => http.put<ApiResult<void>>(`/api/admin/org/majors/${id}`, m).then(r => r.data)
+export const deleteMajor = (id: string) => http.delete<ApiResult<void>>(`/api/admin/org/majors/${id}`).then(r => r.data)
 
 export const getClasses = () => http.get<ApiResult<AdminClass[]>>('/api/admin/org/classes').then(r => r.data)
 export const addClass = (c: AdminClass) => http.post<ApiResult<void>>('/api/admin/org/classes', c).then(r => r.data)
-export const updateClass = (id: number, c: AdminClass) => http.put<ApiResult<void>>(`/api/admin/org/classes/${id}`, c).then(r => r.data)
-export const deleteClass = (id: number) => http.delete<ApiResult<void>>(`/api/admin/org/classes/${id}`).then(r => r.data)
+export const updateClass = (id: string, c: AdminClass) => http.put<ApiResult<void>>(`/api/admin/org/classes/${id}`, c).then(r => r.data)
+export const deleteClass = (id: string) => http.delete<ApiResult<void>>(`/api/admin/org/classes/${id}`).then(r => r.data)
 
 // ===== 教务中心 - 课程 =====
 export const getCourses = (page = 1, pageSize = 10, keyword?: string) =>
@@ -32,6 +32,10 @@ export const updateCourse = (id: string, params: any) => http.put<ApiResult<void
 export const deleteCourse = (id: string) => http.delete<ApiResult<void>>(`/api/admin/courses/${id}`).then(r => r.data)
 export const updateCourseStatus = (id: string, status: number) =>
   http.put<ApiResult<void>>(`/api/admin/courses/${id}/status?status=${status}`).then(r => r.data)
+export const getCourseStudents = (courseId: string) =>
+  http.get<ApiResult<Student[]>>(`/api/admin/courses/${courseId}/students`).then(r => r.data)
+export const getAdminClassStudents = (classId: string) =>
+  http.get<ApiResult<Student[]>>(`/api/admin/org/classes/${classId}/students`).then(r => r.data)
 
 // ===== 资源中心 - 编排节点 =====
 export const getNodes = () =>

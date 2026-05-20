@@ -8,11 +8,11 @@ export const getTeacherCourses = (page = 1, pageSize = 10, keyword?: string) =>
 export const createCourse = (c: Course) =>
   http.post<ApiResult<void>>('/api/teacher/courses', c).then(r => r.data)
 
-export const updateCourse = (id: number, c: Course) =>
+export const updateCourse = (id: string, c: Course) =>
   http.put<ApiResult<void>>(`/api/teacher/courses/${id}`, c).then(r => r.data)
 
-export const deleteCourse = (id: number) =>
+export const deleteCourse = (id: string) =>
   http.delete<ApiResult<void>>(`/api/teacher/courses/${id}`).then(r => r.data)
 
-export const toggleCourseStatus = (id: number, status: number) =>
+export const toggleCourseStatus = (id: string, status: number) =>
   http.put<ApiResult<void>>(`/api/teacher/courses/${id}/status?status=${status}`).then(r => r.data)

@@ -22,7 +22,7 @@ export interface CreateTaskParams { templateId: number; taskName: string; dispat
 export const createTrainingTask = (data: CreateTaskParams) =>
   http.post<ApiResult<{ taskId: number; studentCount: number }>>('/api/teacher/training-tasks', data).then(r => r.data)
 
-export const getClassStudents = (classId: number, keyword?: string) =>
+export const getClassStudents = (classId: string, keyword?: string) =>
   http.get<ApiResult<{ userId: number; studentNo: string; realName: string; username: string }[]>>(`/api/teacher/classes/${classId}/students`, { params: { keyword } }).then(r => r.data)
-export const getCourseStudents = (courseId: number, keyword?: string) =>
+export const getCourseStudents = (courseId: string, keyword?: string) =>
   http.get<ApiResult<{ userId: number; studentNo: string; realName: string; username: string }[]>>(`/api/teacher/courses/${courseId}/students`, { params: { keyword } }).then(r => r.data)

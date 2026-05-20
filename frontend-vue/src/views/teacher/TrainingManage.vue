@@ -154,13 +154,13 @@ function handleEndTask(_:TrainingTaskItem) { message.info('结束实训功能待
 // 发布任务
 const showPublish = ref(false); const publishing = ref(false)
 const publishFormRef = ref<FormInst|null>(null)
-const publishForm = ref({ taskName:'', dispatchTargetId:null as number|null, templateId:0, dispatchScope:1 })
-const publishRules: FormRules = { taskName:[{required:true,message:'请输入任务名称'}], dispatchTargetId:[{required:true,message:'请选择目标',type:'number'}] }
-const targetOptions = ref<{label:string,value:number}[]>([])
+const publishForm = ref({ taskName:'', dispatchTargetId:null as string|null, templateId:0, dispatchScope:1 })
+const publishRules: FormRules = { taskName:[{required:true,message:'请输入任务名称'}], dispatchTargetId:[{required:true,message:'请选择目标'}] }
+const targetOptions = ref<{label:string,value:string}[]>([])
 
 async function openPublish(tpl: TrainingTemplate) {
   publishForm.value = { taskName: tpl.templateName, dispatchTargetId: null, templateId: tpl.id!, dispatchScope: 1 }
-  try { const r = await getClasses(); if(r.code===200) targetOptions.value = r.data.map((c:AdminClass)=>({label:c.className,value:c.id})) } catch{/* */ }
+  try { const r = await getClasses(); if(r.code===200) targetOptions.value = r.data.map((c:AdminClass)=>({label:c.className,value:c.id||''})) } catch{/* */ }
   showPublish.value = true
 }
 
@@ -168,7 +168,7 @@ async function openPublish(tpl: TrainingTemplate) {
 watch(() => publishForm.value.dispatchScope, async (scope) => {
   publishForm.value.dispatchTargetId = null
   if (scope === 1) {
-    try { const r = await getClasses(); if(r.code===200) targetOptions.value = r.data.map((c:AdminClass)=>({label:c.className,value:c.id})) } catch{/* */}
+    try { const r = await getClasses(); if(r.code===200) targetOptions.value = r.data.map((c:AdminClass)=>({label:c.className,value:c.id||''})) } catch{/* */}
   } else {
     try { const r = await getTeacherCourses(1, 100); if(r.code===200) targetOptions.value = r.data.records.map((c:Course)=>({label:c.courseName,value:c.id!})) } catch{/* */}
   }
@@ -178,7 +178,12 @@ async function confirmPublish() {
   try { await publishFormRef.value?.validate() } catch { return }
   publishing.value = true
   try {
-    const r = await createTrainingTask({ templateId: publishForm.value.templateId, taskName: publishForm.value.taskName, dispatchScope: publishForm.value.dispatchScope, dispatchTargetId: publishForm.value.dispatchTargetId! })
+    const r = await createTrainingTask({ 
+      templateId: publishForm.value.templateId, 
+      taskName: publishForm.value.taskName, 
+      dispatchScope: publishForm.value.dispatchScope, 
+      dispatchTargetId: Number(publishForm.value.dispatchTargetId!) 
+    })
     if (r.code === 200) { message.success(`任务已下发，共 ${r.data.studentCount} 名学生`); showPublish.value = false; switchMainTab('task') }
     else message.error(r.message||'下发失败')
   } catch { message.error('操作失败') } finally { publishing.value = false }

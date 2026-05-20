@@ -13,9 +13,11 @@
     <n-modal v-model:show="showModal" preset="card" :title="editingId?'编辑课程':'新增课程'" style="max-width:520px">
       <n-form :model="form" label-placement="left" label-width="100">
         <n-form-item label="课程名称"><n-input v-model:value="form.courseName" placeholder="请输入课程名称" /></n-form-item>
-        <n-form-item label="状态"><n-select v-model:value="form.status" :options="[{label:'草稿',value:0},{label:'已发布',value:1}]" style="width: 100%" /></n-form-item>
+        <n-form-item label="状态"><n-select v-model:value="form.status" :options="[{label:'关闭',value:0},{label:'开放',value:1}]" style="width: 100%" /></n-form-item>
         <n-form-item label="需要选课码"><n-switch v-model:value="form.needEnrollCode" :checked-value="1" :unchecked-value="0" /></n-form-item>
-        <n-form-item v-if="form.needEnrollCode === 1" label="选课授权码"><n-input v-model:value="form.enrollCode" placeholder="请输入选课授权码" /></n-form-item>
+        <n-form-item v-if="form.needEnrollCode === 1" label="选课授权码">
+            <n-input :value="form.enrollCode || '由系统自动生成'" :readonly="true" style="color: #64748B; background: #F8FAFC;" />
+          </n-form-item>
         <n-form-item label="授课教师">
           <div class="teacher-select-wrapper">
             <n-input :value="selectedTeacherName" placeholder="点击选择授课教师" :readonly="true" class="teacher-input" />
@@ -49,6 +51,11 @@
         <n-space justify="end"><n-button @click="showDeleteModal=false">取消</n-button><n-button type="error" @click="doDelete" :loading="deleting">确认删除</n-button></n-space>
       </template>
     </n-modal>
+
+    <!-- 查看学生弹窗 -->
+    <n-modal v-model:show="showStudentModal" preset="card" title="课程学生列表" style="width: 700px">
+      <n-data-table :columns="studentColumns" :data="courseStudents" :loading="loadingStudents" :bordered="true" size="small" />
+    </n-modal>
   </div>
 </template>
 
@@ -57,7 +64,7 @@ import { ref, reactive, onMounted, h, computed } from 'vue'
 import { NButton, NDataTable, NModal, NForm, NFormItem, NInput, NSelect, NSpace, NPagination, NTag, NSwitch, useMessage } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import * as api from '@/services/modules/admin.service'
-import type { Course, PageResult, Teacher, Department } from '@/services/types/admin.types'
+import type { Course, PageResult, Teacher, Department, Student } from '@/services/types/admin.types'
 
 const message = useMessage()
 const loading=ref(false),saving=ref(false),showModal=ref(false),showDeleteModal=ref(false),keyword=ref(''),page=ref(1),pageSize=ref(10),editingId=ref<string|null>(null),deleting=ref(false)
@@ -70,6 +77,16 @@ const showTeacherPicker = ref(false)
 const teacherKeyword = ref('')
 const teachers = ref<Teacher[]>([])
 const depts = ref<Department[]>([])
+
+// 查看学生相关
+const showStudentModal = ref(false)
+const courseStudents = ref<Student[]>([])
+const loadingStudents = ref(false)
+const studentColumns: DataTableColumns<Student> = [
+  { title: '账号', key: 'username', width: 120 },
+  { title: '姓名', key: 'realName', width: 100 },
+  { title: '注册时间', key: 'createdAt', render(row) { return formatDate(row.createdAt) } }
+]
 
 const filteredTeachers = computed(() => {
   let result = teachers.value
@@ -87,15 +104,16 @@ const selectedTeacherName = computed(() => {
 })
 
 const columns: DataTableColumns<Course> = [
-  {title:'课程名称',key:'courseName'},
+  {title:'课程名称',key:'courseName',width:180},
   {title:'状态',key:'status',width:80,render(row){return row.status===1?h(NTag,{type:'success',size:'small'},{default:()=>'已发布'}):h(NTag,{type:'default',size:'small'},{default:()=>'草稿'})}},
   {title:'授课教师',key:'teacherName',width:120,render(row){return row.teacherName||'-'}},
   {title:'需选课码',key:'needEnrollCode',width:80,render(row){return row.needEnrollCode===1?'是':'否'}},
   {title:'选课码',key:'enrollCode',width:120,render(row){return row.enrollCode||'-'}},
   {title:'创建时间',key:'createdAt',width:160,render(row){return formatDate(row.createdAt)}},
-  {title:'操作',key:'actions',width:220,render(row){return h('div',{style:'display:flex;gap:6px'},[
+  {title:'操作',key:'actions',width:280,render(row){return h('div',{style:'display:flex;gap:6px'},[
+    h(NButton,{size:'tiny',type:row.status===1?'warning':'success',onClick:()=>toggleStatus(row)},{default:()=>row.status===1?'关闭':'开放'}),
     h(NButton,{size:'tiny',onClick:()=>openModal(row)},{default:()=>'编辑'}),
-    h(NButton,{size:'tiny',type:row.status===1?'warning':'success',onClick:()=>toggleStatus(row)},{default:()=>row.status===1?'下线':'发布'}),
+    h(NButton,{size:'tiny',onClick:()=>viewCourseStudents(row)},{default:()=>'查看学生'}),
     h(NButton,{size:'tiny',type:'error',onClick:()=>handleDelete(row)},{default:()=>'删除'})
   ])}}
 ]
@@ -138,16 +156,10 @@ function confirmTeacher() {
   showTeacherPicker.value = false
 }
 
-function getDeptName(deptId: number | undefined): string {
+function getDeptName(deptId: string | undefined): string {
   if (!deptId) return '-'
-  const dept = depts.value.find(d => d.id === deptId)
-  return dept?.deptName || String(deptId)
-}
-
-function getTeacherName(teacherId: string | undefined): string {
-  if (!teacherId) return '-'
-  const teacher = teachers.value.find(t => t.userId === teacherId)
-  return teacher?.realName || teacherId
+  const dept = depts.value.find(d => String(d.id) === deptId)
+  return dept?.deptName || deptId
 }
 
 function formatDate(dateStr: string | undefined): string {
@@ -224,6 +236,21 @@ async function toggleStatus(row:Course){
     await fetchData()
   } catch (e: any) {
     message.error(e?.response?.data?.message || '状态更新失败')
+  }
+}
+
+async function viewCourseStudents(row: Course) {
+  loadingStudents.value = true
+  try {
+    const r = await api.getCourseStudents(row.id!)
+    if (r.code === 200) {
+      courseStudents.value = r.data || []
+    }
+    showStudentModal.value = true
+  } catch (e: any) {
+    message.error(e?.response?.data?.message || '获取学生列表失败')
+  } finally {
+    loadingStudents.value = false
   }
 }
 

@@ -491,7 +491,10 @@ const typeToNodeType: Record<string, string> = {
 /** 过滤出活跃节点 */
 const filteredCatItems = (cat: any) => {
   if (activeNodeTypes.value.size === 0) return cat.items // 没加载好时显示全部
-  return cat.items.filter((item: any) => activeNodeTypes.value.has(typeToNodeType[item.type]))
+  return cat.items.filter((item: any) => {
+    const nodeType = typeToNodeType[item.type]
+    return nodeType !== undefined && activeNodeTypes.value.has(nodeType)
+  })
 }
 
 // ==================== 1. 数据结构与初始化 ====================

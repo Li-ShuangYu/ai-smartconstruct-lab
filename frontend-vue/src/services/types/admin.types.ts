@@ -6,20 +6,20 @@ export interface PageResult<T> {
 }
 
 export interface Department {
-  id: string
+  id?: string
   deptName: string
   createdAt?: string
 }
 
 export interface Major {
-  id: string
+  id?: string
   deptId: string
   majorName: string
   createdAt?: string
 }
 
 export interface AdminClass {
-  id: string
+  id?: string
   majorId: string
   className: string
   enrollmentYear?: number

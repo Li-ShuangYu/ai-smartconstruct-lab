@@ -8,8 +8,12 @@ import com.smartconstruct.backend_core.dto.CourseRequest;
 import com.smartconstruct.backend_core.dto.CourseVO;
 import com.smartconstruct.backend_core.dto.PageResult;
 import com.smartconstruct.backend_core.entity.BizCourse;
+import com.smartconstruct.backend_core.entity.BizStudent;
+import com.smartconstruct.backend_core.entity.BizStudentCourse;
 import com.smartconstruct.backend_core.entity.SysUser;
 import com.smartconstruct.backend_core.service.ICourseService;
+import com.smartconstruct.backend_core.service.IStudentCourseService;
+import com.smartconstruct.backend_core.service.IStudentService;
 import com.smartconstruct.backend_core.service.ITeacherService;
 import com.smartconstruct.backend_core.service.SysUserService;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,13 +29,16 @@ import java.util.stream.Collectors;
 public class AdminCourseController {
 
     private final ICourseService courseService;
-    private final ITeacherService teacherService;
     private final SysUserService sysUserService;
+    private final IStudentCourseService studentCourseService;
+    private final IStudentService studentService;
 
-    public AdminCourseController(ICourseService courseService, ITeacherService teacherService, SysUserService sysUserService) {
+    public AdminCourseController(ICourseService courseService, SysUserService sysUserService,
+                                 IStudentCourseService studentCourseService, IStudentService studentService) {
         this.courseService = courseService;
-        this.teacherService = teacherService;
         this.sysUserService = sysUserService;
+        this.studentCourseService = studentCourseService;
+        this.studentService = studentService;
     }
 
     private String generateEnrollCode() {
@@ -154,5 +161,29 @@ public class AdminCourseController {
         course.setUpdatedAt(LocalDateTime.now());
         courseService.updateById(course);
         return ApiResult.ok();
+    }
+
+    @GetMapping("/{courseId}/students")
+    public ApiResult<List<Map<String, Object>>> getCourseStudents(@PathVariable String courseId) {
+        Long cId = Long.parseLong(courseId);
+        List<BizStudentCourse> scList = studentCourseService.list(
+                new LambdaQueryWrapper<BizStudentCourse>().eq(BizStudentCourse::getCourseId, cId));
+        if (scList.isEmpty()) return ApiResult.ok(List.of());
+
+        Set<Long> studentIds = scList.stream().map(BizStudentCourse::getStudentId).collect(Collectors.toSet());
+        List<BizStudent> students = studentService.list(new LambdaQueryWrapper<BizStudent>().in(BizStudent::getUserId, studentIds));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (BizStudent s : students) {
+            SysUser u = sysUserService.getById(s.getUserId());
+            if (u == null) continue;
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("userId", s.getUserId());
+            m.put("realName", s.getRealName());
+            m.put("username", u.getUsername());
+            m.put("createdAt", u.getCreatedAt());
+            result.add(m);
+        }
+        return ApiResult.ok(result);
     }
 }

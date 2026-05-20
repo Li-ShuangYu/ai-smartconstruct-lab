@@ -134,10 +134,10 @@ async function fetchDepts() {
   }
 }
 
-function getDeptName(deptId: number | undefined): string {
+function getDeptName(deptId: string | undefined): string {
   if (!deptId) return '-'
   const dept = depts.value.find(d => d.id === deptId)
-  return dept?.deptName || String(deptId)
+  return dept?.deptName || deptId
 }
 
 function formatDate(dateStr: string | undefined): string {

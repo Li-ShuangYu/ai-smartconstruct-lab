@@ -5,22 +5,37 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.smartconstruct.backend_core.annotation.OperationLog;
 import com.smartconstruct.backend_core.dto.ApiResult;
 import com.smartconstruct.backend_core.dto.PageResult;
-import com.smartconstruct.backend_core.entity.BizCourse;
-import com.smartconstruct.backend_core.entity.SysUser;
-import com.smartconstruct.backend_core.service.ICourseService;
+import com.smartconstruct.backend_core.entity.*;
+import com.smartconstruct.backend_core.service.*;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/teacher/courses")
 public class TeacherCourseController {
 
     private final ICourseService courseService;
+    private final IStudentCourseService studentCourseService;
+    private final IStudentService studentService;
+    private final SysUserService sysUserService;
 
-    public TeacherCourseController(ICourseService courseService) {
+    public TeacherCourseController(ICourseService courseService,
+                                   IStudentCourseService studentCourseService,
+                                   IStudentService studentService,
+                                   SysUserService sysUserService) {
         this.courseService = courseService;
+        this.studentCourseService = studentCourseService;
+        this.studentService = studentService;
+        this.sysUserService = sysUserService;
+    }
+
+    private Long getCurrentUserId() {
+        SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return user.getId();
     }
 
     @GetMapping
@@ -28,8 +43,10 @@ public class TeacherCourseController {
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize,
             @RequestParam(required = false) String keyword) {
+        Long teacherId = getCurrentUserId();
         LambdaQueryWrapper<BizCourse> qw = new LambdaQueryWrapper<>();
-        if (keyword != null && !keyword.isEmpty()) {
+        qw.eq(BizCourse::getTeacherId, teacherId);
+        if (keyword != null && !keyword.isBlank()) {
             qw.like(BizCourse::getCourseName, keyword);
         }
         qw.orderByDesc(BizCourse::getCreatedAt);
@@ -39,7 +56,10 @@ public class TeacherCourseController {
 
     @OperationLog(action = "教师新增课程")
     @PostMapping
+    @Transactional(rollbackFor = Exception.class)
     public ApiResult<Void> create(@RequestBody BizCourse course) {
+        Long teacherId = getCurrentUserId();
+        course.setTeacherId(teacherId);
         course.setStatus(0);
         course.setCreatedAt(LocalDateTime.now());
         course.setUpdatedAt(LocalDateTime.now());
@@ -72,5 +92,36 @@ public class TeacherCourseController {
         course.setUpdatedAt(LocalDateTime.now());
         courseService.updateById(course);
         return ApiResult.ok();
+    }
+
+    @GetMapping("/{courseId}/students")
+    public ApiResult<List<Map<String, Object>>> getCourseStudents(@PathVariable Long courseId,
+                                                                    @RequestParam(required = false) String keyword) {
+        List<BizStudentCourse> scList = studentCourseService.list(
+                new LambdaQueryWrapper<BizStudentCourse>().eq(BizStudentCourse::getCourseId, courseId));
+        if (scList.isEmpty()) return ApiResult.ok(List.of());
+
+        Set<Long> studentIds = new HashSet<>();
+        for (BizStudentCourse sc : scList) studentIds.add(sc.getStudentId());
+        List<BizStudent> students = studentService.list(new LambdaQueryWrapper<BizStudent>().in(BizStudent::getUserId, studentIds));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (BizStudent s : students) {
+            SysUser u = sysUserService.getById(s.getUserId());
+            if (u == null) continue;
+            if (keyword != null && !keyword.isBlank()) {
+                String kw = keyword.toLowerCase();
+                boolean match = (s.getRealName() != null && s.getRealName().toLowerCase().contains(kw))
+                        || (u.getUsername() != null && u.getUsername().toLowerCase().contains(kw));
+                if (!match) continue;
+            }
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("userId", s.getUserId());
+            m.put("realName", s.getRealName());
+            m.put("username", u.getUsername());
+            m.put("createdAt", u.getCreatedAt());
+            result.add(m);
+        }
+        return ApiResult.ok(result);
     }
 }

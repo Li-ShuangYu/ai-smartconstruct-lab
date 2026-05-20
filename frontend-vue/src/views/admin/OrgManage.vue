@@ -59,6 +59,14 @@
         <n-space justify="end"><n-button @click="showDeleteModal=false">取消</n-button><n-button type="error" @click="doDelete" :loading="deleting">确认删除</n-button></n-space>
       </template>
     </n-modal>
+
+    <!-- 查看学生弹窗 -->
+    <n-modal v-model:show="showStudentModal" preset="card" title="班级学生列表" style="width: 700px">
+      <n-data-table :columns="studentColumns" :data="classStudents" :loading="loadingStudents" :bordered="true" size="small" />
+      <template #footer>
+        <n-space justify="end"><n-button @click="showStudentModal=false">关闭</n-button></n-space>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -67,18 +75,28 @@ import { ref, reactive, computed, onMounted, h } from 'vue'
 import { NButton, NDataTable, NModal, NForm, NFormItem, NInput, NSelect, NSpace, NTabPane, NTabs, useMessage } from 'naive-ui'
 import type { DataTableColumns } from 'naive-ui'
 import * as api from '@/services/modules/admin.service'
-import type { Department, Major, AdminClass } from '@/services/types/admin.types'
+import type { Department, Major, AdminClass, Student } from '@/services/types/admin.types'
 
 const message = useMessage()
 const activeTab = ref('depts')
 const saving = ref(false)
 const loading = reactive({ depts: false, majors: false, classes: false })
+const loadingStudents = ref(false)
 
 // ===== 删除确认 =====
 const showDeleteModal = ref(false)
 const deleteTargetName = ref('')
 let deleteAction: (() => Promise<any>) | null = null
 const deleting = ref(false)
+
+// ===== 查看学生 =====
+const showStudentModal = ref(false)
+const classStudents = ref<Student[]>([])
+const studentColumns: DataTableColumns<Student> = [
+  { title: '账号', key: 'username', width: 120 },
+  { title: '姓名', key: 'realName', width: 100 },
+  { title: '注册时间', key: 'createdAt', render(row) { return formatDate(row.createdAt) } }
+]
 
 function confirmDelete(name: string, fn: () => Promise<any>) {
   deleteTargetName.value = name
@@ -117,7 +135,7 @@ const deptColumns: DataTableColumns<Department> = [
     render(row) {
       return h('div', { style: 'display:flex;gap:8px' }, [
         h(NButton, { size: 'tiny', onClick: () => openDeptModal(row) }, { default: () => '编辑' }),
-        h(NButton, { size: 'tiny', type: 'error', onClick: () => confirmDelete(row.deptName, () => api.deleteDept(row.id)) }, { default: () => '删除' })
+        h(NButton, { size: 'tiny', type: 'error', onClick: () => confirmDelete(row.deptName, () => api.deleteDept(row.id!)) }, { default: () => '删除' })
       ])
     }
   }
@@ -164,7 +182,7 @@ const majorColumns: DataTableColumns<Major> = [
     render(row) {
       return h('div', { style: 'display:flex;gap:8px' }, [
         h(NButton, { size: 'tiny', onClick: () => openMajorModal(row) }, { default: () => '编辑' }),
-        h(NButton, { size: 'tiny', type: 'error', onClick: () => confirmDelete(row.majorName, () => api.deleteMajor(row.id)) }, { default: () => '删除' })
+        h(NButton, { size: 'tiny', type: 'error', onClick: () => confirmDelete(row.majorName, () => api.deleteMajor(row.id!)) }, { default: () => '删除' })
       ])
     }
   }
@@ -211,11 +229,12 @@ const classColumns: DataTableColumns<AdminClass> = [
   { title: '所属院系', key: 'deptId', render(row) { const m = majorList.value.find(mm => mm.id === row.majorId); return m ? deptList.value.find(d => d.id === m.deptId)?.deptName ?? '-' : '-' } },
   { title: '创建时间', key: 'createdAt', render(row) { return formatDate(row.createdAt) } },
   {
-    title: '操作', key: 'actions', width: 160,
+    title: '操作', key: 'actions', width: 220,
     render(row) {
       return h('div', { style: 'display:flex;gap:8px' }, [
         h(NButton, { size: 'tiny', onClick: () => openClassModal(row) }, { default: () => '编辑' }),
-        h(NButton, { size: 'tiny', type: 'error', onClick: () => confirmDelete(row.className, () => api.deleteClass(row.id)) }, { default: () => '删除' })
+        h(NButton, { size: 'tiny', onClick: () => viewStudents(row) }, { default: () => '查看学生' }),
+        h(NButton, { size: 'tiny', type: 'error', onClick: () => confirmDelete(row.className, () => api.deleteClass(row.id!)) }, { default: () => '删除' })
       ])
     }
   }
@@ -278,6 +297,21 @@ async function fetchClasses() {
     if (r.code === 200) classList.value = r.data || []
   } catch (e: any) { message.error(e?.response?.data?.message || '获取班级列表失败') }
   finally { loading.classes = false }
+}
+
+async function viewStudents(row: AdminClass) {
+  loadingStudents.value = true
+  try {
+    const r = await api.getAdminClassStudents(row.id!)
+    if (r.code === 200) {
+      classStudents.value = r.data || []
+    }
+    showStudentModal.value = true
+  } catch (e: any) {
+    message.error(e?.response?.data?.message || '获取学生列表失败')
+  } finally {
+    loadingStudents.value = false
+  }
 }
 
 function formatDate(dateStr: string | undefined): string {

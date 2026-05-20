@@ -14,7 +14,6 @@ import com.smartconstruct.backend_core.service.ITeacherService;
 import com.smartconstruct.backend_core.service.SysUserService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
