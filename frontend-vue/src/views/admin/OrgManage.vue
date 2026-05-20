@@ -169,7 +169,7 @@ const majorColumns: DataTableColumns<Major> = [
     }
   }
 ]
-const filteredMajors = computed(() => majorDeptFilter.value ? majorList.value.filter(m => m.deptId === majorDeptFilter.value) : majorList.value)
+const filteredMajors = computed(() => majorDeptFilter.value ? majorList.value.filter(m => String(m.deptId) === majorDeptFilter.value) : majorList.value)
 
 function openMajorModal(row: Major | null) {
   editingMajorId.value = row?.id ?? null
@@ -223,17 +223,17 @@ const classColumns: DataTableColumns<AdminClass> = [
 
 const classMajorOptions = computed(() => {
   let l = majorList.value
-  if (classDeptFilter.value) l = l.filter(m => m.deptId === classDeptFilter.value)
+  if (classDeptFilter.value) l = l.filter(m => String(m.deptId) === classDeptFilter.value)
   return l.map(m => ({ label: m.majorName, value: m.id }))
 })
 const classFormMajorOpts = computed(() => {
   if (!classForm.deptId) return majorList.value.map(m => ({ label: m.majorName, value: m.id }))
-  return majorList.value.filter(m => m.deptId === classForm.deptId).map(m => ({ label: m.majorName, value: m.id }))
+  return majorList.value.filter(m => String(m.deptId) === classForm.deptId).map(m => ({ label: m.majorName, value: m.id }))
 })
 const filteredClasses = computed(() => {
   let l = classList.value
   if (classDeptFilter.value) {
-    const mids = majorList.value.filter(m => m.deptId === classDeptFilter.value).map(m => m.id)
+    const mids = majorList.value.filter(m => String(m.deptId) === classDeptFilter.value).map(m => m.id)
     l = l.filter(c => mids.includes(c.majorId))
   }
   if (classMajorFilter.value) l = l.filter(c => c.majorId === classMajorFilter.value)

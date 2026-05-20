@@ -15,6 +15,7 @@ public class BizAdminClass {
     @TableId(type = IdType.ASSIGN_ID)
     @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long majorId;
     private String className;
     private Integer enrollmentYear;

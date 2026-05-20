@@ -2,12 +2,12 @@
   <!-- <div class="page-container"> -->
     <div>
     <div class="page-header">
-      <h1 class="page-title">教务组织管理</h1>
+      <h1 class="page-title">班级与课程</h1>
       <n-button v-if="activeTab === 'course'" type="primary" @click="handleCreate">新增课程</n-button>
     </div>
 
     <div class="tabs-nav">
-      <div class="tab-item" :class="{ active: activeTab === 'class' }" @click="switchTab('class')">行政班级管理</div>
+      <div class="tab-item" :class="{ active: activeTab === 'class' }" @click="switchTab('class')">行政班级</div>
       <div class="tab-item" :class="{ active: activeTab === 'course' }" @click="switchTab('course')">课程管理</div>
     </div>
 

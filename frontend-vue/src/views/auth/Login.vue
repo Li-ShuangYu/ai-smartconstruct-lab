@@ -45,14 +45,6 @@
         {{ loading ? '登录中...' : '进入系统' }}
       </button>
 
-      <button 
-        v-if="isDev" 
-        type="button" 
-        class="test-btn" 
-        @click="handleTestLogin"
-      >
-        [开发模式] 一键免密登录
-      </button>
       <div class="register-prompt">
         没有账号？<router-link to="/auth/register">立即注册</router-link>
       </div>
@@ -196,24 +188,7 @@ const handleLogin = async () => {
   }
 }
 
-// ========== 新增部分开始：开发环境免密登录逻辑 ==========
-// 判断是否为开发环境 (以 Vite 为例)
-const isDev = import.meta.env.DEV
 
-// 仅用于开发环境的测试登录方法
-const handleTestLogin = () => {
-  const roleKey = currentRole.value
-  // 注入模拟的 Token 和用户信息
-  authStore.setAuth(
-    'dev-mock-token-8888', 
-    9999, 
-    `测试${roleKey}`, 
-    roleMap[roleKey]!
-  )
-  // 直接跳转到对应的工作台
-  router.push(routeMap[roleKey] || '/student/workbench')
-}
-// ========== 新增部分结束 ==========
 </script>
 
 <style scoped>
@@ -396,25 +371,4 @@ const handleTestLogin = () => {
   text-decoration: underline;
 }
 
-/* ========== 新增部分开始：测试按钮样式 ========== */
-.test-btn {
-  width: 100%;
-  padding: 12px;
-  margin-top: 12px;
-  background-color: #f1f5f9;
-  color: #475569;
-  border: 1px dashed #cbd5e1;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.test-btn:hover {
-  background-color: #e2e8f0;
-  border-color: #94a3b8;
-  color: #1e293b;
-}
-/* ========== 新增部分结束 ========== */
 </style>
