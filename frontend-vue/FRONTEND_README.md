@@ -12,16 +12,18 @@
 
 | 技术 | 说明 | 版本 |
 |------|------|------|
-| Vue 3 | 渐进式JavaScript框架 | 3.5+ |
-| TypeScript | JavaScript超集 | 5.x |
-| Vite | 新一代前端构建工具 | 8.x |
-| Vue Router | Vue官方路由管理 | 5.x |
-| Pinia | Vue状态管理 | 3.x |
-| Naive UI | Vue 3组件库 | 2.x |
-| Vue Flow | 流程图/节点编排组件 | 1.x |
-| ECharts | 数据可视化图表库 | 6.x |
-| NProgress | 路由进度条 | - |
-| Axios | HTTP客户端 | 1.x |
+| Vue 3 | 渐进式JavaScript框架 | 3.5.32 |
+| TypeScript | JavaScript超集 | ~6.0.0 |
+| Vite | 新一代前端构建工具 | 8.0.8 |
+| Vue Router | Vue官方路由管理 | 5.0.6 |
+| Pinia | Vue状态管理 | 3.0.4 |
+| Naive UI | Vue 3组件库 | 2.44.1 |
+| Vue Flow | 流程图/节点编排组件 | 1.48.2 |
+| ECharts | 数据可视化图表库 | 6.0.0 |
+| NProgress | 路由进度条 | 0.2.0 |
+| Axios | HTTP客户端 | 1.15.2 |
+| simple-mind-map | 思维导图组件 | 0.14.0-fix.2 |
+| Font Awesome | 图标库 | 7.2.0 |
 
 ---
 
@@ -51,6 +53,8 @@ frontend-vue/
 │   │   └── main.css           # 主样式文件
 │   │
 │   ├── components/             # 组件目录
+│   │   ├── AIFloatingAssistant/  # AI浮动助手组件
+│   │   │   └── AIFloatingAssistant.vue
 │   │   ├── icons/            # 图标组件
 │   │   │   ├── IconCommunity.vue
 │   │   │   ├── IconDocumentation.vue
@@ -97,6 +101,14 @@ frontend-vue/
 │   ├── services/              # 服务层
 │   │   ├── api.ts            # Axios封装
 │   │   ├── types/            # 类型定义
+│   │   │   ├── admin.types.ts
+│   │   │   ├── auth.types.ts
+│   │   │   ├── dashboard.types.ts
+│   │   │   ├── homework.types.ts
+│   │   │   ├── org.types.ts
+│   │   │   ├── template.types.ts
+│   │   │   ├── training.types.ts
+│   │   │   └── user.types.ts
 │   │   └── modules/          # API服务
 │   │       ├── auth.service.ts        # 认证服务
 │   │       ├── user.service.ts        # 用户服务
@@ -124,7 +136,9 @@ frontend-vue/
 │   │   ├── format.ts        # 格式化工具
 │   │   ├── storage.ts       # 本地存储
 │   │   ├── validate.ts      # 校验函数
-│   │   └── telemetry.ts     # 埋点工具
+│   │   ├── telemetry.ts     # 埋点工具
+│   │   ├── training-flow.ts # 实训流程工具
+│   │   └── websocket.ts     # WebSocket工具
 │   │
 │   ├── views/                # 页面组件
 │   │   ├── auth/            # 认证页面
@@ -139,11 +153,14 @@ frontend-vue/
 │   │   │   ├── EvaluationManage.vue   # 评控管理
 │   │   │   ├── ClassCompetencyProfile.vue   # 班级能力画像
 │   │   │   ├── StudentCompetencyProfile.vue # 学生能力画像
-│   │   │   ├── TeacherLiveMonitor.vue  # 直播监控
-│   │   │   ├── UserProfile.vue         # 用户信息
-│   │   │   └── components/            # 教师端公共组件
-│   │   │       ├── PropertyEditor.vue
-│   │   │       └── StandardNode.vue
+│   │   │   ├── ClassCourseManage.vue       # 班级课程管理
+│   │   │   ├── TeacherLiveMonitor.vue      # 直播监控
+│   │   │   ├── UserProfile.vue             # 用户信息
+│   │   │   ├── components/            # 教师端公共组件
+│   │   │   │   ├── PropertyEditor.vue
+│   │   │   │   └── StandardNode.vue
+│   │   │   └── data/                   # 教师端数据
+│   │   │       └── node-templates.ts
 │   │   ├── student/         # 学生端页面（工作台）
 │   │   │   ├── Workbench.vue           # 学习空间
 │   │   │   ├── TrainingDetail.vue      # 实训详情
@@ -193,10 +210,10 @@ frontend-vue/
 │   │   │   │   ├── MindMapEditor.vue
 │   │   │   │   ├── RequirementCloud.vue
 │   │   │   │   ├── PlanUpload.vue
-│   │   │   │   ├── SimulatedIDE.vue      # 模拟IDE（Python数组学习，自动连续流程）
+│   │   │   │   ├── SimulatedIDE.vue      # 模拟IDE（Python数组学习）
 │   │   │   │   ├── HomeworkEngine.vue
-│   │   │   │   ├── PeerReview.vue        # 同伴互评（滑块评分0-10分）
-│   │   │   │   ├── TeacherComment.vue    # 教师点评与实训复盘（学生端查看）
+│   │   │   │   ├── PeerReview.vue        # 同伴互评
+│   │   │   │   ├── TeacherComment.vue    # 教师点评（学生端）
 │   │   │   │   └── SummaryReport.vue
 │   │   │   └── teacherTraining/   # 教师端实训监控页面
 │   │   │       ├── TeacherStartPortal.vue
@@ -212,9 +229,13 @@ frontend-vue/
 │   │   │       ├── TeacherSimulatedIDE.vue
 │   │   │       ├── TeacherHomeworkEngine.vue
 │   │   │       ├── TeacherPeerReview.vue
-│   │   │       ├── TeacherTeacherComment.vue  # 教师点评监控（教师端监控）
+│   │   │       ├── TeacherTeacherComment.vue  # 教师点评监控
 │   │   │       └── TeacherSummaryReport.vue
 │   │   └── common/          # 公共页面
+│   │       ├── 404.vue
+│   │       ├── 500.vue
+│   │       ├── AdminStandardPage.vue
+│   │       └── Pagination.vue
 │   │
 │   ├── rules/               # 开发规范
 │   │   ├── .cursorrules    # Cursor AI规则
@@ -422,15 +443,15 @@ interface TrainingFlow {
 - `StudentCabin.vue` - 学生舱位页面
 - `TrainingDetail.vue` - 实训详情页面
 - `training.store.ts` - 实训状态管理
-- `useWebSocket.ts` - WebSocket连接管理
+- `utils/websocket.ts` - WebSocket连接管理
 
 **动态节点组件**:
 `TrainingExecute.vue` 根据节点类型动态加载对应组件，支持以下节点类型：
+- `GenericNode.vue` - 通用节点
 - `GroupingNode.vue` - 分组节点
 - `UploadNode.vue` - 上传节点
 - `ResourceNode.vue` - 资源节点
 - `HomeworkNode.vue` - 作业节点
-- `GenericNode.vue` - 通用节点
 
 **三状态按钮交互模式**:
 实训节点页面采用统一的三状态按钮交互规范：
@@ -506,7 +527,7 @@ interface WebSocketMessage {
 连接建立:
 1. 学生进入实训页面
    ↓
-2. useWebSocket.connect(trainingSessionId)
+2. websocket.ts connect(trainingSessionId)
    ↓
 3. 发送连接请求到 ws://localhost:8080/ws/training
    ↓
@@ -597,6 +618,20 @@ interface HomeworkState {
 - fetchHomeworkList(): Promise<void>
 - submitHomework(data): Promise<void>
 - fetchSubmissions(homeworkId): Promise<void>
+```
+
+#### assistant.store.ts - 智能助手状态管理
+```typescript
+interface AssistantState {
+  isOpen: boolean;               // 助手面板是否打开
+  messages: ChatMessage[];       // 聊天消息列表
+  isTyping: boolean;             // 助手是否正在输入
+}
+
+// Actions:
+- sendMessage(message): Promise<void>
+- togglePanel(): void
+- clearMessages(): void
 ```
 
 ---
@@ -763,6 +798,7 @@ const teacherRoutes = [
       { path: 'training-manage', component: TrainingManage },
       { path: 'training-create', component: TrainingCreate, meta: { hideSidebar: true } },
       { path: 'evaluation', component: EvaluationDashboard },
+      { path: 'class-course', component: ClassCourseManage },
     ]
   }
 ];
@@ -885,37 +921,22 @@ export function useTraining() {
 }
 ```
 
-#### useWebSocket.ts - WebSocket Hook
+#### useAssistant.ts - 智能助手Hook
 ```typescript
-export function useWebSocket() {
-  const ws = ref<WebSocket | null>(null);
-  const isConnected = ref(false);
-  const messages = ref<WebSocketMessage[]>([]);
-  
-  // 建立连接
-  const connect = (sessionId: number) => {
-    ws.value = new WebSocket(`ws://localhost:8080/ws/training?sessionId=${sessionId}`);
-    
-    ws.value.onopen = () => { isConnected.value = true; };
-    ws.value.onmessage = (event) => {
-      messages.value.push(JSON.parse(event.data));
-    };
-    ws.value.onclose = () => { isConnected.value = false; };
-  };
+export function useAssistant() {
+  const store = useAssistantStore();
   
   // 发送消息
-  const send = (message: WebSocketMessage) => {
-    if (ws.value?.readyState === WebSocket.OPEN) {
-      ws.value.send(JSON.stringify(message));
-    }
+  const sendMessage = async (message: string) => {
+    await store.sendMessage(message);
   };
   
-  // 断开连接
-  const disconnect = () => {
-    ws.value?.close();
+  // 切换面板
+  const togglePanel = () => {
+    store.togglePanel();
   };
   
-  return { connect, send, disconnect, isConnected, messages };
+  return { sendMessage, togglePanel, messages: store.messages, isOpen: store.isOpen };
 }
 ```
 
@@ -934,20 +955,20 @@ export function useWebSocket() {
 ├── /teacher               # 教师工作台（带侧边栏）
 │   ├── /teacher/workbench           # 工作台概览
 │   ├── /teacher/training-manage    # 实训管理
-│   ├── /teacher/class-course-manage # 班级课程管理
+│   ├── /teacher/class-course       # 班级课程管理
 │   ├── /teacher/evaluation         # 评估分析
 │   └── /teacher/profile           # 用户中心
 │
 ├── /teacher/* (沉浸式，无侧边栏)   # 教师沉浸式页面
 │   ├── /teacher/training-create    # 实训编排
-│   ├── /teacher/teacher-live-monitor # 直播监控
+│   ├── /teacher/live-monitor       # 直播监控
 │   ├── /teacher/training-publish   # 发布实训
-│   ├── /teacher/class-competency/:studentId  # 班级能力分析
-│   └── /teacher/student-competency/:studentId # 学生能力分析
+│   ├── /teacher/class-competency   # 班级能力分析
+│   └── /teacher/student-competency # 学生能力分析
 │
 ├── /student               # 学生学习空间（带侧边栏）
 │   ├── /student/workbench          # 工作台
-│   ├── /student/student-cabin/:id # 学生舱位
+│   ├── /student/student-cabin/:id  # 学生舱位
 │   ├── /student/training-detail/:id # 实训详情
 │   ├── /student/my-class          # 我的班级
 │   ├── /student/courselist        # 课程列表
@@ -958,8 +979,8 @@ export function useWebSocket() {
 │   └── /student/profile           # 个人中心
 │
 ├── /training              # 实训模块
-│   ├── /training/theory           # 理论实训
-│   └── /training/code             # 代码实训
+│   ├── /training/studentTraining  # 学生端实训页面
+│   └── /training/teacherTraining  # 教师端实训监控页面
 │
 ├── /admin                 # 管理员后台
 │   ├── /admin/teacher     # 教师管理
@@ -1145,7 +1166,7 @@ export function useWebSocket() {
 - **技术实现**：表单编辑、状态管理
 
 #### ClassCompetencyProfile.vue
-- **路径**：`/teacher/class-competency/:studentId`
+- **路径**：`/teacher/class-competency`
 - **功能**：班级实训总结分析，能力雷达图
 - **技术实现**：
   - 路由参数获取（useRoute.params）
@@ -1268,7 +1289,7 @@ export function useWebSocket() {
 ### 实训模块 (training)
 
 #### SimulatedIDE.vue
-- **路径**：`/training/simulated-ide`
+- **路径**：`/training/studentTraining/simulated-ide`
 - **功能**：模拟IDE实训页面，专注于Python数组学习，包含自动连续流程
 - **核心特性**：
   - **Python数组学习**：涵盖数组反转、快速排序、二分查找等常用算法
@@ -1288,7 +1309,7 @@ export function useWebSocket() {
 - **业务场景**：学生学习Python数组操作算法，体验完整的编码调试流程
 
 #### PeerReview.vue
-- **路径**：`/training/peer-review`
+- **路径**：`/training/studentTraining/peer-review`
 - **功能**：同伴互评页面，学生之间互相评价实训成果
 - **核心特性**：
   - **滑块评分**：评分方式从按钮改为拖动条，分数范围0-10分
@@ -1306,7 +1327,7 @@ export function useWebSocket() {
 - **业务场景**：学生完成实训后，对同伴的实训成果进行多维度评价
 
 #### TeacherComment.vue
-- **路径**：`/training/teacher-comment`
+- **路径**：`/training/studentTraining/teacher-comment`
 - **功能**：教师点评与实训复盘页面（学生端查看）
 - **核心特性**：
   - 查看教师对实训的评价和建议
@@ -1315,7 +1336,7 @@ export function useWebSocket() {
 - **技术实现**：评分展示、能力分析图表
 
 #### TeacherTeacherComment.vue
-- **路径**：`/training/teacher-teacher-comment`
+- **路径**：`/training/teacherTraining/teacher-teacher-comment`
 - **功能**：教师点评监控页面（教师端监控）
 - **核心特性**：
   - 查看所有学生的实训进度
@@ -1323,91 +1344,80 @@ export function useWebSocket() {
   - 监控班级整体实训情况
 - **技术实现**：实时监控、批量点评、进度统计
 
-#### UserProfile.vue
-- **路径**：`/student/profile`
-- **功能**：学生个人信息管理
-- **技术实现**：表单编辑、头像上传
+### AI浮动助手模块
 
-### 管理员端 (admin)
-
-#### TeacherManage.vue
-- **路径**：`/admin/teacher`
-- **功能**：教师账号管理
-- **技术实现**：CRUD操作、分页列表
-
-#### StudentManage.vue
-- **路径**：`/admin/student`
-- **功能**：学生账号管理
-- **技术实现**：CRUD操作、批量导入
-
-#### OrgManage.vue
-- **路径**：`/admin/org`
-- **功能**：机构组织管理
-- **技术实现**：树形结构、层级管理
-
-#### CourseManage.vue
-- **路径**：`/admin/course`
-- **功能**：课程资源管理
-- **技术实现**：课程CRUD、分类管理
+#### AIFloatingAssistant.vue
+- **功能**：页面悬浮AI助手组件，提供即时答疑和辅导
+- **核心特性**：
+  - 全局悬浮显示，随时可调用
+  - 支持实训相关问题查询
+  - 可折叠/展开交互
+  - 支持对话历史记录
 
 ---
 
-## 🔧 配置说明
+## 🚀 快速开始
 
-### 后端接口配置
+### 环境要求
 
-前端默认连接后端地址：`http://localhost:8080`
+- Node.js 20.19+ 或 >=22.12.0
+- npm 或 yarn
 
-如需修改后端地址，请编辑 `src/services/api.ts`：
+### 安装依赖
 
-```typescript
-const http: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8080', // 修改此地址
-  timeout: 15000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-})
+```bash
+cd frontend-vue
+npm install
 ```
 
-### 跨域配置
+### 开发模式
 
-后端已配置允许以下前端域名访问：
-- http://localhost:5173
-- http://localhost:5174
-- http://localhost:3000
+```bash
+npm run dev
+```
 
----
+前端应用将在 `http://localhost:5173` 启动。
 
-## 📖 开发指南
+### 构建生产版本
 
-### 添加新页面
+```bash
+npm run build
+```
 
-1. 在 `src/views/` 目录创建页面组件
-2. 在 `src/router/modules/` 目录添加路由配置
-3. 在 `src/services/modules/` 添加对应的 API 服务（如需要）
-4. 在 `src/stores/modules/` 添加状态管理（如需要）
+### 类型检查
 
-### 代码规范
-
-- 使用 Vue 3 Composition API + `<script setup>` 语法
-- 使用 TypeScript 进行类型检查
-- 使用 Pinia 进行状态管理
-- 使用 Axios 进行 HTTP 请求
-- 组件命名使用 PascalCase
-- 文件命名使用 kebab-case
+```bash
+npm run type-check
+```
 
 ---
 
-## ❓ 常见问题
+## 📦 依赖说明
 
-### 1. 登录时报"网络错误，请稍后重试"
+### 核心依赖
 
-**问题描述**: 输入正确账号密码后提示网络错误
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| vue | ^3.5.32 | Vue 3 核心框架 |
+| vue-router | ^5.0.6 | 路由管理 |
+| pinia | ^3.0.4 | 状态管理 |
+| naive-ui | ^2.44.1 | UI组件库 |
+| axios | ^1.15.2 | HTTP客户端 |
+| @vue-flow/core | ^1.48.2 | 流程图编排 |
+| echarts | ^6.0.0 | 数据可视化 |
+| simple-mind-map | ^0.14.0-fix.2 | 思维导图 |
 
-**原因分析**: 通常是跨域问题或后端服务未启动
+### 开发依赖
 
-**解决方案**:
-1. 确认后端服务正在运行（端口 8080）
-2. 确认前端运行端口已添加到后端 CORS 配置
-3. 使用命令检查端口状态：`netstat -ano | findstr 
+| 依赖 | 版本 | 用途 |
+|------|------|------|
+| vite | ^8.0.8 | 构建工具 |
+| vue-tsc | ^3.2.6 | TypeScript类型检查 |
+| tailwindcss | ^3.4.19 | CSS框架 |
+| @types/node | ^24.12.2 | Node类型定义 |
+
+---
+
+## 📧 联系方式
+
+如有问题请联系开发团队。

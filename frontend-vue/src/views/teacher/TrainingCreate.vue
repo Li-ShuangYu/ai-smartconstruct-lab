@@ -681,13 +681,15 @@ const onDragStartLibrary = (e: DragEvent, item: any) => {
 // [拖拽起点] - 从画布已有节点
 const onDragStartNode = (e: DragEvent, index: number, node: any) => {
   dragState.value = { source: 'list', item: node, startIndex: index }
-  if (e.dataTransfer) {
+  if (e && e.dataTransfer) {
     e.dataTransfer.effectAllowed = 'move'
     // 拖拽优化2：使用真实的 DOM 节点作为跟手残影
     const target = e.currentTarget as HTMLElement
     e.dataTransfer.setDragImage(target, target.offsetWidth / 2, target.offsetHeight / 2)
   }
-  setTimeout(() => { if (e.target) (e.target as HTMLElement).style.opacity = '0.4' }, 0)
+  if (e && e.target) {
+    setTimeout(() => { (e.target as HTMLElement).style.opacity = '0.4' }, 0)
+  }
 }
 
 // [拖拽经过] - 计算插入空隙槽的位置 (拖拽优化2：监听绑定在了 wrapper 上，灵敏度大幅提升)
