@@ -88,14 +88,12 @@ public class TeacherTemplateController {
         WfTrainingTemplate template = new WfTrainingTemplate();
         template.setTemplateName(templateName);
         template.setRawCanvasJson(canvasData);
-        template.setAiStatus(1);
+        template.setAiStatus(0);
         template.setCreatedAt(LocalDateTime.now());
         template.setUpdatedAt(LocalDateTime.now());
         templateService.save(template);
 
-        templateService.processTemplateMockAi(template.getId(), canvasData);
-
-        return ApiResult.ok(Java8Compat.mapOf("id", template.getId(), "aiStatus", 1));
+        return ApiResult.ok(Java8Compat.mapOf("id", template.getId(), "aiStatus", 0));
     }
 
     /**

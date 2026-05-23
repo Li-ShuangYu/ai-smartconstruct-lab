@@ -435,6 +435,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { getActiveNodes } from '@/services/modules/admin.service'
+import { createTemplate } from '@/services/modules/teacher.service'
 
 // ==================== 文件上传 ====================
 const docFileInput = ref<HTMLInputElement | null>(null)
@@ -1015,7 +1016,7 @@ const handlePublish = () => {
   showPublishModal.value = true
 }
 
-const confirmPublish = () => {
+const confirmPublish = async () => {
   if (!templateName.value.trim()) {
     alert('请输入模板名称')
     return
@@ -1044,7 +1045,6 @@ const confirmPublish = () => {
   }
 
   const result = {
-    templateName: templateName.value,
     orchestration_id: `flow_${Date.now().toString(36)}`,
     nodes,
     edges
@@ -1061,8 +1061,18 @@ const confirmPublish = () => {
   console.warn('4. HOMEWORK.question_bank_ids / question_ids — 页面无"题库来源集合"和"手动选取题目列表"字段，输出为空数组')
   console.warn('5. 学情调查(SURVEY) 节点 — 你提供的规范中未包含该类型映射，输出 node_type 为 SURVEY')
 
-  showPublishModal.value = false
-  alert(`实训模板「${templateName.value}」保存并发布成功！(请按F12查看控制台数据)`)
+  // 调用后端接口写入数据库
+  try {
+    const res = await createTemplate(templateName.value, result)
+    if (res.code === 200) {
+      showPublishModal.value = false
+      alert(`实训模板「${templateName.value}」保存成功！`)
+    } else {
+      alert('保存失败：' + (res.message || '未知错误'))
+    }
+  } catch (e: any) {
+    alert('保存失败：' + (e?.response?.data?.message || '网络错误'))
+  }
 }
 </script>
 
