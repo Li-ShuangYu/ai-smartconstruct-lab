@@ -17,8 +17,9 @@ export interface CanvasData {
 }
 
 export interface TrainingTemplate {
-  id?: number
+  id?: string
   templateName: string
+  templateDesc?: string
   rawCanvasJson?: unknown
   standardPayloadJson?: unknown
   aiStatus: number

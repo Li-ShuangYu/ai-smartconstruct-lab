@@ -17,5 +17,5 @@ export const deleteCourse = (id: string) =>
 export const toggleCourseStatus = (id: string, status: number) =>
   http.put<ApiResult<void>>(`/api/teacher/courses/${id}/status?status=${status}`).then(r => r.data)
 
-export const createTemplate = (templateName: string, canvasData: any) =>
-  http.post<ApiResult<{ id: string; aiStatus: number }>>('/api/teacher/templates', { templateName, canvasData }).then(r => r.data)
+export const createTemplate = (templateName: string, templateDescription: string, canvasData: any) =>
+  http.post<ApiResult<{ id: string; aiStatus: number }>>('/api/teacher/templates', { templateName, templateDescription, canvasData }).then(r => r.data)

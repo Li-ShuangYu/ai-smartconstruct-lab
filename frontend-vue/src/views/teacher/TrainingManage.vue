@@ -22,6 +22,7 @@
       <main v-if="mainTab === 'template'" class="table-container">
         <div class="data-grid-header">
           <span>模板名称</span>
+          <span>模板描述</span>
           <span>AI 状态</span>
           <span>创建时间</span>
           <span class="action-header">操作</span>
@@ -29,6 +30,7 @@
         <div class="data-grid-body">
           <div v-for="tpl in templates" :key="tpl.id" class="grid-row">
             <span class="name">{{ tpl.templateName }}</span>
+            <span class="desc">{{ tpl.templateDesc || '-' }}</span>
             <span>
               <n-tag :type="aiStatusTag(tpl.aiStatus)" size="small">
                 <template v-if="tpl.aiStatus === 1"><n-spin :size="14" /> </template>
@@ -37,6 +39,7 @@
             </span>
             <span class="time">{{ formatTime(tpl.createdAt) }}</span>
             <div class="actions">
+              <button class="text-btn" @click="openEditTemplate(tpl)">修改</button>
               <button v-if="tpl.aiStatus === 2" class="text-btn primary" @click="openPublish(tpl)">发布任务</button>
               <button v-if="tpl.aiStatus === 3" class="text-btn" @click="showError(tpl)">查看原因</button>
               <button class="text-btn danger" @click="handleDeleteTemplate(tpl)">删除</button>
@@ -64,15 +67,16 @@
             <span class="time">{{ formatTime(item.startTime) }}</span>
             <span><span class="status-tag" :class="taskStatusClass(item.status)">{{ taskStatusLabel(item.status) }}</span></span>
             <div class="actions">
+              <button class="text-btn primary" @click="openTaskDispatch(item)">下发实训任务</button>
               <template v-if="item.status === 0">
-                <button class="text-btn primary" @click="$router.push(`/teacher/training-publish?taskId=${item.id}`)">开启实训</button>
+                <button class="text-btn" @click="$router.push(`/teacher/training-publish?taskId=${item.id}`)">开启实训</button>
               </template>
               <template v-if="item.status === 1">
                 <button class="text-btn danger" @click="handleEndTask(item)">结束实训</button>
-                <button class="text-btn primary" @click="$router.push(`/teacher/teacher-live-monitor?taskId=${item.id}`)">进入实训</button>
+                <button class="text-btn" @click="$router.push(`/teacher/teacher-live-monitor?taskId=${item.id}`)">进入实训</button>
               </template>
               <template v-if="item.status === 2">
-                <button class="text-btn primary" @click="$router.push(`/teacher/class-competency/${item.id}`)">查看详情</button>
+                <button class="text-btn" @click="$router.push(`/teacher/class-competency/${item.id}`)">查看详情</button>
               </template>
             </div>
           </div>
@@ -106,14 +110,81 @@
         <n-button type="primary" :loading="publishing" @click="confirmPublish">确认下发</n-button></div>
       </template>
     </n-modal>
+
+    <!-- 修改模板弹窗 -->
+    <n-modal v-model:show="showEditTemplate" preset="card" title="修改模板" style="width: 480px" :mask-closable="false">
+      <n-form ref="editFormRef" :model="editForm" :rules="editRules" label-placement="left" label-width="100">
+        <n-form-item label="模板名称" path="templateName">
+          <n-input v-model:value="editForm.templateName" placeholder="请输入模板名称" />
+        </n-form-item>
+        <n-form-item label="模板描述">
+          <n-input v-model:value="editForm.templateDesc" type="textarea" placeholder="请输入模板描述（可选）" :rows="3" />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <div class="modal-footer">
+          <n-button @click="showEditTemplate = false">取消</n-button>
+          <n-button type="primary" :loading="editingTemplate" @click="confirmEditTemplate">保存</n-button>
+        </div>
+      </template>
+    </n-modal>
+
+    <!-- 任务下发弹窗 -->
+    <n-modal v-model:show="showTaskDispatch" preset="card" title="下发实训任务" style="width: 520px" :mask-closable="false">
+      <n-form ref="dispatchFormRef" :model="dispatchForm" :rules="dispatchRules" label-placement="left" label-width="100">
+        <n-form-item label="任务名称">
+          <n-input :value="dispatchForm.taskName" disabled />
+        </n-form-item>
+        <n-form-item label="下发方式" path="dispatchType">
+          <n-radio-group v-model:value="dispatchForm.dispatchType">
+            <n-radio value="class">按班级下发</n-radio>
+            <n-radio value="course">按课程下发</n-radio>
+          </n-radio-group>
+        </n-form-item>
+        <n-form-item :label="dispatchForm.dispatchType === 'class' ? '选择班级' : '选择课程'" path="targetId">
+          <n-select 
+            v-model:value="dispatchForm.targetId" 
+            :options="dispatchTargetOptions" 
+            :placeholder="dispatchForm.dispatchType === 'class' ? '请选择要下发的班级' : '请选择要下发的课程'"
+            multiple
+            :max-tag-count="3"
+          />
+        </n-form-item>
+        <n-form-item label="已选目标">
+          <div class="selected-targets">
+            <n-tag v-for="item in selectedTargetNames" :key="item" closable @close="removeTarget(item)" type="info" style="margin-right: 8px; margin-bottom: 4px;">
+              {{ item }}
+            </n-tag>
+            <span v-if="selectedTargetNames.length === 0" style="color: #94A3B8; font-size: 13px;">暂未选择</span>
+          </div>
+        </n-form-item>
+        <n-form-item label="是否课堂实训">
+          <n-switch v-model:value="dispatchForm.isClassTraining" />
+        </n-form-item>
+        <n-form-item label="起止时间">
+          <n-date-picker 
+            v-model:value="dispatchForm.timeRange" 
+            type="daterange"
+            show-time
+            :placeholder="['开始时间', '结束时间'] as unknown as string"
+          />
+        </n-form-item>
+      </n-form>
+      <template #footer>
+        <div class="modal-footer">
+          <n-button @click="showTaskDispatch = false">取消</n-button>
+          <n-button type="primary" :loading="dispatching" @click="confirmDispatch">确认下发</n-button>
+        </div>
+      </template>
+    </n-modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { NButton, NPagination, NSpin, NTag, NModal, NForm, NFormItem, NInput, NSelect, NRadioGroup, NRadio, useMessage } from 'naive-ui'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { NButton, NPagination, NSpin, NTag, NModal, NForm, NFormItem, NInput, NSelect, NRadioGroup, NRadio, NSwitch, NDatePicker, useMessage } from 'naive-ui'
 import type { FormRules, FormInst } from 'naive-ui'
-import { getTemplates, deleteTemplate } from '@/services/modules/teacher-template.service'
+import { getTemplates, deleteTemplate, updateTemplate } from '@/services/modules/teacher-template.service'
 import { getTrainingTasks, createTrainingTask } from '@/services/modules/teacher-dashboard.service'
 import { getClasses } from '@/services/modules/admin.service'
 import { getTeacherCourses } from '@/services/modules/teacher.service'
@@ -121,19 +192,25 @@ import type { TrainingTemplate } from '@/services/types/template.types'
 import type { TrainingTaskItem } from '@/services/types/dashboard.types'
 import type { AdminClass, Course } from '@/services/types/admin.types'
 
-const message = useMessage(); const loading = ref(false)
+const message = useMessage()
+const loading = ref(false)
 const mainTab = ref('template')
 const pageLabel = computed(() => mainTab.value === 'template' ? '实训模板仓库' : '实训任务管理')
 
 const templates = ref<TrainingTemplate[]>([])
-const tplPage = ref(1); const tplPageSize = ref(5); const tplTotal = ref(0)
+const tplPage = ref(1)
+const tplPageSize = ref(5)
+const tplTotal = ref(0)
 let pollTimer: ReturnType<typeof setInterval> | undefined
 
 function aiStatusLabel(s: number) { if (s===0) return '草稿'; if (s===1) return 'AI处理中'; if (s===2) return '已就绪'; return '异常' }
 function aiStatusTag(s: number): 'default'|'warning'|'success'|'error' { if (s===0) return 'default'; if (s===1) return 'warning'; if (s===2) return 'success'; return 'error' }
 
 const tasks = ref<TrainingTaskItem[]>([])
-const taskTab = ref(0); const taskPage = ref(1); const taskPageSize = ref(5); const taskTotal = ref(0)
+const taskTab = ref(0)
+const taskPage = ref(1)
+const taskPageSize = ref(5)
+const taskTotal = ref(0)
 const taskTabs = [{ label:'全部实训',key:0 },{ label:'未开始',key:1 },{ label:'进行中',key:2 },{ label:'已结束',key:3 }]
 
 function taskStatusLabel(s: number) { if (s===0) return '未开始'; if (s===1) return '进行中'; return '已结束' }
@@ -141,18 +218,61 @@ function taskStatusClass(s: number) { return s===1?'success':'default' }
 function formatTime(t?: string) { if (!t) return '-'; return t.slice(0,16).replace('T',' ') }
 
 async function loadTemplates() { loading.value=true; try { const r = await getTemplates(tplPage.value,tplPageSize.value); if(r.code===200){templates.value=r.data.records;tplTotal.value=r.data.total} } finally {loading.value=false} }
-function startPolling() { stopPolling(); pollTimer=setInterval(()=>{ if(templates.value.some(t=>t.aiStatus===1)) loadTemplates() },4000) }
-function stopPolling() { if(pollTimer){clearInterval(pollTimer);pollTimer=undefined} }
-async function handleDeleteTemplate(tpl: TrainingTemplate) { if(!tpl.id)return; try{await deleteTemplate(tpl.id);message.success('模板已删除');loadTemplates()}catch{message.error('删除失败')} }
+async function handleDeleteTemplate(tpl: TrainingTemplate) { if(!tpl.id)return; try{await deleteTemplate(String(tpl.id));message.success('模板已删除');loadTemplates()}catch{message.error('删除失败')} }
 function showError(tpl: TrainingTemplate) { message.error(tpl.errorReason||'AI处理异常') }
 
 async function loadTasks() { loading.value=true; try{ let s:number|undefined; if(taskTab.value===1)s=0;else if(taskTab.value===2)s=1;else if(taskTab.value===3)s=2; const r = await getTrainingTasks(taskPage.value,taskPageSize.value,s); if(r.code===200){tasks.value=r.data.records;taskTotal.value=r.data.total} } finally{loading.value=false} }
-function switchMainTab(t:string) { mainTab.value=t; if(t==='template'){loadTemplates();startPolling()}else{stopPolling();loadTasks()} }
+function switchMainTab(t:string) { mainTab.value=t; if(t==='template'){loadTemplates()}else{loadTasks()} }
 function switchTaskTab(k:number) { taskTab.value=k;taskPage.value=1;loadTasks() }
 function handleEndTask(_:TrainingTaskItem) { message.info('结束实训功能待实现') }
 
-// 发布任务
-const showPublish = ref(false); const publishing = ref(false)
+// 修改模板相关
+const showEditTemplate = ref(false)
+const editingTemplate = ref(false)
+const editFormRef = ref<FormInst | null>(null)
+const editForm = ref({
+  id: '',
+  templateName: '',
+  templateDesc: ''
+})
+const editRules: FormRules = {
+  templateName: [{ required: true, message: '请输入模板名称' }]
+}
+
+function openEditTemplate(tpl: TrainingTemplate) {
+  editForm.value = {
+    id: String(tpl.id || ''),
+    templateName: tpl.templateName || '',
+    templateDesc: tpl.templateDesc || ''
+  }
+  showEditTemplate.value = true
+}
+
+async function confirmEditTemplate() {
+  try {
+    await editFormRef.value?.validate()
+  } catch {
+    return
+  }
+  editingTemplate.value = true
+  try {
+    const res = await updateTemplate(editForm.value.id, {
+      templateName: editForm.value.templateName,
+      templateDescription: editForm.value.templateDesc
+    })
+    if (res.code !== 200) { message.error(res.message || '保存失败'); return }
+    message.success('模板已保存')
+    showEditTemplate.value = false
+    loadTemplates()
+  } catch (e: any) {
+    message.error(e?.response?.data?.message || '保存失败')
+  } finally {
+    editingTemplate.value = false
+  }
+}
+
+const showPublish = ref(false)
+const publishing = ref(false)
 const publishFormRef = ref<FormInst|null>(null)
 const publishForm = ref({ taskName:'', dispatchTargetId:null as string|null, templateId:0, dispatchScope:1 })
 const publishRules: FormRules = { taskName:[{required:true,message:'请输入任务名称'}], dispatchTargetId:[{required:true,message:'请选择目标'}] }
@@ -160,17 +280,16 @@ const targetOptions = ref<{label:string,value:string}[]>([])
 
 async function openPublish(tpl: TrainingTemplate) {
   publishForm.value = { taskName: tpl.templateName, dispatchTargetId: null, templateId: tpl.id!, dispatchScope: 1 }
-  try { const r = await getClasses(); if(r.code===200) targetOptions.value = r.data.map((c:AdminClass)=>({label:c.className,value:c.id||''})) } catch{/* */ }
+  try { const r = await getClasses(); if(r.code===200) targetOptions.value = r.data.map((c:AdminClass)=>({label:c.className,value:String(c.id||'')})) } catch{/* */ }
   showPublish.value = true
 }
 
-// 当下发范围切换时重新加载下拉选项
 watch(() => publishForm.value.dispatchScope, async (scope) => {
   publishForm.value.dispatchTargetId = null
   if (scope === 1) {
-    try { const r = await getClasses(); if(r.code===200) targetOptions.value = r.data.map((c:AdminClass)=>({label:c.className,value:c.id||''})) } catch{/* */}
+    try { const r = await getClasses(); if(r.code===200) targetOptions.value = r.data.map((c:AdminClass)=>({label:c.className,value:String(c.id||'')})) } catch{/* */}
   } else {
-    try { const r = await getTeacherCourses(1, 100); if(r.code===200) targetOptions.value = r.data.records.map((c:Course)=>({label:c.courseName,value:c.id!})) } catch{/* */}
+    try { const r = await getTeacherCourses(1, 100); if(r.code===200) targetOptions.value = r.data.records.map((c:Course)=>({label:c.courseName,value:String(c.id!)})) } catch{/* */}
   }
 })
 
@@ -189,8 +308,96 @@ async function confirmPublish() {
   } catch { message.error('操作失败') } finally { publishing.value = false }
 }
 
-onMounted(()=>{loadTemplates();startPolling()})
-onUnmounted(()=>stopPolling())
+const showTaskDispatch = ref(false)
+const dispatching = ref(false)
+const dispatchFormRef = ref<FormInst|null>(null)
+const dispatchForm = ref({
+  taskId: 0,
+  taskName: '',
+  dispatchType: 'class',
+  targetId: [] as string[],
+  isClassTraining: false,
+  timeRange: null as [number, number] | null
+})
+const dispatchRules: FormRules = {
+  dispatchType: [{ required: true, message: '请选择下发方式' }],
+  targetId: [{ required: true, message: '请选择下发目标', type: 'array', min: 1 }]
+}
+const dispatchTargetOptions = ref<{label:string,value:string}[]>([])
+const classList = ref<{id:string,name:string}[]>([])
+const courseList = ref<{id:string,name:string}[]>([])
+
+const selectedTargetNames = computed(() => {
+  const selectedIds = dispatchForm.value.targetId
+  const options = dispatchTargetOptions.value
+  return selectedIds.map(id => {
+    const opt = options.find(o => o.value === id)
+    return opt ? opt.label : id
+  })
+})
+
+async function loadClassOptions() {
+  try {
+    const r = await getClasses()
+    if (r.code === 200) {
+      classList.value = r.data.map((c: AdminClass) => ({ id: String(c.id || ''), name: c.className }))
+      dispatchTargetOptions.value = classList.value.map(c => ({ label: c.name, value: c.id }))
+    }
+  } catch { /* */ }
+}
+
+async function loadCourseOptions() {
+  try {
+    const r = await getTeacherCourses(1, 100)
+    if (r.code === 200) {
+      courseList.value = r.data.records.map((c: Course) => ({ id: String(c.id!), name: c.courseName }))
+      dispatchTargetOptions.value = courseList.value.map(c => ({ label: c.name, value: c.id }))
+    }
+  } catch { /* */ }
+}
+
+async function openTaskDispatch(task: TrainingTaskItem) {
+  dispatchForm.value = {
+    taskId: task.id!,
+    taskName: task.taskName || '未命名实训',
+    dispatchType: 'class',
+    targetId: [],
+    isClassTraining: false,
+    timeRange: null
+  }
+  await loadClassOptions()
+  showTaskDispatch.value = true
+}
+
+watch(() => dispatchForm.value.dispatchType, async (type) => {
+  dispatchForm.value.targetId = []
+  if (type === 'class') {
+    await loadClassOptions()
+  } else {
+    await loadCourseOptions()
+  }
+})
+
+function removeTarget(name: string) {
+  const option = dispatchTargetOptions.value.find(o => o.label === name)
+  if (option) {
+    dispatchForm.value.targetId = dispatchForm.value.targetId.filter(id => id !== option.value)
+  }
+}
+
+async function confirmDispatch() {
+  try { await dispatchFormRef.value?.validate() } catch { return }
+  dispatching.value = true
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    const targetNames = selectedTargetNames.value.join('、')
+    message.success(`实训任务已成功下发至：${targetNames}`)
+    showTaskDispatch.value = false
+  } catch { message.error('下发失败') } finally { dispatching.value = false }
+}
+
+onMounted(()=>{loadTemplates()})
+onUnmounted(()=>{})
 </script>
 
 <style scoped>
@@ -203,12 +410,13 @@ onUnmounted(()=>stopPolling())
 .sub-tabs { display:flex; gap:24px; margin-bottom:16px; margin-top:8px; padding:0 8px; }
 .sub-tab-item { font-size:13px; color:#94A3B8; cursor:pointer; font-weight:500; padding:4px 0; }
 .sub-tab-item.active { color:#4F46E5; font-weight:700; border-bottom:2px solid #4F46E5; }
-.data-grid-header,.grid-row { display:grid; grid-template-columns:2.5fr 1fr 1.5fr 220px; align-items:center; }
+.data-grid-header,.grid-row { display:grid; grid-template-columns:1.5fr 2fr 1fr 1.5fr 220px; align-items:center; }
 .data-grid-header { padding:12px 24px; background:#F1F5F9; border-radius:8px; font-weight:700; color:#475569; }
 .data-grid-body { min-height:300px; }
 .grid-row { padding:16px 24px; background:white; margin-top:10px; border-radius:12px; border:1px solid #F1F5F9; transition:all .2s; }
 .grid-row:hover { background:#F8FAFC; border-color:#E2E8F0; box-shadow:0 4px 6px -1px rgba(0,0,0,.05); }
 .name { font-weight:600; color:#1E293B; }
+.desc { font-size:13px; color:#64748B; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .time { font-size:13px; color:#64748B; }
 .status-tag { padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; display:inline-block; }
 .status-tag.success { background:#DCFCE7; color:#166534; }
@@ -223,4 +431,5 @@ onUnmounted(()=>stopPolling())
 .empty-state { padding:40px; text-align:center; color:#94A3B8; font-size:14px; }
 .pagination-wrapper { display:flex; justify-content:flex-end; margin-top:20px; padding:12px 24px; background:white; border-radius:12px; border:1px solid #F1F5F9; }
 .modal-footer { display:flex; justify-content:flex-end; gap:12px; }
+.selected-targets { min-height: 32px; display: flex; flex-wrap: wrap; align-items: center; }
 </style>

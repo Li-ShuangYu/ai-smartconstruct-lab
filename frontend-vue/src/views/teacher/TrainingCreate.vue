@@ -422,6 +422,10 @@
             <label>模板名称</label>
             <input v-model="templateName" type="text" class="modal-input" placeholder="请输入模板名称" />
           </div>
+          <div class="form-group">
+            <label>模板描述</label>
+            <textarea v-model="templateDesc" class="modal-textarea" placeholder="请输入模板描述（可选）" rows="3"></textarea>
+          </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="showPublishModal = false">取消</button>
@@ -445,6 +449,7 @@ const pendingDocIndex = ref(-1)
 // 发布模板弹窗相关
 const showPublishModal = ref(false)
 const templateName = ref('')
+const templateDesc = ref('')
 
 const openDocUpload = (index: number) => {
   pendingDocIndex.value = index
@@ -1063,7 +1068,7 @@ const confirmPublish = async () => {
 
   // 调用后端接口写入数据库
   try {
-    const res = await createTemplate(templateName.value, result)
+    const res = await createTemplate(templateName.value, templateDesc.value, result)
     if (res.code === 200) {
       showPublishModal.value = false
       alert(`实训模板「${templateName.value}」保存成功！`)
@@ -1251,6 +1256,9 @@ const confirmPublish = async () => {
 .modal-input { width: 100%; padding: 12px 14px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; background: #F8FAFC; transition: 0.2s; color: #0F172A; box-sizing: border-box; }
 .modal-input:focus { border-color: #4F46E5; background: #FFF; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
 .modal-input::placeholder { color: #94A3B8; }
+.modal-textarea { width: 100%; padding: 12px 14px; border: 1px solid #CBD5E1; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; background: #F8FAFC; transition: 0.2s; color: #0F172A; box-sizing: border-box; resize: vertical; }
+.modal-textarea:focus { border-color: #4F46E5; background: #FFF; box-shadow: 0 0 0 3px rgba(79,70,229,0.1); }
+.modal-textarea::placeholder { color: #94A3B8; }
 
 .modal-footer { display: flex; justify-content: flex-end; gap: 12px; padding: 16px 20px; border-top: 1px solid #E2E8F0; }
 

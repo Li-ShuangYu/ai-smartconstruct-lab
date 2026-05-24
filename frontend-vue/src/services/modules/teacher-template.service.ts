@@ -9,5 +9,8 @@ export const getTemplates = (page = 1, pageSize = 10, aiStatus?: number) =>
 export const createTemplate = (data: CreateTemplateRequest) =>
   http.post<ApiResult<CreateTemplateResponse>>('/api/teacher/templates', data).then(r => r.data)
 
-export const deleteTemplate = (id: number) =>
+export const deleteTemplate = (id: string) =>
   http.delete<ApiResult<void>>(`/api/teacher/templates/${id}`).then(r => r.data)
+
+export const updateTemplate = (id: string, data: { templateName: string; templateDescription?: string }) =>
+  http.put<ApiResult<void>>(`/api/teacher/templates/${id}`, data).then(r => r.data)

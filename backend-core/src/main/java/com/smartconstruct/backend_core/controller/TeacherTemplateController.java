@@ -87,6 +87,7 @@ public class TeacherTemplateController {
 
         WfTrainingTemplate template = new WfTrainingTemplate();
         template.setTemplateName(templateName);
+        template.setTemplateDescription((String) body.get("templateDescription"));
         template.setRawCanvasJson(canvasData);
         template.setAiStatus(0);
         template.setCreatedAt(LocalDateTime.now());
@@ -113,6 +114,20 @@ public class TeacherTemplateController {
             return ApiResult.error("该模板已被用于实训任务，无法直接删除");
         }
         templateService.removeById(id);
+        return ApiResult.ok();
+    }
+
+    @OperationLog(action = "修改实训模板")
+    @PutMapping("/{id}")
+    public ApiResult<Void> update(@PathVariable String id, @RequestBody Map<String, Object> body) {
+        WfTrainingTemplate template = templateService.getById(Long.parseLong(id));
+        if (template == null) return ApiResult.error("模板不存在");
+        String name = (String) body.get("templateName");
+        String desc = body.get("templateDescription") != null ? (String) body.get("templateDescription") : (String) body.get("templateDesc");
+        if (name != null && !Java8Compat.isBlank(name)) template.setTemplateName(name);
+        if (desc != null) template.setTemplateDescription(desc);
+        template.setUpdatedAt(LocalDateTime.now());
+        templateService.updateById(template);
         return ApiResult.ok();
     }
 }

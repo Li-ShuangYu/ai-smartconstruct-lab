@@ -167,6 +167,7 @@ CREATE TABLE `wf_node_def` (
 CREATE TABLE `wf_training_template` (
   `id` BIGINT NOT NULL COMMENT '主键',
   `template_name` VARCHAR(128) NOT NULL COMMENT '模板名称',
+  template_description （VARCHAR(255)）' 模板描述'
   `raw_canvas_json` JSON NOT NULL COMMENT '原始编排JSON(含前端UI坐标及初始配置)',
   `standard_payload_json` JSON DEFAULT NULL COMMENT '标准执行JSON(经AI处理后挂载真实资源ID)',
   `ai_status` TINYINT NOT NULL COMMENT '状态：0-草稿 1-AI处理中 2-已就绪 3-异常',

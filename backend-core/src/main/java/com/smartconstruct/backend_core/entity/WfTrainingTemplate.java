@@ -5,6 +5,9 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -22,11 +25,16 @@ import java.time.LocalDateTime;
 public class WfTrainingTemplate {
     
     /** 主键ID，自增 */
-    @TableId(type = IdType.AUTO)
+    @TableId(type = IdType.ASSIGN_ID)
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
     
     /** 模板名称 */
     private String templateName;
+
+    /** 模板描述 */
+    @JsonProperty("templateDesc")
+    private String templateDescription;
     
     /** 原始画布JSON - 前端Vue Flow编排的原始数据 */
     @TableField(typeHandler = JacksonTypeHandler.class)
