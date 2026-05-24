@@ -55,11 +55,11 @@ public class InitController {
     @PostMapping("/init")
     @Transactional(rollbackFor = Exception.class)
     public ApiResult<String> initSystemData() {
+        migrateSchema();
         if (departmentService.count() > 0) {
             return ApiResult.ok("系统数据已初始化，无需重复操作");
         }
 
-        migrateSchema();
         LocalDateTime now = LocalDateTime.now();
 
         BizDepartment dept = new BizDepartment();
@@ -244,6 +244,8 @@ public class InitController {
         }
         // Make teacher_id nullable
         executeIgnoreError("ALTER TABLE biz_course MODIFY COLUMN teacher_id BIGINT DEFAULT NULL");
+        // Fill null creator_id in wf_training_template — set to teacher user
+        executeIgnoreError("UPDATE wf_training_template SET creator_id = (SELECT user_id FROM biz_teacher LIMIT 1) WHERE creator_id IS NULL");
     }
 
     private void executeIgnoreError(String sql) {

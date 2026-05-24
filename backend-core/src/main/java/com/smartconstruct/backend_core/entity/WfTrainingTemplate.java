@@ -44,6 +44,9 @@ public class WfTrainingTemplate {
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Object standardPayloadJson;
     
+    /** 创建者ID（关联 sys_user.id） */
+    private Long creatorId;
+
     /** AI处理状态：1=处理中，2=完成 */
     private Integer aiStatus;
     

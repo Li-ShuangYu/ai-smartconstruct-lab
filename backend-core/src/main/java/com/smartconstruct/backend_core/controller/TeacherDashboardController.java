@@ -63,37 +63,7 @@ public class TeacherDashboardController {
         return ApiResult.ok(stats);
     }
 
-    @GetMapping("/training-tasks")
-    public ApiResult<PageResult<Map<String, Object>>> trainingTasks(
-            @RequestParam(defaultValue = "1") long page,
-            @RequestParam(defaultValue = "10") long pageSize,
-            @RequestParam(required = false) Integer status) {
-        Long teacherId = getCurrentUserId();
 
-        LambdaQueryWrapper<BizTrainingTask> qw = new LambdaQueryWrapper<>();
-        qw.eq(BizTrainingTask::getTeacherId, teacherId);
-        if (status != null) {
-            qw.eq(BizTrainingTask::getStatus, status);
-        }
-        qw.orderByDesc(BizTrainingTask::getCreatedAt);
-        Page<BizTrainingTask> p = trainingTaskService.page(new Page<>(page, pageSize), qw);
-
-        List<Map<String, Object>> records = new ArrayList<>();
-        for (BizTrainingTask t : p.getRecords()) {
-            Map<String, Object> map = new LinkedHashMap<>();
-            map.put("id", t.getId());
-            map.put("taskName", t.getTaskName());
-            map.put("templateId", t.getTemplateId());
-            map.put("status", t.getStatus());
-            map.put("startTime", t.getStartTime());
-            map.put("endTime", t.getEndTime());
-            map.put("isInClass", t.getIsInClass());
-            map.put("hasGroup", t.getHasGroup());
-            map.put("createdAt", t.getCreatedAt());
-            records.add(map);
-        }
-        return ApiResult.ok(new PageResult<>(records, p.getTotal(), p.getCurrent(), p.getSize()));
-    }
 
     @GetMapping("/profile")
     public ApiResult<Map<String, Object>> profile() {
@@ -137,7 +107,7 @@ public class TeacherDashboardController {
         for (BizStudent s : students) {
             SysUser u = sysUserService.getById(s.getUserId());
             if (u == null) continue;
-            if (keyword != null && !keyword.isBlank()) {
+            if (keyword != null && !keyword.trim().isEmpty()) {
                 String kw = keyword.toLowerCase();
                 boolean nameMatch = s.getRealName() != null && s.getRealName().toLowerCase().contains(kw);
                 boolean userMatch = u.getUsername() != null && u.getUsername().toLowerCase().contains(kw);
@@ -158,13 +128,13 @@ public class TeacherDashboardController {
         List<BizStudentCourse> scList = studentCourseService.list(
                 new LambdaQueryWrapper<BizStudentCourse>().eq(BizStudentCourse::getCourseId, id));
         List<Long> studentIds = scList.stream().map(BizStudentCourse::getStudentId).collect(java.util.stream.Collectors.toList());
-        if (studentIds.isEmpty()) return ApiResult.ok(List.of());
+        if (studentIds.isEmpty()) return ApiResult.ok(new ArrayList<>());
         List<BizStudent> students = studentService.list(new LambdaQueryWrapper<BizStudent>().in(BizStudent::getUserId, studentIds));
         List<Map<String, Object>> list = new ArrayList<>();
         for (BizStudent s : students) {
             SysUser u = sysUserService.getById(s.getUserId());
             if (u == null) continue;
-            if (keyword != null && !keyword.isBlank()) {
+            if (keyword != null && !keyword.trim().isEmpty()) {
                 String kw = keyword.toLowerCase();
                 boolean nameMatch = s.getRealName() != null && s.getRealName().toLowerCase().contains(kw);
                 boolean userMatch = u.getUsername() != null && u.getUsername().toLowerCase().contains(kw);

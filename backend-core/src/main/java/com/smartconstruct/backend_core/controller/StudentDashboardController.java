@@ -197,7 +197,7 @@ public class StudentDashboardController {
         BizStudent self = studentService.getOne(
                 new LambdaQueryWrapper<BizStudent>().eq(BizStudent::getUserId, userId));
         if (self == null || self.getClassId() == null) {
-            return ApiResult.ok(List.of());
+            return ApiResult.ok(new ArrayList<>());
         }
 
         List<BizStudent> classmates = studentService.list(

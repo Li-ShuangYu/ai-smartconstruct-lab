@@ -168,6 +168,7 @@ CREATE TABLE `wf_training_template` (
   `id` BIGINT NOT NULL COMMENT '主键',
   `template_name` VARCHAR(128) NOT NULL COMMENT '模板名称',
   template_description （VARCHAR(255)）' 模板描述'
+  creator_id  （BIGINT）'创建者ID(关联sys_user.id)'
   `raw_canvas_json` JSON NOT NULL COMMENT '原始编排JSON(含前端UI坐标及初始配置)',
   `standard_payload_json` JSON DEFAULT NULL COMMENT '标准执行JSON(经AI处理后挂载真实资源ID)',
   `ai_status` TINYINT NOT NULL COMMENT '状态：0-草稿 1-AI处理中 2-已就绪 3-异常',
@@ -186,8 +187,6 @@ CREATE TABLE `biz_training_task` (
   `start_time` DATETIME NOT NULL COMMENT '开始时间',
   `end_time` DATETIME NOT NULL COMMENT '结束时间',
   `is_in_class` TINYINT NOT NULL COMMENT '0-课后异步 1-课中同步',
-  `has_group` TINYINT NOT NULL COMMENT '是否包含分组',
-  `group_config_json` JSON DEFAULT NULL COMMENT '分组配置(自动/手动分组、每组人数等)',
   `status` TINYINT NOT NULL COMMENT '0-未开始 1-进行中 2-已结束',
   `dispatch_scope` TINYINT NOT NULL COMMENT '1-行政班 2-课程名单',
   `dispatch_target_id` BIGINT NOT NULL COMMENT '对应的班级ID或课程ID',

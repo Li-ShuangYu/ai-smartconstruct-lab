@@ -9,6 +9,18 @@ export const getDashboardStats = () =>
 export const getTrainingTasks = (page = 1, pageSize = 10, status?: number) =>
   http.get<ApiResult<PageResult<TrainingTaskItem>>>('/api/teacher/training-tasks', { params: { page, pageSize, status } }).then(r => r.data)
 
+export const startTrainingTask = (id: string) =>
+  http.post<ApiResult<void>>(`/api/teacher/training-tasks/${id}/start`).then(r => r.data)
+
+export const reDispatchTrainingTask = (id: string) =>
+  http.post<ApiResult<{ newCount: number }>>(`/api/teacher/training-tasks/${id}/re-dispatch`).then(r => r.data)
+
+export const updateTrainingTask = (id: string, data: { taskName: string }) =>
+  http.put<ApiResult<void>>(`/api/teacher/training-tasks/${id}`, data).then(r => r.data)
+
+export const deleteTrainingTask = (id: string) =>
+  http.delete<ApiResult<void>>(`/api/teacher/training-tasks/${id}`).then(r => r.data)
+
 export const getProfile = () =>
   http.get<ApiResult<TeacherProfile>>('/api/teacher/profile').then(r => r.data)
 
@@ -18,9 +30,17 @@ export const updateProfile = (data: Partial<TeacherProfile>) =>
 export const updatePassword = (data: PasswordUpdate) =>
   http.put<ApiResult<void>>('/api/teacher/password', data).then(r => r.data)
 
-export interface CreateTaskParams { templateId: number; taskName: string; dispatchScope: number; dispatchTargetId: number }
+export interface CreateTaskParams {
+  templateId: string
+  taskName: string
+  dispatchScope: number
+  dispatchTargetId: string
+  isInClass: number
+  startTime: string
+  endTime: string
+}
 export const createTrainingTask = (data: CreateTaskParams) =>
-  http.post<ApiResult<{ taskId: number; studentCount: number }>>('/api/teacher/training-tasks', data).then(r => r.data)
+  http.post<ApiResult<{ taskId: string; studentCount: number }>>('/api/teacher/training-tasks', data).then(r => r.data)
 
 export const getClassStudents = (classId: string, keyword?: string) =>
   http.get<ApiResult<{ userId: number; studentNo: string; realName: string; username: string }[]>>(`/api/teacher/classes/${classId}/students`, { params: { keyword } }).then(r => r.data)

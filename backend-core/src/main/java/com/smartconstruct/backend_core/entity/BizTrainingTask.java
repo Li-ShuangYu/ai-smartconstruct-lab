@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -23,6 +25,7 @@ public class BizTrainingTask {
 
     /** 主键ID（雪花算法） */
     @TableId(type = IdType.ASSIGN_ID)
+    @JsonSerialize(using = ToStringSerializer.class)
     private Long id;
 
     /** 关联的实训模板ID */
@@ -42,13 +45,6 @@ public class BizTrainingTask {
 
     /** 是否为课堂实训（0=课后异步，1=课中同步） */
     private Integer isInClass;
-
-    /** 是否分组（1=是，0=否） */
-    private Integer hasGroup;
-
-    /** 分组配置JSON（自动/手动分组、每组人数等） */
-    @TableField(typeHandler = JacksonTypeHandler.class)
-    private Object groupConfigJson;
 
     /** 任务状态：0=未开始，1=进行中，2=已结束 */
     private Integer status;

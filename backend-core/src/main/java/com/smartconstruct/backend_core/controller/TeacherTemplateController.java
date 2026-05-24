@@ -6,35 +6,22 @@ import com.smartconstruct.backend_core.annotation.OperationLog;
 import com.smartconstruct.backend_core.dto.ApiResult;
 import com.smartconstruct.backend_core.dto.PageResult;
 import com.smartconstruct.backend_core.entity.BizTrainingTask;
+import com.smartconstruct.backend_core.entity.SysUser;
 import com.smartconstruct.backend_core.entity.WfTrainingTemplate;
 import com.smartconstruct.backend_core.service.ITrainingTaskService;
 import com.smartconstruct.backend_core.service.ITrainingTemplateService;
+import com.smartconstruct.backend_core.util.Java8Compat;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Map;
 
-import com.smartconstruct.backend_core.util.Java8Compat;
-
-/**
- * 教师模板控制器
- * 
- * 负责处理教师端实训模板相关的API请求，包括：
- * - 查询模板列表（支持分页和AI状态筛选）
- * - 创建实训模板（保存画布JSON并触发AI处理）
- * - 删除实训模板（需校验是否被任务引用）
- * 
- * @author SmartConstruct
- * @version 1.0.0
- */
 @RestController
 @RequestMapping("/api/teacher/templates")
 public class TeacherTemplateController {
 
-    /** 实训模板服务 - 管理模板的CRUD操作 */
     private final ITrainingTemplateService templateService;
-    
-    /** 实训任务服务 - 用于校验模板是否被任务引用 */
     private final ITrainingTaskService trainingTaskService;
 
     public TeacherTemplateController(ITrainingTemplateService templateService, ITrainingTaskService trainingTaskService) {
@@ -42,40 +29,25 @@ public class TeacherTemplateController {
         this.trainingTaskService = trainingTaskService;
     }
 
-    /**
-     * 查询实训模板列表（分页）
-     * 
-     * 支持按AI处理状态筛选，默认按创建时间倒序排列。
-     * 
-     * @param page 页码，默认1
-     * @param pageSize 每页大小，默认10
-     * @param aiStatus AI处理状态（可选）：1=处理中，2=完成
-     * @return 分页结果
-     */
+    private Long getCurrentUserId() {
+        SysUser user = (SysUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return user.getId();
+    }
+
     @GetMapping
     public ApiResult<PageResult<WfTrainingTemplate>> list(
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "10") long pageSize,
             @RequestParam(required = false) Integer aiStatus) {
+        Long currentUserId = getCurrentUserId();
         LambdaQueryWrapper<WfTrainingTemplate> qw = new LambdaQueryWrapper<>();
+        qw.eq(WfTrainingTemplate::getCreatorId, currentUserId);
         if (aiStatus != null) qw.eq(WfTrainingTemplate::getAiStatus, aiStatus);
         qw.orderByDesc(WfTrainingTemplate::getCreatedAt);
         Page<WfTrainingTemplate> p = templateService.page(new Page<>(page, pageSize), qw);
         return ApiResult.ok(new PageResult<>(p.getRecords(), p.getTotal(), p.getCurrent(), p.getSize()));
     }
 
-    /**
-     * 创建实训模板
-     * 
-     * 保存教师编排的实训流程画布数据，包括：
-     * - 模板名称
-     * - 原始画布JSON（Vue Flow编排数据）
-     * 
-     * 创建后会异步触发AI处理（模拟），将原始数据转换为标准执行载荷。
-     * 
-     * @param body 请求体，包含 templateName（模板名称）和 canvasData（画布JSON）
-     * @return 模板ID和AI处理状态
-     */
     @OperationLog(action = "创建实训模板编排")
     @PostMapping
     public ApiResult<Map<String, Object>> create(@RequestBody Map<String, Object> body) {
@@ -89,39 +61,43 @@ public class TeacherTemplateController {
         template.setTemplateName(templateName);
         template.setTemplateDescription((String) body.get("templateDescription"));
         template.setRawCanvasJson(canvasData);
+        template.setCreatorId(getCurrentUserId());
         template.setAiStatus(0);
-        template.setCreatedAt(LocalDateTime.now());
-        template.setUpdatedAt(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        template.setCreatedAt(now);
+        template.setUpdatedAt(now);
         templateService.save(template);
 
         return ApiResult.ok(Java8Compat.mapOf("id", template.getId(), "aiStatus", 0));
     }
 
-    /**
-     * 删除实训模板
-     * 
-     * 删除前会校验该模板是否被实训任务引用，若已被引用则拒绝删除。
-     * 
-     * @param id 模板ID
-     * @return 操作结果
-     */
     @OperationLog(action = "删除实训模板")
     @DeleteMapping("/{id}")
-    public ApiResult<Void> delete(@PathVariable Long id) {
+    public ApiResult<Void> delete(@PathVariable String id) {
+        Long currentUserId = getCurrentUserId();
+        WfTrainingTemplate template = templateService.getById(Long.parseLong(id));
+        if (template == null) return ApiResult.error("模板不存在");
+        if (!Long.valueOf(currentUserId).equals(template.getCreatorId())) {
+            return ApiResult.error("无权操作非本人创建的模板");
+        }
         long usageCount = trainingTaskService.count(
-                new LambdaQueryWrapper<BizTrainingTask>().eq(BizTrainingTask::getTemplateId, id));
+                new LambdaQueryWrapper<BizTrainingTask>().eq(BizTrainingTask::getTemplateId, template.getId()));
         if (usageCount > 0) {
             return ApiResult.error("该模板已被用于实训任务，无法直接删除");
         }
-        templateService.removeById(id);
+        templateService.removeById(template.getId());
         return ApiResult.ok();
     }
 
     @OperationLog(action = "修改实训模板")
     @PutMapping("/{id}")
     public ApiResult<Void> update(@PathVariable String id, @RequestBody Map<String, Object> body) {
+        Long currentUserId = getCurrentUserId();
         WfTrainingTemplate template = templateService.getById(Long.parseLong(id));
         if (template == null) return ApiResult.error("模板不存在");
+        if (!Long.valueOf(currentUserId).equals(template.getCreatorId())) {
+            return ApiResult.error("无权操作非本人创建的模板");
+        }
         String name = (String) body.get("templateName");
         String desc = body.get("templateDescription") != null ? (String) body.get("templateDescription") : (String) body.get("templateDesc");
         if (name != null && !Java8Compat.isBlank(name)) template.setTemplateName(name);

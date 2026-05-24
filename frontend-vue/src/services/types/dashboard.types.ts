@@ -21,12 +21,15 @@ export interface TrainingTaskItem {
   id: number
   taskName: string
   templateId?: number
+  templateName?: string
   status: number
   startTime?: string
   endTime?: string
   isInClass?: number
   hasGroup?: number
   createdAt?: string
+  dispatchScope?: number
+  dispatchTargetName?: string
 }
 
 // ===== 学生端类型 =====
