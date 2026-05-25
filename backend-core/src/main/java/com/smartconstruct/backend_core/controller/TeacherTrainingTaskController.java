@@ -203,7 +203,7 @@ public class TeacherTrainingTaskController {
             if (state == null) {
                 state = new WfGlobalActivityState();
                 state.setTaskId(taskId);
-                state.setCurrentNodeId("");
+                state.setCurrentNodeId(null);
                 state.setCreatedAt(LocalDateTime.now());
                 state.setUpdatedAt(LocalDateTime.now());
                 globalStateService.save(state);

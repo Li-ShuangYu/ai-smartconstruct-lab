@@ -186,7 +186,7 @@ CREATE TABLE `biz_training_task` (
   `task_name` VARCHAR(128) NOT NULL COMMENT '本次实训名称',
   `start_time` DATETIME NOT NULL COMMENT '开始时间',
   `end_time` DATETIME NOT NULL COMMENT '结束时间',
-  `is_in_class` TINYINT NOT NULL COMMENT '0-课后异步 1-课中同步',
+  `is_in_class` TINYINT NOT NULL COMMENT '0-课后实训 1-课堂实训',
   `status` TINYINT NOT NULL COMMENT '0-未开始 1-进行中 2-已结束',
   `dispatch_scope` TINYINT NOT NULL COMMENT '1-行政班 2-课程名单',
   `dispatch_target_id` BIGINT NOT NULL COMMENT '对应的班级ID或课程ID',

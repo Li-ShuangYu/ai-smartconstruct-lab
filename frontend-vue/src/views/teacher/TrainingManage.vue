@@ -73,7 +73,7 @@
             <span>{{ item.templateName || '-' }}</span>
             <span>{{ item.dispatchScope === 1 ? '班级' : item.dispatchScope === 2 ? '课程' : '-' }}</span>
             <span>{{ item.dispatchTargetName || '-' }}</span>
-            <span>{{ item.isInClass === 1 ? '课堂实训' : '课后异步' }}</span>
+            <span>{{ item.isInClass === 1 ? '课堂实训' : '课后实训' }}</span>
             <span class="time">{{ formatTimeRange(item.startTime, item.endTime) }}</span>
             <span><span class="status-tag" :class="taskStatusClass(item.status)">{{ taskStatusLabel(item.status) }}</span></span>
             <div class="actions">

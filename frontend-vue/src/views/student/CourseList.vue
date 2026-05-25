@@ -17,7 +17,8 @@
       <n-grid v-if="activeTab === 'my' && courses.length > 0" :x-gap="16" :y-gap="16" cols="1 s:2 m:3 l:4" responsive="screen">
         <n-gi v-for="crs in courses" :key="crs.id">
           <n-card :title="crs.courseName" size="small" hoverable>
-            <template #header-extra><n-tag :bordered="false" size="small">{{ crs.courseCode }}</n-tag></template>
+            <template #header-extra><n-tag v-if="crs.needEnrollCode === 1" type="warning" size="small">🔐 需选课码</n-tag></template>
+            <p class="course-teacher">授课教师：{{ crs.teacherName || '-' }}</p>
             <p class="course-desc">{{ crs.description || '暂无简介' }}</p>
             <template #footer>
               <n-space>
@@ -33,7 +34,8 @@
       <n-grid v-if="activeTab === 'enroll' && courses.length > 0" :x-gap="16" :y-gap="16" cols="1 s:2 m:3 l:4" responsive="screen">
         <n-gi v-for="crs in courses" :key="crs.id">
           <n-card :title="crs.courseName" size="small" hoverable>
-            <template #header-extra><n-tag :bordered="false" size="small">{{ crs.courseCode }}</n-tag></template>
+            <template #header-extra><n-tag v-if="crs.needEnrollCode === 1" type="warning" size="small">🔐 需选课码</n-tag></template>
+            <p class="course-teacher">授课教师：{{ crs.teacherName || '-' }}</p>
             <p class="course-desc">{{ crs.description || '暂无简介' }}</p>
             <template #footer>
               <n-button v-if="(crs as any).isEnrolled" block disabled secondary>已加入</n-button>
@@ -83,7 +85,7 @@ const message = useMessage(); const loading = ref(false); const enrolling = ref(
 const activeTab = ref('my'); const courses = ref<any[]>([])
 const page = ref(1); const pageSize = ref(8); const total = ref(0); const keyword = ref('')
 const enrollFormRef = ref(); let searchTimer: any
-const enrollModal = ref({ show:false, code:'', courseId:0 })
+const enrollModal = ref({ show:false, code:'', courseId:'' as string })
 const enrollRules: FormRules = { code:[{required:true,message:'请输入选课码'}] }
 
 // 课程详情
@@ -110,12 +112,12 @@ function switchTab(t: string) { activeTab.value = t; page.value = 1; keyword.val
 function onSearch() { if (searchTimer) clearTimeout(searchTimer); searchTimer = setTimeout(()=>{page.value=1;loadCourses()},300) }
 function handleSizeChange(s: number) { pageSize.value = s; page.value = 1; loadCourses() }
 
-function handleEnroll(crs: AvailableCourse) {
+function handleEnroll(crs: any) {
   if (crs.needEnrollCode === 1) { enrollModal.value = { show:true, code:'', courseId: crs.id } }
   else doEnroll(crs.id)
 }
 async function confirmEnroll() { try{await enrollFormRef.value.validate()}catch{return}; await doEnroll(enrollModal.value.courseId, enrollModal.value.code) }
-async function doEnroll(courseId: number, code?: string) {
+async function doEnroll(courseId: string, code?: string) {
   enrolling.value = true
   try { const r = await enrollCourse(courseId, code); if (r.code===200){message.success('选课成功');enrollModal.value.show=false;loadCourses()} else message.error(r.message||'选课失败') } catch{message.error('操作失败')} finally{enrolling.value=false}
 }
@@ -137,6 +139,7 @@ onMounted(() => loadCourses())
 .tabs-nav { display: flex; gap: 32px; border-bottom: 1px solid #E2E8F0; margin-bottom: 20px; }
 .tab-item { padding: 12px 4px; cursor: pointer; color: #64748B; font-weight: 600; border-bottom: 2px solid transparent; transition: all .3s; }
 .tab-item.active { color: #4F46E5; border-bottom-color: #4F46E5; }
+.course-teacher { color: #4F46E5; font-size: 12px; margin-bottom: 4px; }
 .course-desc { color: #64748B; font-size: 13px; min-height: 40px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .pagination-wrap { display: flex; justify-content: flex-end; margin-top: 24px; }
 .modal-footer { display: flex; justify-content: flex-end; gap: 12px; }

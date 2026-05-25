@@ -5,7 +5,7 @@ import type { PageResult, AvailableCourse, EnrolledCourse } from '@/services/typ
 export const getAvailableCourses = (page = 1, pageSize = 10, keyword?: string) =>
   http.get<ApiResult<PageResult<AvailableCourse>>>('/api/student/courses/available', { params: { page, pageSize, keyword } }).then(r => r.data)
 
-export const enrollCourse = (courseId: number, enrollCode?: string) =>
+export const enrollCourse = (courseId: string, enrollCode?: string) =>
   http.post<ApiResult<void>>(`/api/student/courses/enroll/${courseId}`, enrollCode ? { enrollCode } : {}).then(r => r.data)
 
 export const getMyCourses = (page = 1, pageSize = 10) =>

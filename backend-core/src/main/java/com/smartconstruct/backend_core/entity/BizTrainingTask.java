@@ -43,7 +43,7 @@ public class BizTrainingTask {
     /** 任务结束时间 */
     private LocalDateTime endTime;
 
-    /** 是否为课堂实训（0=课后异步，1=课中同步） */
+    /** 是否为课堂实训（0=课后实训，1=课堂实训） */
     private Integer isInClass;
 
     /** 任务状态：0=未开始，1=进行中，2=已结束 */

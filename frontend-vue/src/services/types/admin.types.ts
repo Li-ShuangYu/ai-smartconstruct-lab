@@ -40,9 +40,9 @@ export interface Course {
 }
 
 export interface AvailableCourse {
-  id: number
+  id: string
   courseName: string
-  courseCode: string
+  teacherName?: string
   description?: string
   status: number
   needEnrollCode: number
@@ -52,9 +52,9 @@ export interface AvailableCourse {
 }
 
 export interface EnrolledCourse {
-  id: number
+  id: string
   courseName: string
-  courseCode: string
+  teacherName?: string
   description?: string
   status: number
   createdAt?: string
