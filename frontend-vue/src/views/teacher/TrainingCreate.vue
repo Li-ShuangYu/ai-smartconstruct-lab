@@ -348,7 +348,7 @@
               <div class="drawer-inner">
                 <div class="ai-config-body">
                   <div class="config-field flex-row" v-if="'ai_qa' in activeNode.ai_config">
-                    <label>允许 AI 随时问答</label>
+                    <label>允许学生在此节点使用 AI 问答</label>
                     <input type="checkbox" v-model="activeNode.ai_config.ai_qa" />
                   </div>
                   
@@ -440,6 +440,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { getActiveNodes } from '@/services/modules/admin.service'
 import { createTemplate } from '@/services/modules/teacher.service'
+import http from '@/services/api'
 
 // ==================== 文件上传 ====================
 const docFileInput = ref<HTMLInputElement | null>(null)
@@ -460,7 +461,7 @@ const openVideoUpload = () => {
   videoFileInput.value?.click()
 }
 
-const onDocFileSelected = (e: Event) => {
+const onDocFileSelected = async (e: Event) => {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file || pendingDocIndex.value < 0) return
@@ -468,19 +469,47 @@ const onDocFileSelected = (e: Event) => {
   if (!active) return
   const files = active.config.files
   if (files && files[pendingDocIndex.value]) {
-    files[pendingDocIndex.value].original_name = file.name
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await http.post('/api/file/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      const data = res.data
+      if (data.code === 200) {
+        files[pendingDocIndex.value].resource_id = data.data.id
+        files[pendingDocIndex.value].original_name = data.data.fileName
+        files[pendingDocIndex.value].fileSize = data.data.fileSize
+      } else {
+        alert('上传失败：' + (data.message || '未知错误'))
+      }
+    } catch (e: any) {
+      alert('上传失败：' + (e?.response?.data?.message || '网络错误'))
+    }
   }
   input.value = ''
   pendingDocIndex.value = -1
 }
 
-const onVideoFileSelected = (e: Event) => {
+const onVideoFileSelected = async (e: Event) => {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
   const active = activeNode.value
   if (!active) return
-  active.config.video_file = file.name
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await http.post('/api/file/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    const data = res.data
+    if (data.code === 200) {
+      active.config.video_file = data.data.fileName
+      active.config.video_resource_id = data.data.id
+      active.config.video_file_size = data.data.fileSize
+    } else {
+      alert('上传失败：' + (data.message || '未知错误'))
+    }
+  } catch (e: any) {
+    alert('上传失败：' + (e?.response?.data?.message || '网络错误'))
+  }
   input.value = ''
 }
 
@@ -852,8 +881,9 @@ const buildNodeConfig = (node: any) => {
 
     case 'resource_read':
       cfg.resource_list = (config.files || []).map((f: any) => ({
-        resource_id: f.original_name || '',
-        resource_name: f.display_name || '',
+        resource_id: f.resource_id || '',
+        resource_name: f.display_name || f.original_name || '',
+        file_size: f.fileSize || '',
         require_full_read: f.min_progress ?? 100
       }))
       cfg.enable_ai_summary = ai_config.ai_summary ?? true
@@ -863,7 +893,9 @@ const buildNodeConfig = (node: any) => {
       break
 
     case 'video_watch':
-      cfg.video_id = config.video_file || ''
+      cfg.video_id = config.video_resource_id || ''
+      cfg.video_name = config.video_file || ''
+      cfg.video_file_size = config.video_file_size || ''
       cfg.video_title = config.video_title || ''
       cfg.min_watch_progress = config.min_progress ?? 100
       cfg.allow_drag = config.allow_drag ?? false
@@ -890,8 +922,9 @@ const buildNodeConfig = (node: any) => {
       cfg.task_desc = config.requirement || ''
       cfg.deadline = config.deadline || ''
       cfg.resource_list = (config.files || []).map((f: any) => ({
-        resource_id: f.original_name || '',
-        resource_name: f.display_name || ''
+        resource_id: f.resource_id || '',
+        resource_name: f.display_name || f.original_name || '',
+        file_size: f.fileSize || ''
       }))
       cfg.enable_ai_task_split = ai_config.ai_task_breakdown ?? true
       cfg.allow_ai_qa = ai_config.ai_qa ?? true

@@ -65,6 +65,7 @@
             <h3 class="course-name" :title="task.taskName">{{ task.taskName }}</h3>
             <p class="target-name">{{ getTargetName(task) }}</p>
             <div class="card-footer">
+              <span class="task-time">{{ formatTaskTime(task.startTime, task.endTime) }}</span>
               <button class="btn-text" @click="$router.push('/teacher/training-manage')">查看详情 →</button>
             </div>
           </div>
@@ -176,6 +177,21 @@ function formatTime(t?: string) {
   return '更新于 ' + t.slice(0, 16).replace('T', ' ')
 }
 
+/**
+ * 格式化实训时间显示
+ * 
+ * @param startTime 开始时间
+ * @param endTime 结束时间
+ * @returns 格式化后的时间范围文本
+ */
+function formatTaskTime(startTime?: string, endTime?: string) {
+  if (!startTime) return '-'
+  const start = startTime.slice(0, 16).replace('T', ' ')
+  if (!endTime) return `时间：${start}`
+  const end = endTime.slice(0, 16).replace('T', ' ')
+  return `时间：${start} ~ ${end}`
+}
+
 // === 生命周期 ===
 
 /**
@@ -234,7 +250,8 @@ onMounted(async () => {
 .time { font-size: 12px; color: #94A3B8; font-weight: 500; }
 .course-name { font-size: 16px; font-weight: 700; margin: 0 0 8px 0; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .target-name { font-size: 13px; color: #64748B; margin: 0 0 16px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-footer { display: flex; justify-content: flex-end; padding-top: 16px; border-top: 1px solid #F1F5F9; }
+.card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #F1F5F9; }
+.task-time { font-size: 13px; color: #64748B; font-weight: 500; }
 .stats { font-size: 13px; color: #64748B; font-weight: 500; }
 .btn-text { background: none; border: none; color: #4F46E5; font-size: 13px; font-weight: 600; cursor: pointer; transition: color 0.2s; }
 .btn-text:hover { color: #38bdf8; }

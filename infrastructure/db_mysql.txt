@@ -115,7 +115,8 @@ CREATE TABLE `biz_question_bank` (
 CREATE TABLE `biz_question` (
   `id` BIGINT NOT NULL COMMENT '主键',
   `bank_id` BIGINT NOT NULL COMMENT '所属题库ID',
-  `question_type` TINYINT NOT NULL COMMENT '题型：1-单选 2-多选 3-简答 4-代码',
+  question_type (TINYINT) '题型：1-单选 2-多选 3-填空 4-判断 5-简答'
+  create_type (TINYINT) '题目来源：1-AI生成 2-手动录入 '
   `content` TEXT NOT NULL COMMENT '题干与选项JSON',
   `standard_answer` TEXT NOT NULL COMMENT '标准答案',
   `default_score` DECIMAL(5,2) NOT NULL COMMENT '默认分值',
