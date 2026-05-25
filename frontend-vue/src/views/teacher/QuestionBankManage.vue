@@ -17,9 +17,9 @@
           @click="selectBank(bank.id)"
         >
           <div class="bank-info">
-            <h3 class="bank-name" :title="bank.bank_name">{{ bank.bank_name }}</h3>
+            <h3 class="bank-name" :title="bank.bank_name">{{ bank.bankName }}</h3>
             <span class="tag" :class="bank.is_public === 1 ? 'public-tag' : 'private-tag'">
-              {{ bank.is_public === 1 ? '公开' : '私有' }}
+              {{ bank.isPublic === 1 ? '公开' : '私有' }}
             </span>
           </div>
           <div class="bank-actions" v-show="activeBankId === bank.id">
@@ -157,51 +157,6 @@
           <div class="format-hint" v-if="questionForm.question_type === 3">提示：支持使用 <b>__</b> 表示填空位置，如：Java中声明常量的关键字是<b>__</b></div>
         </n-form-item>
         
-        <n-form-item label="上传图片">
-          <div class="upload-area">
-            <input type="file" accept="image/*" class="file-input" @change="handleImageUpload" />
-            <label class="upload-btn" for="image-upload">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                <polyline points="17 8 12 3 7 8"></polyline>
-                <line x1="12" y1="3" x2="12" y2="15"></line>
-              </svg>
-              {{ questionForm.image_url ? '更换图片' : '上传图片' }}
-            </label>
-            <div v-if="questionForm.image_url" class="upload-preview">
-              <img :src="questionForm.image_url" alt="题目图片" class="preview-img" />
-              <button class="remove-media-btn" @click="removeImage">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-          </div>
-        </n-form-item>
-        
-        <n-form-item label="上传音频">
-          <div class="upload-area">
-            <input type="file" accept="audio/*" class="file-input" @change="handleAudioUpload" />
-            <label class="upload-btn" for="audio-upload">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-              </svg>
-              {{ questionForm.audio_url ? '更换音频' : '上传音频' }}
-            </label>
-            <div v-if="questionForm.audio_url" class="upload-preview audio-preview">
-              <button class="audio-play-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-              </button>
-              <span class="audio-name">{{ questionForm.audio_name || '音频文件' }}</span>
-              <button class="remove-media-btn" @click="removeAudio">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-          </div>
-        </n-form-item>
-        
         <!-- 选择题/多选题选项 -->
         <template v-if="questionForm.question_type === 1 || questionForm.question_type === 2">
           <n-form-item label="选项设置">
@@ -274,6 +229,51 @@
             :rows="4"
           />
         </n-form-item>
+        
+        <!-- 多媒体附件（放在最后） -->
+        <div class="media-upload-section">
+          <div class="media-upload-item">
+            <input type="file" accept="image/*" class="file-input" @change="handleImageUpload" />
+            <label class="media-upload-btn" for="image-upload">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="8.5" cy="8.5" r="1.5"/>
+                <polyline points="21 15 16 10 5 21"/>
+              </svg>
+              {{ questionForm.image_url ? '更换图片' : '图片' }}
+            </label>
+            <div v-if="questionForm.image_url" class="upload-preview-inline">
+              <img :src="questionForm.image_url" alt="题目图片" class="preview-img-small" />
+              <button class="remove-media-btn-small" @click="removeImage">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+          
+          <div class="media-upload-item">
+            <input type="file" accept="audio/*" class="file-input" @change="handleAudioUpload" />
+            <label class="media-upload-btn" for="audio-upload">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+              {{ questionForm.audio_url ? '更换音频' : '音频' }}
+            </label>
+            <div v-if="questionForm.audio_url" class="upload-preview-inline">
+              <button class="audio-play-btn-small">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+              </button>
+              <span class="audio-name-small">{{ questionForm.audio_name || '音频' }}</span>
+              <button class="remove-media-btn-small" @click="removeAudio">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
       </n-form>
       <template #footer>
         <div style="display: flex; justify-content: flex-end; gap: 12px;">
@@ -371,14 +371,16 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { NSpin, NButton, NCheckbox, NModal, NForm, NFormItem, NInput, NRadioGroup, NRadio, NSelect, NInputNumber, NRadioButton } from 'naive-ui'
+import { NSpin, NButton, NCheckbox, NModal, NForm, NFormItem, NInput, NRadioGroup, NRadio, NSelect, NInputNumber, NRadioButton, useMessage } from 'naive-ui'
+import { getQuestionBanks, createQuestionBank, updateQuestionBank, deleteQuestionBank } from '@/services/modules/teacher-question.service'
 
 // === 类型定义 ===
 interface QuestionBank {
-  id: number
-  teacher_id: number
-  bank_name: string
-  is_public: number // 0-私有 1-公开
+  id: string
+  creatorId: string
+  bankName: string
+  isPublic: number // 0-私有 1-公开
+  isCreator: boolean
 }
 
 interface Question {
@@ -395,7 +397,7 @@ interface Question {
 // === 状态数据 ===
 const loading = ref(false)
 const banks = ref<QuestionBank[]>([])
-const activeBankId = ref<number | null>(null)
+const activeBankId = ref<string | null>(null)
 const questions = ref<Question[]>([])
 
 // 计算属性
@@ -407,20 +409,22 @@ const targetBankOptions = computed(() => {
     .map(b => ({ label: b.bank_name, value: b.id }))
 })
 
-// === 模拟数据初始化 ===
-onMounted(() => {
-  // 模拟题库数据
-  banks.value = [
-    { id: 1, teacher_id: 101, bank_name: 'Java核心技术基础', is_public: 1 },
-    { id: 2, teacher_id: 101, bank_name: '前端进阶(Vue3+TS)', is_public: 0 },
-    { id: 3, teacher_id: 101, bank_name: '数据结构与算法', is_public: 1 }
-  ]
-  if (banks.value.length > 0 && banks.value[0]) {
-    const firstBank = banks.value[0]
-    activeBankId.value = firstBank.id
-    loadQuestions(activeBankId.value)
-  }
-})
+const mess = useMessage()
+
+async function fetchBanks() {
+  try {
+    const res = await getQuestionBanks()
+    if (res.code === 200) {
+      banks.value = res.data
+      if (banks.value.length > 0 && !activeBankId.value) {
+        activeBankId.value = banks.value[0].id
+        loadQuestions(activeBankId.value)
+      }
+    }
+  } catch { mess.error('获取题库失败') }
+}
+
+onMounted(() => fetchBanks())
 
 // 模拟加载题目数据
 function loadQuestions(bankId: number) {
@@ -1308,5 +1312,109 @@ function confirmMoveCopy() {
   margin-left: 12px;
   font-size: 12px;
   color: #94A3B8;
+}
+
+/* === 多媒体上传区域（紧凑低调） === */
+.media-upload-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #F1F5F9;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.media-upload-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.media-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid #E2E8F0;
+  border-radius: 4px;
+  color: #94A3B8;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.media-upload-btn:hover {
+  background: #F8FAFC;
+  border-color: #CBD5E1;
+  color: #64748B;
+}
+
+.upload-preview-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  background: #F8FAFC;
+  border-radius: 4px;
+}
+
+.preview-img-small {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.audio-preview-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.audio-play-btn-small {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F1F5F9;
+  border: none;
+  border-radius: 50%;
+  color: #64748B;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.audio-play-btn-small:hover {
+  background: #E2E8F0;
+}
+
+.audio-name-small {
+  font-size: 12px;
+  color: #64748B;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remove-media-btn-small {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #CBD5E1;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.remove-media-btn-small:hover {
+  background: #FEE2E2;
+  color: #EF4444;
 }
 </style>
