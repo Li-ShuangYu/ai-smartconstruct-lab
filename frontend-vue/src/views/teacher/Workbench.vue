@@ -56,12 +56,15 @@
         <div class="history-grid">
           <div class="history-card" v-for="task in recentTasks" :key="task.id">
             <div class="card-header">
-              <span class="tag" :class="statusClass(task.status)">{{ statusLabel(task.status) }}</span>
+              <div class="tags-row">
+                <span class="tag" :class="statusClass(task.status)">{{ statusLabel(task.status) }}</span>
+                <span class="tag" :class="trainingTypeClass(task.isInClass)">{{ trainingTypeLabel(task.isInClass) }}</span>
+              </div>
               <span class="time">{{ formatTime(task.createdAt) }}</span>
             </div>
             <h3 class="course-name" :title="task.taskName">{{ task.taskName }}</h3>
+            <p class="target-name">{{ getTargetName(task) }}</p>
             <div class="card-footer">
-              <span class="stats">ID: {{ task.id }}</span>
               <button class="btn-text" @click="$router.push('/teacher/training-manage')">查看详情 →</button>
             </div>
           </div>
@@ -129,6 +132,40 @@ function statusClass(s: number) {
 }
 
 /**
+ * 获取实训类型标签文本
+ * 
+ * @param isInClass 是否课堂实训：0=课后实训，1=课堂实训
+ * @returns 类型文本
+ */
+function trainingTypeLabel(isInClass?: number) {
+  return isInClass === 1 ? '课堂实训' : '课后实训'
+}
+
+/**
+ * 获取实训类型样式类名
+ * 
+ * @param isInClass 是否课堂实训
+ * @returns CSS类名
+ */
+function trainingTypeClass(isInClass?: number) {
+  return isInClass === 1 ? 'class-training' : 'after-class'
+}
+
+/**
+ * 获取下发目标名称
+ * 
+ * @param task 实训任务
+ * @returns 目标名称（班级/课程）
+ */
+function getTargetName(task: TrainingTaskItem) {
+  if (task.dispatchTargetName) {
+    const scope = task.dispatchScope === 1 ? '班级：' : task.dispatchScope === 2 ? '课程：' : ''
+    return scope + task.dispatchTargetName
+  }
+  return '-'
+}
+
+/**
  * 格式化时间显示
  * 
  * @param t 时间字符串
@@ -186,14 +223,18 @@ onMounted(async () => {
 .history-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
 .history-card { background-color: #fff; border: 1px solid #E2E8F0; border-radius: 12px; padding: 20px; display: flex; flex-direction: column; transition: box-shadow 0.2s ease; }
 .history-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
-.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.tags-row { display: flex; gap: 8px; }
 .tag { font-size: 12px; padding: 4px 10px; border-radius: 6px; font-weight: 600; }
 .tag.active { background-color: #DCFCE7; color: #166534; }
 .tag.warning { background-color: #FEF3C7; color: #92400E; }
 .tag.default { background-color: #F1F5F9; color: #475569; }
+.tag.class-training { background-color: #E0E7FF; color: #4338CA; }
+.tag.after-class { background-color: #F0FDF4; color: #059669; }
 .time { font-size: 12px; color: #94A3B8; font-weight: 500; }
-.course-name { font-size: 16px; font-weight: 700; margin: 0 0 20px 0; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid #F1F5F9; }
+.course-name { font-size: 16px; font-weight: 700; margin: 0 0 8px 0; color: #1E293B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.target-name { font-size: 13px; color: #64748B; margin: 0 0 16px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-footer { display: flex; justify-content: flex-end; padding-top: 16px; border-top: 1px solid #F1F5F9; }
 .stats { font-size: 13px; color: #64748B; font-weight: 500; }
 .btn-text { background: none; border: none; color: #4F46E5; font-size: 13px; font-weight: 600; cursor: pointer; transition: color 0.2s; }
 .btn-text:hover { color: #38bdf8; }

@@ -16,7 +16,7 @@ const teacherRoutes = [
         path: 'training-manage',
         name: 'TrainingManage',
         component: () => import('@/views/teacher/TrainingManage.vue'),
-        meta: { title: '实训编排与管理' }
+        meta: { title: '编排与管理' }
       },
       {
         path: 'class-course-manage',
