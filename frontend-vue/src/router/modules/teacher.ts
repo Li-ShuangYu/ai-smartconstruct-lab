@@ -24,6 +24,12 @@ const teacherRoutes = [
         component: () => import('@/views/teacher/ClassCourseManage.vue'),
         meta: { title: '班级实训管理与课程管理' }
       },
+      {
+        path: 'question-bank-manage',
+        name: 'QuestionBankManage',
+        component: () => import('@/views/teacher/QuestionBankManage.vue'),
+        meta: { title: '题库与题目' }
+      },
       // 2. 【关键分离】：沉浸式编排页面，独立路由，不继承侧边栏布局
       {
         path: 'training-create',
