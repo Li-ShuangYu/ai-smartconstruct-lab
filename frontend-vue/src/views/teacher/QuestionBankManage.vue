@@ -17,8 +17,8 @@
           @click="selectBank(bank.id)"
         >
           <div class="bank-info">
-            <h3 class="bank-name" :title="bank.bank_name">{{ bank.bankName }}</h3>
-            <span class="tag" :class="bank.is_public === 1 ? 'public-tag' : 'private-tag'">
+            <h3 class="bank-name" :title="bank.bankName">{{ bank.bankName }}</h3>
+            <span class="tag" :class="bank.isPublic === 1 ? 'public-tag' : 'private-tag'">
               {{ bank.isPublic === 1 ? '公开' : '私有' }}
             </span>
           </div>
@@ -38,7 +38,7 @@
       <div v-else class="main-content">
         <header class="main-header">
           <div class="header-left">
-            <h2 class="main-title">{{ activeBank?.bank_name }}</h2>
+            <h2 class="main-title">{{ activeBank?.bankName }}</h2>
             <span class="subtitle">共 {{ questions.length }} 道题目</span>
           </div>
           <div class="header-actions">
@@ -107,11 +107,11 @@
 
     <n-modal v-model:show="showBankModal" preset="card" :title="bankForm.id ? '编辑题库' : '新建题库'" style="width: 500px">
       <n-form :model="bankForm" label-placement="left" label-width="80">
-        <n-form-item label="题库名称" path="bank_name">
-          <n-input v-model:value="bankForm.bank_name" placeholder="请输入题库名称" />
+        <n-form-item label="题库名称" path="bankName">
+          <n-input v-model:value="bankForm.bankName" placeholder="请输入题库名称" />
         </n-form-item>
-        <n-form-item label="是否公开" path="is_public">
-          <n-radio-group v-model:value="bankForm.is_public" name="is_public_group">
+        <n-form-item label="是否公开" path="isPublic">
+          <n-radio-group v-model:value="bankForm.isPublic" name="isPublic_group">
             <n-radio :value="1">公开 (其他教师可见)</n-radio>
             <n-radio :value="0">私有 (仅自己可见)</n-radio>
           </n-radio-group>
@@ -230,50 +230,30 @@
           />
         </n-form-item>
         
-        <!-- 多媒体附件（放在最后） -->
+        <!-- 多媒体附件区域（统一上传到后端获取URL） -->
         <div class="media-upload-section">
           <div class="media-upload-item">
-            <input type="file" accept="image/*" class="file-input" @change="handleImageUpload" />
-            <label class="media-upload-btn" for="image-upload">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <circle cx="8.5" cy="8.5" r="1.5"/>
-                <polyline points="21 15 16 10 5 21"/>
-              </svg>
-              {{ questionForm.image_url ? '更换图片' : '图片' }}
-            </label>
-            <div v-if="questionForm.image_url" class="upload-preview-inline">
-              <img :src="questionForm.image_url" alt="题目图片" class="preview-img-small" />
-              <button class="remove-media-btn-small" @click="removeImage">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
+            <span style="font-size:12px;color:#475569;font-weight:600">附件图片：</span>
+            <div v-for="(url, idx) in questionForm.imageUrls" :key="idx" class="upload-preview-inline">
+              <img :src="url" class="preview-img-small" @click="previewImage=url;showPreview=true" />
+              <button class="remove-media-btn-small" @click="removeImage(idx)">&times;</button>
             </div>
+            <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="file-input" @change="handleImageUpload" />
+            <label class="media-upload-btn">+ 图片</label>
           </div>
-          
           <div class="media-upload-item">
-            <input type="file" accept="audio/*" class="file-input" @change="handleAudioUpload" />
-            <label class="media-upload-btn" for="audio-upload">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" y1="19" x2="12" y2="23"/>
-                <line x1="8" y1="23" x2="16" y2="23"/>
-              </svg>
-              {{ questionForm.audio_url ? '更换音频' : '音频' }}
-            </label>
-            <div v-if="questionForm.audio_url" class="upload-preview-inline">
-              <button class="audio-play-btn-small">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-              </button>
-              <span class="audio-name-small">{{ questionForm.audio_name || '音频' }}</span>
-              <button class="remove-media-btn-small" @click="removeAudio">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
+            <span style="font-size:12px;color:#475569;font-weight:600">附件音频：</span>
+            <div v-if="questionForm.audioUrl" class="upload-preview-inline">
+              <audio :src="questionForm.audioUrl" controls style="height:32px" />
+              <button class="remove-media-btn-small" @click="removeAudio">&times;</button>
             </div>
+            <input type="file" accept="audio/mpeg,audio/wav" class="file-input" @change="handleAudioUpload" />
+            <label class="media-upload-btn">+ 音频</label>
           </div>
         </div>
+        <n-modal v-model:show="showPreview" preset="card" title="图片预览" style="width:600px">
+          <img :src="previewImage" style="max-width:100%" />
+        </n-modal>
       </n-form>
       <template #footer>
         <div style="display: flex; justify-content: flex-end; gap: 12px;">
@@ -372,7 +352,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { NSpin, NButton, NCheckbox, NModal, NForm, NFormItem, NInput, NRadioGroup, NRadio, NSelect, NInputNumber, NRadioButton, useMessage } from 'naive-ui'
-import { getQuestionBanks, createQuestionBank, updateQuestionBank, deleteQuestionBank } from '@/services/modules/teacher-question.service'
+import { getQuestionBanks, createQuestionBank, updateQuestionBank, deleteQuestionBank, getQuestions, createQuestion, updateQuestion, deleteQuestion } from '@/services/modules/teacher-question.service'
+import http from '@/services/api'
 
 // === 类型定义 ===
 interface QuestionBank {
@@ -384,14 +365,15 @@ interface QuestionBank {
 }
 
 interface Question {
-  id: number
-  bank_id: number
-  question_type: number // 1-单选 2-多选 3-填空 4-判断 5-简答
-  create_type: number   // 1-AI生成 2-手动录入
-  content: any          // 动态解析
-  standard_answer: any  // 动态解析
-  default_score: number
-  _selected?: boolean   // 前端附加状态，用于多选
+  id?: string
+  bankId: string
+  questionType: number
+  content: string   // JSON字符串
+  standardAnswer: string // JSON字符串
+  defaultScore: number
+  sortNum: number
+  createdAt?: string
+  updatedAt?: string
 }
 
 // === 状态数据 ===
@@ -406,7 +388,7 @@ const selectedQuestionIds = computed(() => questions.value.filter(q => q._select
 const targetBankOptions = computed(() => {
   return banks.value
     .filter(b => b.id !== activeBankId.value)
-    .map(b => ({ label: b.bank_name, value: b.id }))
+    .map(b => ({ label: b.bankName, value: b.id }))
 })
 
 const mess = useMessage()
@@ -426,50 +408,20 @@ async function fetchBanks() {
 
 onMounted(() => fetchBanks())
 
-// 模拟加载题目数据
-function loadQuestions(bankId: number) {
+// 加载题目数据
+async function loadQuestions(bankId: string) {
   loading.value = true
-  setTimeout(() => {
-    // 根据题型填充完整测试数据
-    questions.value = [
-      {
-        id: 1001, bank_id: bankId, question_type: 1, create_type: 2, default_score: 5, _selected: false,
-        content: {
-          stem: "以下哪个是Java的关键字？",
-          rich_stem: "<p>以下哪个是<strong>Java</strong>的关键字？</p>",
-          options: [{ id: "A", text: "main" }, { id: "B", text: "String" }, { id: "C", text: "static" }, { id: "D", text: "System" }]
-        },
-        standard_answer: { answer: "C" }
-      },
-      {
-        id: 1002, bank_id: bankId, question_type: 2, create_type: 1, default_score: 10, _selected: false,
-        content: {
-          stem: "以下哪些是Java的基本数据类型？",
-          options: [{ id: "A", text: "int" }, { id: "B", text: "String" }, { id: "C", text: "boolean" }, { id: "D", text: "double" }, { id: "E", text: "ArrayList" }]
-        },
-        standard_answer: { answers: ["A", "C", "D"] }
-      },
-      {
-        id: 1003, bank_id: bankId, question_type: 4, create_type: 1, default_score: 2, _selected: false,
-        content: { stem: "Java是一种纯面向对象的编程语言。" },
-        standard_answer: { answer: false }
-      },
-      {
-        id: 1004, bank_id: bankId, question_type: 3, create_type: 2, default_score: 8, _selected: false,
-        content: {
-          stem: "Java中声明常量的关键字是______，声明接口的关键字是______。",
-          rich_stem: "<p>Java中声明常量的关键字是<span style=\"color:red\">______</span>，声明接口的关键字是<span style=\"color:red\">______</span>。</p>"
-        },
-        standard_answer: { answers: ["final", "interface"] }
-      },
-      {
-        id: 1005, bank_id: bankId, question_type: 5, create_type: 2, default_score: 15, _selected: false,
-        content: { stem: "简述Java中接口和抽象类的区别。" },
-        standard_answer: { answer: "1. 抽象类可以有构造方法，接口不能有。\n2. 抽象类是对类的抽象，接口是对行为的抽象。" }
-      }
-    ]
-    loading.value = false
-  }, 400)
+  try {
+    const res = await getQuestions(bankId)
+    if (res.code === 200) {
+      questions.value = res.data.map(q => ({
+        ...q,
+        contentObj: JSON.parse(q.content || '{}'),
+        answerObj: JSON.parse(q.standardAnswer || '{}')
+      }))
+    }
+  } catch { mess.error('获取题目失败') }
+  finally { loading.value = false }
 }
 
 // === 辅助方法 ===
@@ -478,17 +430,22 @@ function getQuestionTypeName(type: number) {
   return map[type] || '未知'
 }
 
-function formatAnswer(q: Question) {
-  if (q.question_type === 1 || q.question_type === 5) {
-    return q.standard_answer.answer;
-  }
-  if (q.question_type === 4) {
-    return q.standard_answer.answer ? '正确' : '错误';
-  }
-  if (q.question_type === 2 || q.question_type === 3) {
-    return q.standard_answer.answers.join(' , ');
-  }
-  return '';
+function parseContent(q: any) {
+  if (!q) return {}
+  if (q.contentObj) return q.contentObj
+  try { return JSON.parse(q.content || '{}') } catch { return {} }
+}
+function parseAnswer(q: any) {
+  if (!q) return {}
+  if (q.answerObj) return q.answerObj
+  try { return JSON.parse(q.standardAnswer || '{}') } catch { return {} }
+}
+function formatAnswer(q: any) {
+  const ans = parseAnswer(q)
+  if (q.questionType === 1 || q.questionType === 5) return ans.answer
+  if (q.questionType === 4) return ans.answer ? '正确' : '错误'
+  if (q.questionType === 2 || q.questionType === 3) return (ans.answers || []).join(', ')
+  return ''
 }
 
 function handleSelectChange() {
@@ -498,7 +455,7 @@ function handleSelectChange() {
 // === 事件交互 ===
 
 // 切换题库
-function selectBank(id: number) {
+function selectBank(id: string) {
   if (activeBankId.value === id) return
   activeBankId.value = id
   loadQuestions(id)
@@ -506,51 +463,45 @@ function selectBank(id: number) {
 
 // --- 题库操作 ---
 const showBankModal = ref(false)
-const bankForm = ref<Partial<QuestionBank>>({ bank_name: '', is_public: 0 })
+const bankForm = ref<Partial<QuestionBank>>({ bankName: '', isPublic: 0 })
 
 function openBankModal(bank?: QuestionBank) {
   if (bank) {
     bankForm.value = { ...bank }
   } else {
-    bankForm.value = { bank_name: '', is_public: 0 }
+    bankForm.value = { bankName: '', isPublic: 0 }
   }
   showBankModal.value = true
 }
 
-function saveBank() {
-  if (bankForm.value.id) {
-    const idx = banks.value.findIndex(b => b.id === bankForm.value.id)
-    if (idx > -1) {
-      const existing = banks.value[idx]
-      if (existing) {
-        banks.value[idx] = {
-          id: existing.id,
-          teacher_id: existing.teacher_id,
-          bank_name: bankForm.value.bank_name ?? existing.bank_name,
-          is_public: bankForm.value.is_public ?? existing.is_public
-        }
-      }
+async function saveBank() {
+  try {
+    const body = { bankName: bankForm.value.bankName, isPublic: bankForm.value.isPublic ?? 0 }
+    if (bankForm.value.id) {
+      const res = await updateQuestionBank(bankForm.value.id, body)
+      if (res.code !== 200) { mess.error(res.message || '保存失败'); return }
+    } else {
+      const res = await createQuestionBank(body)
+      if (res.code !== 200) { mess.error(res.message || '保存失败'); return }
     }
-  } else {
-    banks.value.push({ 
-      id: Date.now(), 
-      teacher_id: 101, 
-      bank_name: bankForm.value.bank_name || '未命名', 
-      is_public: bankForm.value.is_public || 0 
-    })
-  }
-  showBankModal.value = false
+    mess.success('保存成功')
+    showBankModal.value = false
+    await fetchBanks()
+  } catch { mess.error('操作失败') }
 }
 
-function deleteBank(id: number) {
-  if (confirm('确定要删除该题库吗？')) {
+async function deleteBank(id: string) {
+  try {
+    const res = await deleteQuestionBank(id)
+    if (res.code !== 200) { mess.error(res.message || '删除失败'); return }
+    mess.success('已删除')
     banks.value = banks.value.filter(b => b.id !== id)
     if (activeBankId.value === id) {
       activeBankId.value = banks.value[0]?.id || null
       if (activeBankId.value) loadQuestions(activeBankId.value)
       else questions.value = []
     }
-  }
+  } catch { mess.error('删除失败') }
 }
 
 // --- 题目操作 ---
@@ -565,13 +516,13 @@ interface QuestionFormData {
   default_score: number
   sort_order: number
   stem: string
+  rich_stem: string
   options: QuestionOption[]
   answer: string | boolean | null
   multiAnswers: string[]
   fillAnswers: string[]
-  image_url: string
-  audio_url: string
-  audio_name: string
+  imageUrls: string[]
+  audioUrl: string
 }
 
 const defaultQuestionForm = (): QuestionFormData => ({
@@ -579,6 +530,7 @@ const defaultQuestionForm = (): QuestionFormData => ({
   default_score: 5,
   sort_order: 0,
   stem: '',
+  rich_stem: '',
   options: [
     { id: 'A', text: '' },
     { id: 'B', text: '' },
@@ -588,9 +540,8 @@ const defaultQuestionForm = (): QuestionFormData => ({
   answer: null,
   multiAnswers: [],
   fillAnswers: [''],
-  image_url: '',
-  audio_url: '',
-  audio_name: ''
+  imageUrls: [],
+  audioUrl: ''
 })
 
 // === AI 出题相关 ===
@@ -723,134 +674,163 @@ function generateMockQuestion(type: number, seq: number): Question | null {
   return templates[type]?.() || null
 }
 
-// === 媒体上传相关 ===
-function handleImageUpload(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      questionForm.value.image_url = e.target?.result as string
-    }
-    reader.readAsDataURL(file)
-  }
+// === 媒体上传相关（使用后端上传接口，禁止Base64） ===
+async function uploadFile(file: File): Promise<string | null> {
+  const formData = new FormData()
+  formData.append('file', file)
+  try {
+    const res = await http.post('/api/file/upload', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    if (res.data.code === 200) return res.data.data.fileUrl || res.data.data.fileName
+    return null
+  } catch { return null }
 }
 
-function handleAudioUpload(event: Event) {
+async function handleImageUpload(event: Event) {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
-  if (file) {
-    questionForm.value.audio_url = `audio://${file.name}`
-    questionForm.value.audio_name = file.name
+  if (!file) return
+  if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(file.type)) { mess.warning('仅支持 jpg/png/gif/webp 格式'); target.value = ''; return }
+  if (file.size > 5 * 1024 * 1024) { mess.warning('图片大小不能超过 5MB'); target.value = ''; return }
+
+  const url = await uploadFile(file)
+  if (url) {
+    questionForm.value.imageUrls.push(url)
+  } else {
+    mess.error('图片上传失败')
   }
+  target.value = ''
 }
 
-function removeImage() {
-  questionForm.value.image_url = ''
+async function handleAudioUpload(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+  if (!['audio/mpeg', 'audio/wav', 'audio/mp3'].includes(file.type)) { mess.warning('仅支持 mp3/wav 格式'); target.value = ''; return }
+  if (file.size > 10 * 1024 * 1024) { mess.warning('音频大小不能超过 10MB'); target.value = ''; return }
+
+  const url = await uploadFile(file)
+  if (url) {
+    questionForm.value.audioUrl = url
+  } else {
+    mess.error('音频上传失败')
+  }
+  target.value = ''
+}
+
+function removeImage(idx: number) {
+  questionForm.value.imageUrls.splice(idx, 1)
 }
 
 function removeAudio() {
-  questionForm.value.audio_url = ''
-  questionForm.value.audio_name = ''
+  questionForm.value.audioUrl = ''
 }
 
 // --- 题目表单原有逻辑 ---
 const showQuestionModal = ref(false)
+const showPreview = ref(false)
+const previewImage = ref('')
 const questionForm = ref<QuestionFormData>(defaultQuestionForm())
 
-function openQuestionModal(q?: Question) {
+function openQuestionModal(q?: any) {
   if (q) {
-    // 编辑模式
-    const options: QuestionOption[] = q.content.options ? q.content.options.map((o: any) => ({ id: String(o.id), text: o.text })) : [
-      { id: 'A', text: '' },
-      { id: 'B', text: '' },
-      { id: 'C', text: '' },
-      { id: 'D', text: '' }
-    ]
-    
+    const c = q.contentObj || {}
+    const ans = q.answerObj || {}
+    const opts: QuestionOption[] = c.options ? c.options.map((o: any) => ({ id: String(o.id), text: o.text })) : []
+    const att = c.attachments || {}
+
     let answer: string | boolean | null = null
     let multiAnswers: string[] = []
     let fillAnswers: string[] = ['']
-    
-    if (q.question_type === 1) {
-      answer = q.standard_answer?.answer ? String(q.standard_answer.answer) : null
-    } else if (q.question_type === 2) {
-      multiAnswers = q.standard_answer?.answers?.map(String) || []
-    } else if (q.question_type === 3) {
-      fillAnswers = q.standard_answer?.answers?.length ? q.standard_answer.answers : ['']
-    } else if (q.question_type === 4) {
-      answer = q.standard_answer?.answer ?? null
-    } else if (q.question_type === 5) {
-      answer = q.standard_answer?.answer || ''
-    }
-    
+
+    if (q.questionType === 1) answer = ans.answer ? String(ans.answer) : null
+    else if (q.questionType === 2) multiAnswers = (ans.answers || []).map(String)
+    else if (q.questionType === 3) fillAnswers = ans.answers && ans.answers.length ? ans.answers : ['']
+    else if (q.questionType === 4) answer = ans.answer ?? null
+    else if (q.questionType === 5) answer = ans.answer || ''
+
     questionForm.value = {
       id: q.id,
-      question_type: q.question_type,
-      default_score: q.default_score,
+      question_type: q.questionType,
+      default_score: q.defaultScore,
       sort_order: 0,
-      stem: q.content.stem || '',
-      options,
+      stem: c.stem || '',
+      rich_stem: c.rich_stem || '',
+      options: opts.length >= 2 ? opts : [
+        { id: 'A', text: '' },
+        { id: 'B', text: '' },
+        { id: 'C', text: '' },
+        { id: 'D', text: '' }
+      ],
       answer,
       multiAnswers,
       fillAnswers,
-      image_url: '',
-      audio_url: '',
-      audio_name: ''
+      imageUrls: att.images || [],
+      audioUrl: att.audio || ''
     }
   } else {
-    // 新增模式
     questionForm.value = defaultQuestionForm()
   }
   showQuestionModal.value = true
 }
 
-function saveQuestion() {
+async function saveQuestion() {
   const form = questionForm.value
-  if (!form.stem) {
-    alert('请输入题目内容')
-    return
-  }
-  
-  let content: any = { stem: form.stem }
-  let standard_answer: any = {}
-  
+  if (!form.stem) { mess.warning('请输入题目内容'); return }
+
+  const richStem = form.rich_stem || `<p>${form.stem}</p>`
+  const contentObj: any = { stem: form.stem, rich_stem: richStem }
+  const attachments: any = {}
+  if (form.imageUrls.length > 0) attachments.images = form.imageUrls
+  if (form.audioUrl) attachments.audio = form.audioUrl
+  if (form.imageUrls.length > 0 || form.audioUrl) contentObj.attachments = attachments
+  let answerObj: any = {}
+
   if (form.question_type === 1 || form.question_type === 2) {
-    content.options = form.options.filter((o) => o.text)
+    contentObj.options = form.options.filter((o: any) => o.text)
     if (form.question_type === 1) {
-      standard_answer = { answer: form.answer }
+      if (!form.answer) { mess.warning('请设置正确答案'); return }
+      answerObj = { answer: form.answer }
     } else {
-      standard_answer = { answers: form.multiAnswers }
+      if (!form.multiAnswers || form.multiAnswers.length === 0) { mess.warning('请设置正确答案'); return }
+      answerObj = { answers: form.multiAnswers }
     }
   } else if (form.question_type === 3) {
-    standard_answer = { answers: form.fillAnswers.filter((a) => a) }
+    const blanks = form.stem.match(/__/g)
+    const count = blanks ? blanks.length : 0
+    if (count > 0 && form.fillAnswers.filter((a: string) => a).length !== count) {
+      mess.warning('请填写所有填空的答案'); return
+    }
+    contentObj.blank_count = count
+    answerObj = { answers: form.fillAnswers.filter((a: string) => a) }
   } else if (form.question_type === 4) {
-    standard_answer = { answer: form.answer }
+    if (form.answer === null || form.answer === undefined) { mess.warning('请设置正确答案'); return }
+    answerObj = { answer: form.answer }
   } else if (form.question_type === 5) {
-    standard_answer = { answer: form.answer }
+    if (!form.answer) { mess.warning('请填写参考答案'); return }
+    answerObj = { answer: form.answer }
   }
-  
-  const newQuestion: Question = {
-    id: form.id ?? Date.now(),
-    bank_id: activeBankId.value!,
-    question_type: form.question_type,
-    create_type: 2,
-    content,
-    standard_answer,
-    default_score: form.default_score,
-    _selected: false
+
+  const body = {
+    bankId: activeBankId.value,
+    questionType: form.question_type,
+    content: JSON.stringify(contentObj),
+    standardAnswer: JSON.stringify(answerObj),
+    defaultScore: form.default_score,
+    sortNum: form.sort_order
   }
-  
-  if (form.id) {
-    // 更新
-    const idx = questions.value.findIndex(q => q.id === form.id)
-    if (idx > -1) questions.value[idx] = newQuestion
-  } else {
-    // 新增
-    questions.value.push(newQuestion)
-  }
-  
-  showQuestionModal.value = false
+
+  try {
+    let res: any
+    if (form.id) {
+      res = await updateQuestion(String(form.id), body)
+    } else {
+      res = await createQuestion(body)
+    }
+    if (res && res.code !== 200) { mess.error(res.message || '保存失败'); return }
+    mess.success('保存成功')
+    showQuestionModal.value = false
+    if (activeBankId.value) await loadQuestions(activeBankId.value)
+  } catch { mess.error('保存失败') }
 }
 
 // === 选项操作 ===
@@ -895,10 +875,13 @@ function removeFillAnswer(idx: number) {
   }
 }
 
-function deleteQuestion(id: number) {
-  if (confirm('确定要删除这道题吗？')) {
-    questions.value = questions.value.filter(q => q.id !== id)
-  }
+async function deleteQuestion(id: string) {
+  try {
+    const res = await deleteQuestion(id)
+    if (res.code !== 200) { mess.error(res.message || '删除失败'); return }
+    mess.success('已删除')
+    if (activeBankId.value) await loadQuestions(activeBankId.value)
+  } catch { mess.error('删除失败') }
 }
 
 // --- AI 生成 ---

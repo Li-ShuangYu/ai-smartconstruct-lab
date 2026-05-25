@@ -13,7 +13,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -56,7 +55,7 @@ public class TeacherQuestionBankController {
 
     @OperationLog(action = "新增题库")
     @PostMapping
-    public ApiResult<Void> create(@Valid @RequestBody Map<String, Object> body) {
+    public ApiResult<Void> create(@RequestBody Map<String, Object> body) {
         String bankName = (String) body.get("bankName");
         Integer isPublic = body.get("isPublic") != null ? Integer.valueOf(body.get("isPublic").toString()) : 0;
         if (bankName == null || bankName.isBlank()) return ApiResult.error("题库名称不能为空");
@@ -74,7 +73,7 @@ public class TeacherQuestionBankController {
 
     @OperationLog(action = "编辑题库")
     @PutMapping("/{id}")
-    public ApiResult<Void> update(@PathVariable String id, @Valid @RequestBody Map<String, Object> body) {
+    public ApiResult<Void> update(@PathVariable String id, @RequestBody Map<String, Object> body) {
         Long userId = getCurrentUserId();
         BizQuestionBank bank = bankService.getById(Long.parseLong(id));
         if (bank == null) return ApiResult.error("题库不存在");
