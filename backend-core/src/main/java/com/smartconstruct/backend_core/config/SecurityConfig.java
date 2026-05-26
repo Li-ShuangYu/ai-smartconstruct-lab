@@ -22,6 +22,7 @@ import java.util.Arrays;
  * - CORS跨域支持
  * - 请求权限控制
  * - CSRF禁用（前后端分离模式）
+ * - 内部服务接口Token验证
  * 
  * @author SmartConstruct
  * @version 1.0.0
@@ -33,12 +34,20 @@ public class SecurityConfig {
     /** JWT认证过滤器 */
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    /** 内部服务Token验证过滤器 */
+    private InternalServiceTokenFilter internalServiceTokenFilter;
+
     public SecurityConfig() {
     }
 
     @Autowired
     public void setJwtAuthenticationFilter(JwtAuthenticationFilter jwtAuthenticationFilter) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
+
+    @Autowired
+    public void setInternalServiceTokenFilter(InternalServiceTokenFilter internalServiceTokenFilter) {
+        this.internalServiceTokenFilter = internalServiceTokenFilter;
     }
 
     /**
@@ -49,8 +58,10 @@ public class SecurityConfig {
      * 2. 禁用CSRF（前后端分离）
      * 3. 无状态会话管理
      * 4. 公开接口免认证（登录、注册、公共数据）
-     * 5. API接口需要认证
-     * 6. 添加JWT认证过滤器
+     * 5. 内部服务接口免JWT认证（通过服务Token保护）
+     * 6. API接口需要认证
+     * 7. 添加JWT认证过滤器
+     * 8. 添加内部服务Token过滤器
      * 
      * @param http HttpSecurity配置对象
      * @return SecurityFilterChain安全过滤链
@@ -67,10 +78,12 @@ public class SecurityConfig {
             .authorizeRequests()
             .antMatchers("/api/auth/login", "/api/auth/register", "/api/auth/captcha").permitAll()
             .antMatchers("/api/public/**").permitAll()
+            .antMatchers("/api/internal/**").permitAll()
             .antMatchers("/api/**").authenticated()
             .anyRequest().permitAll()
             .and()
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(internalServiceTokenFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

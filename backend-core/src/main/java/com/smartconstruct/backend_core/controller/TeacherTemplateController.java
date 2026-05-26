@@ -11,6 +11,8 @@ import com.smartconstruct.backend_core.entity.WfTrainingTemplate;
 import com.smartconstruct.backend_core.service.ITrainingTaskService;
 import com.smartconstruct.backend_core.service.ITrainingTemplateService;
 import com.smartconstruct.backend_core.util.Java8Compat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +22,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/teacher/templates")
 public class TeacherTemplateController {
+
+    private static final Logger log = LoggerFactory.getLogger(TeacherTemplateController.class);
 
     private final ITrainingTemplateService templateService;
     private final ITrainingTaskService trainingTaskService;
@@ -104,6 +108,36 @@ public class TeacherTemplateController {
         if (desc != null) template.setTemplateDescription(desc);
         template.setUpdatedAt(LocalDateTime.now());
         templateService.updateById(template);
+        return ApiResult.ok();
+    }
+
+    @OperationLog(action = "重试AI处理")
+    @PostMapping("/{id}/retry-ai")
+    public ApiResult<Void> retryAi(@PathVariable Long id) {
+        Long currentUserId = getCurrentUserId();
+        log.info("Teacher [userId={}] requested AI retry for template [id={}]", currentUserId, id);
+
+        WfTrainingTemplate template = templateService.getById(id);
+        if (template == null) {
+            return ApiResult.error("模板不存在");
+        }
+        if (!currentUserId.equals(template.getCreatorId())) {
+            return ApiResult.error("无权操作非本人创建的模板");
+        }
+        if (template.getAiStatus() == null || template.getAiStatus() != 3) {
+            return ApiResult.error("只有AI处理失败的模板才能重试");
+        }
+
+        // Reset ai_status to 1 (processing), clear error, update timestamp
+        template.setAiStatus(1);
+        template.setErrorReason(null);
+        template.setUpdatedAt(LocalDateTime.now());
+        templateService.updateById(template);
+
+        // Re-dispatch to AI engine asynchronously
+        templateService.processTemplateMockAi(id, template.getRawCanvasJson());
+
+        log.info("Template [id={}] retry initiated, ai_status reset to 1, re-dispatched to AI engine", id);
         return ApiResult.ok();
     }
 }
