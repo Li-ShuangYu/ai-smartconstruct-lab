@@ -1,0 +1,257 @@
+{
+  "orchestration_id": "flow_sample_complete",
+  "nodes": [
+    {
+      "node_id": "node_start_01",
+      "node_type": "START",
+      "name": "开始实训",
+      "config": {
+        "desc": "本次实训主题为「Java高并发编程实战」，学生需完成从需求分析到编码实现的完整流程。",
+        "student_bg": "学生已完成Java基础语法学习，具备多线程基础知识，了解基本的并发编程概念。",
+        "enable_ai_welcome": true,
+        "welcome_prompt": "同学你好，欢迎来到「高并发编程实战」实训！请先阅读实训说明，然后按流程完成各环节任务。加油！"
+      }
+    },
+    {
+      "node_id": "node_resource_01",
+      "node_type": "RESOURCE_READ",
+      "name": "资源阅读 (预习材料)",
+      "config": {
+        "resource_list": [
+          {
+            "resource_id": "res_doc_001",
+            "resource_name": "Java并发编程实战-章节1",
+            "file_size": "2.3MB",
+            "require_full_read": 100
+          },
+          {
+            "resource_id": "res_doc_002",
+            "resource_name": "JUC核心类图总结",
+            "file_size": "856KB",
+            "require_full_read": 80
+          },
+          {
+            "resource_id": "res_pdf_003",
+            "resource_name": "高并发设计模式.pdf",
+            "file_size": "4.1MB",
+            "require_full_read": 60
+          }
+        ],
+        "enable_ai_summary": true,
+        "enable_ai_key_points": true,
+        "enable_ai_quick_nav": true,
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_video_01",
+      "node_type": "VIDEO_LEARN",
+      "name": "视频观看 (线程池详解)",
+      "config": {
+        "video_id": "res_video_001",
+        "video_name": "ThreadPoolExecutor源码讲解.mp4",
+        "video_file_size": "156MB",
+        "video_title": "线程池核心原理与最佳实践",
+        "min_watch_progress": 90,
+        "allow_drag": false,
+        "allow_speed": [1.25, 1.5, 2.0],
+        "enable_ai_subtitle": true,
+        "enable_ai_chapter": true,
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_mindmap_preview_01",
+      "node_type": "MINDMAP_PREVIEW",
+      "name": "导图预习 (并发知识体系)",
+      "config": {
+        "enable_ai_generate_map": true,
+        "scenario": "Java并发编程知识体系，包括线程基础、锁机制、并发容器、线程池、Fork/Join框架",
+        "max_nodes": 50,
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_survey_01",
+      "node_type": "SEMESTER_SURVEY",
+      "name": "学情调查 (前置摸底)",
+      "config": {
+        "questions": [
+          { "content": "你之前接触过多线程编程吗？接触程度如何？" },
+          { "content": "你熟悉synchronized和ReentrantLock的区别吗？" },
+          { "content": "你最想通过本次实训解决什么问题？" }
+        ]
+      }
+    },
+    {
+      "node_id": "node_mindmap_draw_01",
+      "node_type": "MINDMAP_DRAW",
+      "name": "导图绘制 (设计思路)",
+      "config": {
+        "enable_ai_generate_map": false,
+        "base_map_data": {
+          "root": "电商秒杀系统",
+          "children": [
+            { "name": "库存管理", "children": [{"name": "乐观锁"}, {"name": "Redis缓存"}] },
+            { "name": "限流策略", "children": [{"name": "令牌桶"}, {"name": "滑动窗口"}] },
+            { "name": "异步处理", "children": [{"name": "消息队列"}, {"name": "线程池"}] }
+          ]
+        },
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_ai_practice_01",
+      "node_type": "AI_PRACTICE",
+      "name": "AI 对练 (面试模拟)",
+      "config": {
+        "knowledgePoint": "线程池参数配置、拒绝策略、核心线程数设置原则",
+        "pass_criteria": "能够正确解释corePoolSize和maximumPoolSize的关系，并能根据CPU密集/IO密集场景给出合理的线程数配置建议",
+        "max_rounds": 10,
+        "enable_adaptive_difficulty": true,
+        "enable_concept_check": true,
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_theory_01",
+      "node_type": "THEORY_CLASS",
+      "name": "理论学习 (锁机制精讲)",
+      "config": {
+        "topic": "Java锁机制深度解析 — synchronized升级、AQS原理、读写锁",
+        "knowledge_points": "synchronized偏向锁/轻量级锁/重量级锁升级过程, AQS抽象队列同步器原理, ReentrantReadWriteLock适用场景",
+        "card_count": 15,
+        "enable_ai_error_book": true,
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_task_01",
+      "node_type": "TASK_DISTRIBUTE",
+      "name": "任务下发 (需求文档)",
+      "config": {
+        "task_title": "电商高并发秒杀系统 — 核心下单接口设计与实现",
+        "task_desc": "设计并实现一个高并发秒杀系统的下单接口，要求：\n1. 使用线程池处理请求\n2. 通过Redis缓存库存\n3. 使用MQ削峰填谷\n4. 接口RT不超过200ms\n5. 支持至少5000QPS并发",
+        "deadline": "2026-06-15",
+        "resource_list": [
+          {
+            "resource_id": "res_doc_004",
+            "resource_name": "秒杀系统架构设计文档",
+            "file_size": "3.2MB"
+          },
+          {
+            "resource_id": "res_doc_005",
+            "resource_name": "接口协议定义(yaml)",
+            "file_size": "156KB"
+          }
+        ],
+        "enable_ai_task_split": true,
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_req_upload_01",
+      "node_type": "REQ_UPLOAD",
+      "name": "需求上传 (需求分析报告)",
+      "config": {
+        "scenario": "请根据任务下发中的需求文档，撰写一份完整的需求分析报告，包括：功能需求、非功能需求、系统架构图、数据流图",
+        "min_length": 500,
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_plan_upload_01",
+      "node_type": "PLAN_UPLOAD",
+      "name": "方案上传 (技术方案)",
+      "config": {
+        "allowed_formats": ["pdf", "txt", "word", "ppt", "md"],
+        "max_size_mb": 100,
+        "upload_requirements": "请提交完整的技术方案文档，包含：系统架构设计、技术选型理由、核心接口设计、数据库设计、部署方案",
+        "enable_ai_pre_evaluation": true,
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_homework_01",
+      "node_type": "HOMEWORK",
+      "name": "课后作业 (并发编程测验)",
+      "config": {
+        "source_mode": "ai",
+        "time_limit_mins": 45,
+        "question_type_counts": {
+          "single_choice": 10,
+          "multi_choice": 5,
+          "fill_blank": 5,
+          "true_false": 5,
+          "essay": 2
+        },
+        "difficulty_level": "medium",
+        "save_to_db": true,
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_coding_01",
+      "node_type": "CODING_CLASS",
+      "name": "编码实训 (核心代码实现)",
+      "config": {
+        "init_code": "public class SeckillService {\n    private final ExecutorService executor = Executors.newFixedThreadPool(10);\n    \n    public OrderResult createOrder(Long userId, Long skuId, Integer quantity) {\n        // TODO: 实现秒杀下单逻辑\n        return null;\n    }\n}",
+        "allow_ai_help": true,
+        "ai_help_mode": "guide",
+        "enable_code_review": true,
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_student_review_01",
+      "node_type": "STUDENT_PEER_REVIEW",
+      "name": "学生互评 (代码审查)",
+      "config": {
+        "target_node_id": "node_coding_01",
+        "review_count": 3,
+        "evaluation_dimensions": [
+          { "dimension_name": "代码规范", "score_range": "1-10分" },
+          { "dimension_name": "并发安全性", "score_range": "1-10分" },
+          { "dimension_name": "性能优化", "score_range": "1-10分" },
+          { "dimension_name": "可读性与扩展性", "score_range": "1-10分" }
+        ],
+        "review_weight_percentage": 30,
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_teacher_eval_01",
+      "node_type": "TEACHER_COMMENT",
+      "name": "教师点评 (综合评价)",
+      "config": {
+        "target_node_id": "node_coding_01",
+        "allow_ai_qa": true
+      }
+    },
+    {
+      "node_id": "node_end_01",
+      "node_type": "END",
+      "name": "结束实训",
+      "config": {
+        "end_desc": "恭喜你完成了「高并发编程实战」全部实训环节！请查看你的实训报告和成绩单，针对薄弱环节进行复习巩固。"
+      }
+    }
+  ],
+  "edges": [
+    { "source": "node_start_01", "target": "node_resource_01" },
+    { "source": "node_resource_01", "target": "node_video_01" },
+    { "source": "node_video_01", "target": "node_mindmap_preview_01" },
+    { "source": "node_mindmap_preview_01", "target": "node_survey_01" },
+    { "source": "node_survey_01", "target": "node_mindmap_draw_01" },
+    { "source": "node_mindmap_draw_01", "target": "node_ai_practice_01" },
+    { "source": "node_ai_practice_01", "target": "node_theory_01" },
+    { "source": "node_theory_01", "target": "node_task_01" },
+    { "source": "node_task_01", "target": "node_req_upload_01" },
+    { "source": "node_req_upload_01", "target": "node_plan_upload_01" },
+    { "source": "node_plan_upload_01", "target": "node_homework_01" },
+    { "source": "node_homework_01", "target": "node_coding_01" },
+    { "source": "node_coding_01", "target": "node_student_review_01" },
+    { "source": "node_student_review_01", "target": "node_teacher_eval_01" },
+    { "source": "node_teacher_eval_01", "target": "node_end_01" }
+  ]
+}

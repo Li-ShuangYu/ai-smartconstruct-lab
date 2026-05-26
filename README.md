@@ -55,27 +55,54 @@ ai-smartconstruct-lab/
 │   │   ├── components/        # 公共组件（布局、图标、AI助手）
 │   │   │   ├── AIFloatingAssistant/  # AI浮动助手组件
 │   │   │   ├── icons/         # 图标组件
-│   │   │   └── layout/        # 布局组件
-│   │   ├── hooks/             # 组合式函数（认证、实训、WebSocket）
-│   │   ├── router/            # 路由配置（模块划分）
-│   │   ├── services/          # 服务层（API调用）
-│   │   ├── stores/            # 状态管理（Pinia）
-│   │   ├── utils/             # 工具函数
-│   │   └── views/             # 页面组件（教师/学生/管理员/实训）
+│   │   │   └── layout/        # 布局组件（AuthLayout、WorkbenchLayout、TrainingLayout）
+│   │   ├── hooks/             # 组合式函数（认证、实训、WebSocket、智能助手）
+│   │   ├── router/            # 路由配置（模块划分：auth、teacher、student、admin、training、homework）
+│   │   ├── services/          # 服务层（API调用：auth、training、homework、assistant等）
+│   │   ├── stores/            # 状态管理（Pinia：auth、training、homework、assistant、app）
+│   │   ├── utils/             # 工具函数（format、storage、validate、websocket、training-flow）
+│   │   ├── views/             # 页面组件
+│   │   │   ├── auth/          # 认证页面（登录、注册）
+│   │   │   ├── teacher/       # 教师端页面（工作台、实训编排、评控分析、直播监控）
+│   │   │   ├── student/       # 学生端页面（学习空间、实训执行、作业管理）
+│   │   │   ├── admin/         # 管理员页面（用户管理、课程管理、系统监控）
+│   │   │   ├── training/      # 实训页面（学生端+教师端）
+│   │   │   ├── homework/      # 作业相关页面（考试、思维导图练习）
+│   │   │   └── common/        # 公共页面（404、500）
+│   │   ├── rules/             # 开发规范（.cursorrules、SKILL.md、PROMPT.md）
+│   │   ├── App.vue            # 根组件
+│   │   ├── main.ts            # 应用入口
+│   │   └── env.d.ts           # TypeScript环境声明
 │   ├── public/                # 静态资源（直接拷贝至dist）
 │   └── package.json
 ├── backend-core/              # Spring Boot 后端核心
-│   ├── src/main/java/         # Java 源代码
+│   ├── src/main/java/com/smartconstruct/backend_core/
+│   │   ├── annotation/        # 自定义注解（OperationLog）
+│   │   ├── aspect/            # AOP切面（OperationLogAspect）
+│   │   ├── config/            # 配置类（SecurityConfig、WebSocketConfig、AsyncConfig等）
+│   │   ├── controller/        # REST API控制器（Auth、Teacher、Student、Admin等）
+│   │   ├── dto/               # 数据传输对象（ApiResult、PageResult、VO/DTO类）
+│   │   ├── entity/            # 数据库实体类（SysUser、BizStudent、WfTrainingTemplate等）
+│   │   ├── mapper/            # MyBatis映射接口
+│   │   ├── service/           # 业务服务层（接口+实现）
+│   │   ├── util/              # 工具类（JwtUtil、Java8Compat）
+│   │   ├── websocket/         # WebSocket相关（TrainingWebSocketHandler）
+│   │   └── BackendCoreApplication.java  # 启动类
 │   ├── src/main/resources/    # 配置文件
 │   └── pom.xml
 ├── ai-engine/                 # Python AI 引擎
 │   ├── agents/                # AI代理
-│   ├── routers/               # API路由
+│   ├── routers/               # API路由（health）
 │   ├── services/              # 业务服务
 │   ├── main.py                # 启动入口
+│   ├── cache_models.py        # 模型缓存
 │   └── requirements.txt       # 依赖列表
 ├── infrastructure/            # 基础设施配置
 │   └── docker-compose.yml     # Docker Compose配置
+├── .agents/                   # 智能助手配置
+│   └── skills/                # 技能定义
+├── AGENTS.md                  # 智能助手配置说明
+├── CLAUDE.md                  # Claude配置说明
 └── README.md
 ```
 
@@ -83,9 +110,10 @@ ai-smartconstruct-lab/
 
 | 模块 | 职责 |
 |------|------|
-| `frontend-vue` | 用户界面展示，包含教师工作台、学生学习空间、管理员后台、实训编排器、动态节点执行系统、AI浮动助手、模拟IDE、同伴互评 |
-| `backend-core` | 核心业务逻辑、用户认证、任务流转控制、数据持久化、工作流引擎、WebSocket实时通信 |
-| `ai-engine` | 量化评分引擎、苏格拉底式智能辅导、大模型交互 |
+| `frontend-vue` | 用户界面展示，包含教师工作台、学生学习空间、管理员后台、实训编排器、动态节点执行系统、AI浮动助手、模拟IDE、同伴互评、思维导图练习、教师点评 |
+| `backend-core` | 核心业务逻辑、用户认证、任务流转控制、数据持久化、工作流引擎、WebSocket实时通信、题库管理、课程管理、系统运维 |
+| `ai-engine` | 量化评分引擎、苏格拉底式智能辅导、大模型交互、向量存储(RAG) |
+| `.agents` | 智能助手技能定义，支持代码诊断、架构优化、交互式审查等功能 |
 
 ---
 
@@ -131,6 +159,7 @@ ai-smartconstruct-lab/
 **核心类**:
 - `TeacherTemplateController` - 教师模板控制器，管理实训模板CRUD
 - `TeacherTrainingTaskController` - 任务下发控制器
+- `TeacherTrainingController` - 教师实训监控控制器
 - `StudentTrainingController` - 学生实训控制器
 - `StudentTrainingFlowController` - 学生实训流程控制器
 - `TrainingWebSocketHandler` - WebSocket处理器，处理实训实时通信
@@ -182,15 +211,20 @@ ai-smartconstruct-lab/
 
 **核心类**:
 - `TeacherCourseController` - 教师课程控制器
+- `TeacherQuestionBankController` - 教师题库管理控制器
+- `TeacherQuestionController` - 教师题目管理控制器
 - `StudentCourseController` - 学生课程控制器
+- `StudentDashboardController` - 学生仪表板控制器
 - `AdminCourseController` - 管理员课程控制器
-- `AdminQuestionController` - 题目管理控制器
+- `AdminQuestionController` - 管理员题目管理控制器
+- `AdminTemplateController` - 管理员模板管理控制器
 
 **核心实体**:
 - `BizCourse` - 课程信息
 - `BizStudentCourse` - 学生选课记录
 - `BizQuestionBank` - 题库
 - `BizQuestion` - 题目
+- `SysResource` - 系统资源
 
 #### 5. 配置类
 

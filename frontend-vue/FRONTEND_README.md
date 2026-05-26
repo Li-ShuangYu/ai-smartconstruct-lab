@@ -121,7 +121,8 @@ frontend-vue/
 │   │       ├── student-dashboard.service.ts  # 学生仪表盘服务
 │   │       ├── teacher.service.ts     # 教师服务
 │   │       ├── teacher-dashboard.service.ts  # 教师仪表盘服务
-│   │       └── teacher-template.service.ts    # 教师模板服务
+│   │       ├── teacher-template.service.ts    # 教师模板服务
+│   │       └── teacher-question.service.ts    # 教师题目服务
 │   │
 │   ├── stores/                # 状态管理
 │   │   ├── index.ts          # Store入口
@@ -147,6 +148,7 @@ frontend-vue/
 │   │   ├── teacher/         # 教师端页面（工作台）
 │   │   │   ├── Workbench.vue
 │   │   │   ├── TrainingCreate.vue      # 实训编排（可视化拖拽）
+│   │   │   ├── TrainingCreate copy.vue # 实训编排备份
 │   │   │   ├── TrainingManage.vue      # 实训管理
 │   │   │   ├── TrainingPublish.vue     # 实训发布
 │   │   │   ├── EvaluationDashboard.vue # 评控面板
@@ -155,6 +157,7 @@ frontend-vue/
 │   │   │   ├── StudentCompetencyProfile.vue # 学生能力画像
 │   │   │   ├── ClassCourseManage.vue       # 班级课程管理
 │   │   │   ├── TeacherLiveMonitor.vue      # 直播监控
+│   │   │   ├── QuestionBankManage.vue      # 题库管理
 │   │   │   ├── UserProfile.vue             # 用户信息
 │   │   │   ├── components/            # 教师端公共组件
 │   │   │   │   ├── PropertyEditor.vue
@@ -214,7 +217,25 @@ frontend-vue/
 │   │   │   │   ├── HomeworkEngine.vue
 │   │   │   │   ├── PeerReview.vue        # 同伴互评
 │   │   │   │   ├── TeacherComment.vue    # 教师点评（学生端）
-│   │   │   │   └── SummaryReport.vue
+│   │   │   │   ├── SummaryReport.vue
+│   │   │   │   ├── bak/                  # 备份目录
+│   │   │   │   │   ├── StudentAiGenerate.vue
+│   │   │   │   │   ├── StudentDebug.vue
+│   │   │   │   │   ├── StudentDeploy.vue
+│   │   │   │   │   ├── StudentGroupChoose.vue
+│   │   │   │   │   ├── StudentMyScoreResult.vue
+│   │   │   │   │   ├── StudentRobotDebug.vue
+│   │   │   │   │   ├── StudentSchemeDetail.vue
+│   │   │   │   │   ├── StudentSchemeUpload.vue
+│   │   │   │   │   ├── StudentTaskSelect.vue
+│   │   │   │   │   └── StudentTaskSplit.vue
+│   │   │   │   └── bak2/                 # 备份目录2
+│   │   │   │       ├── ExamEngine.vue
+│   │   │   │       ├── GroupBuilder.vue
+│   │   │   │       ├── GroupReview.vue
+│   │   │   │       ├── KnowledgeHeatmap.vue
+│   │   │   │       ├── TeacherDashboard.vue
+│   │   │   │       └── TrainingEngine.vue
 │   │   │   └── teacherTraining/   # 教师端实训监控页面
 │   │   │       ├── TeacherStartPortal.vue
 │   │   │       ├── TeacherResourceViewer.vue
@@ -230,7 +251,26 @@ frontend-vue/
 │   │   │       ├── TeacherHomeworkEngine.vue
 │   │   │       ├── TeacherPeerReview.vue
 │   │   │       ├── TeacherTeacherComment.vue  # 教师点评监控
-│   │   │       └── TeacherSummaryReport.vue
+│   │   │       ├── TeacherSummaryReport.vue
+│   │   │       ├── bak/                  # 备份目录
+│   │   │       │   ├── StudentTaskReceive.vue
+│   │   │       │   ├── TeacherAiEvaluate.vue
+│   │   │       │   ├── TeacherDemandSplit.vue
+│   │   │       │   ├── TeacherDemandSummary.vue
+│   │   │       │   ├── TeacherGroupScoreOverview.vue
+│   │   │       │   ├── TeacherSchemeDetail.vue
+│   │   │       │   ├── TeacherSchemeSplit.vue
+│   │   │       │   ├── TeacherSimulation.vue
+│   │   │       │   ├── TeacherStudentGroup.vue
+│   │   │       │   ├── TeacherTaskPublish.vue
+│   │   │       │   └── TeacherTaskSplit.vue
+│   │   │       └── bak2/                 # 备份目录2
+│   │   │           ├── ExamMonitor.vue
+│   │   │           ├── GroupMonitor.vue
+│   │   │           ├── GroupReviewMonitor.vue
+│   │   │           ├── KnowledgeEvalMonitor.vue
+│   │   │           ├── TeacherEvalDashboard.vue
+│   │   │           └── TeacherLiveMonitor.vue
 │   │   └── common/          # 公共页面
 │   │       ├── 404.vue
 │   │       ├── 500.vue

@@ -238,8 +238,8 @@
               <img :src="url" class="preview-img-small" @click="previewImage=url;showPreview=true" />
               <button class="remove-media-btn-small" @click="removeImage(idx)">&times;</button>
             </div>
-            <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" class="file-input" @change="handleImageUpload" />
-            <label class="media-upload-btn">+ 图片</label>
+            <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" id="q-image-upload" class="file-input" @change="handleImageUpload" />
+            <label for="q-image-upload" class="media-upload-btn">+ 图片</label>
           </div>
           <div class="media-upload-item">
             <span style="font-size:12px;color:#475569;font-weight:600">附件音频：</span>
@@ -247,8 +247,8 @@
               <audio :src="questionForm.audioUrl" controls style="height:32px" />
               <button class="remove-media-btn-small" @click="removeAudio">&times;</button>
             </div>
-            <input type="file" accept="audio/mpeg,audio/wav" class="file-input" @change="handleAudioUpload" />
-            <label class="media-upload-btn">+ 音频</label>
+            <input type="file" accept="audio/mpeg,audio/wav" id="q-audio-upload" class="file-input" @change="handleAudioUpload" />
+            <label for="q-audio-upload" class="media-upload-btn">+ 音频</label>
           </div>
         </div>
         <n-modal v-model:show="showPreview" preset="card" title="图片预览" style="width:600px">

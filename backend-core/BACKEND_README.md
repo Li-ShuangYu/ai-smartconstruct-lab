@@ -152,6 +152,7 @@ backend-core/
 │   │   ├── AuthController.java         # 认证接口
 │   │   ├── InitController.java         # 初始化接口
 │   │   ├── PublicDataController.java   # 公共数据接口
+│   │   ├── FileController.java         # 文件上传接口
 │   │   ├── StudentTrainingController.java    # 学生实训接口
 │   │   ├── StudentTrainingFlowController.java # 学生实训流程接口
 │   │   ├── StudentDashboardController.java   # 学生仪表板接口
@@ -161,6 +162,8 @@ backend-core/
 │   │   ├── TeacherTrainingTaskController.java # 任务下发接口
 │   │   ├── TeacherDashboardController.java   # 教师仪表板接口
 │   │   ├── TeacherCourseController.java      # 教师课程接口
+│   │   ├── TeacherQuestionBankController.java # 教师题库管理接口
+│   │   ├── TeacherQuestionController.java    # 教师题目管理接口
 │   │   ├── AdminOrgController.java     # 组织管理接口
 │   │   ├── AdminStudentController.java # 学生管理接口
 │   │   ├── AdminTeacherController.java # 教师管理接口
@@ -182,9 +185,19 @@ backend-core/
 │   │   ├── StudentVO.java              # 学生VO
 │   │   ├── TeacherVO.java              # 教师VO
 │   │   ├── CourseVO.java               # 课程VO
+│   │   ├── QuestionBankVO.java         # 题库VO
+│   │   ├── StudentCreateRequest.java   # 学生创建请求DTO
+│   │   ├── StudentUpdateRequest.java   # 学生更新请求DTO
+│   │   ├── TeacherCreateRequest.java   # 教师创建请求DTO
+│   │   ├── TeacherUpdateRequest.java   # 教师更新请求DTO
+│   │   ├── CourseRequest.java          # 课程请求DTO
+│   │   ├── DeptRequest.java            # 院系请求DTO
+│   │   ├── MajorRequest.java           # 专业请求DTO
+│   │   ├── ClassRequest.java           # 班级请求DTO
 │   │   └── 请求/响应DTO...
 │   ├── entity/              # 数据库实体类
 │   │   ├── SysUser.java                # 系统用户
+│   │   ├── SysResource.java            # 系统资源
 │   │   ├── BizStudent.java             # 学生信息
 │   │   ├── BizTeacher.java             # 教师信息
 │   │   ├── BizTrainingTask.java        # 实训任务
@@ -209,6 +222,7 @@ backend-core/
 │   │   └── SysTicket.java              # 工单
 │   ├── mapper/              # MyBatis 映射接口
 │   │   ├── SysUserMapper.java
+│   │   ├── SysResourceMapper.java
 │   │   ├── BizStudentMapper.java
 │   │   ├── BizTeacherMapper.java
 │   │   ├── BizTrainingTaskMapper.java
@@ -255,7 +269,8 @@ backend-core/
 │   │   │   ├── OperationLogServiceImpl.java  # 操作日志服务实现
 │   │   │   ├── TicketServiceImpl.java        # 工单服务实现
 │   │   │   ├── FeedbackServiceImpl.java      # 反馈服务实现
-│   │   │   └── NodeDefServiceImpl.java       # 节点定义服务实现
+│   │   │   ├── NodeDefServiceImpl.java       # 节点定义服务实现
+│   │   │   └── SysResourceServiceImpl.java   # 资源服务实现
 │   │   ├── SysUserService.java               # 用户服务接口
 │   │   ├── ITrainingTemplateService.java     # 模板服务接口
 │   │   ├── IStudentActivityStateService.java # 活动状态服务接口
@@ -278,7 +293,8 @@ backend-core/
 │   │   ├── IOperationLogService.java         # 操作日志服务接口
 │   │   ├── ITicketService.java               # 工单服务接口
 │   │   ├── IFeedbackService.java             # 反馈服务接口
-│   │   └── INodeDefService.java              # 节点定义服务接口
+│   │   ├── INodeDefService.java              # 节点定义服务接口
+│   │   └── ISysResourceService.java          # 资源服务接口
 │   ├── util/                # 工具类
 │   │   ├── JwtUtil.java                # JWT工具类
 │   │   └── Java8Compat.java            # Java 8兼容工具
