@@ -133,15 +133,15 @@ Implement the LangGraph-based workflow that orchestrates parallel agent executio
 - Requirement 7.1 (Callback delivery)
 
 ### Subtasks
-- [-] 7.1 Create `services/workflow.py` with `execute_orchestration_workflow()` async function
-- [~] 7.2 Implement parallel execution using `asyncio.gather(*tasks, return_exceptions=True)` with per-task 60s timeout
-- [~] 7.3 Implement overall workflow 5-minute timeout with cancellation of remaining tasks
-- [~] 7.4 Implement retry logic using `tenacity`: 3 retries with exponential backoff (2s, 4s, 8s) per agent task
-- [~] 7.5 Create `services/merger.py` with `merge_results_into_payload()` — enriches original JSON with `_ai_generated` and `_ai_status` per node
-- [~] 7.6 Create `services/asset_extractor.py` with `extract_db_assets()` — extracts questions, knowledge_points, eval_indicators from agent results
-- [~] 7.7 Create `services/callback.py` with `send_callback()` — POST results to Java backend callback URL with 3 retries (5s/15s/30s)
-- [~] 7.8 Implement job status tracking (in-memory dict or Redis) for the polling endpoint
-- [~] 7.9 Wire everything together: orchestration router → supervisor → parallel agents → merger → callback
+- [x] 7.1 Create `services/workflow.py` with `execute_orchestration_workflow()` async function
+- [x] 7.2 Implement parallel execution using `asyncio.gather(*tasks, return_exceptions=True)` with per-task 60s timeout
+- [x] 7.3 Implement overall workflow 5-minute timeout with cancellation of remaining tasks
+- [x] 7.4 Implement retry logic using `tenacity`: 3 retries with exponential backoff (2s, 4s, 8s) per agent task
+- [x] 7.5 Create `services/merger.py` with `merge_results_into_payload()` — enriches original JSON with `_ai_generated` and `_ai_status` per node
+- [x] 7.6 Create `services/asset_extractor.py` with `extract_db_assets()` — extracts questions, knowledge_points, eval_indicators from agent results
+- [x] 7.7 Create `services/callback.py` with `send_callback()` — POST results to Java backend callback URL with 3 retries (5s/15s/30s)
+- [x] 7.8 Implement job status tracking (in-memory dict or Redis) for the polling endpoint
+- [x] 7.9 Wire everything together: orchestration router → supervisor → parallel agents → merger → callback
 
 ---
 
@@ -154,11 +154,11 @@ Create integration tests that validate the complete flow from template publish t
 - All requirements (end-to-end validation)
 
 ### Subtasks
-- [~] 8.1 Create a mock LLM service in `tests/mocks/mock_llm.py` that returns fixed structured responses for each agent type
-- [~] 8.2 Write Python integration test: submit sample orchestration JSON → verify execution plan → verify merged output structure
-- [~] 8.3 Write Python integration test: verify callback payload matches expected schema
-- [~] 8.4 Write Java unit test for `AiCallbackController`: mock callback request → verify DB state changes
-- [~] 8.5 Write Java unit test for `AiEngineClientImpl`: mock HTTP responses → verify dispatch logic
-- [~] 8.6 Create a test fixture using the `docs/samples/complete-orchestration.json` as input data
-- [~] 8.7 Verify that the sample JSON (16 nodes) produces exactly the expected number of AI tasks (nodes with AI flags: ~10 tasks)
-- [~] 8.8 Document manual E2E testing steps in a test plan (start both services, publish template, verify DB state)
+- [x] 8.1 Create a mock LLM service in `tests/mocks/mock_llm.py` that returns fixed structured responses for each agent type
+- [x] 8.2 Write Python integration test: submit sample orchestration JSON → verify execution plan → verify merged output structure
+- [x] 8.3 Write Python integration test: verify callback payload matches expected schema
+- [x] 8.4 Write Java unit test for `AiCallbackController`: mock callback request → verify DB state changes
+- [x] 8.5 Write Java unit test for `AiEngineClientImpl`: mock HTTP responses → verify dispatch logic
+- [x] 8.6 Create a test fixture using the `docs/samples/complete-orchestration.json` as input data
+- [x] 8.7 Verify that the sample JSON (16 nodes) produces exactly the expected number of AI tasks (nodes with AI flags: ~10 tasks)
+- [x] 8.8 Document manual E2E testing steps in a test plan (start both services, publish template, verify DB state)

@@ -14,16 +14,17 @@ import pytest
 from fastapi.testclient import TestClient
 
 from main import app
-from routers.orchestration import _job_status, process_rate_limiter
+from routers.orchestration import process_rate_limiter
+from services.job_store import job_store
 
 
 @pytest.fixture(autouse=True)
 def reset_state():
     """Clear job status and rate limiter state between tests."""
-    _job_status.clear()
+    job_store._jobs.clear()
     process_rate_limiter._timestamps.clear()
     yield
-    _job_status.clear()
+    job_store._jobs.clear()
     process_rate_limiter._timestamps.clear()
 
 
