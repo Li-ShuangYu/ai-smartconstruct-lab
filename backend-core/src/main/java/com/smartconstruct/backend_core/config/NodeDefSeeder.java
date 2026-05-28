@@ -1,7 +1,6 @@
 package com.smartconstruct.backend_core.config;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.smartconstruct.backend_core.entity.WfNodeDef;
 import com.smartconstruct.backend_core.mapper.WfNodeDefMapper;
 import org.slf4j.Logger;
@@ -10,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -62,14 +62,15 @@ public class NodeDefSeeder implements CommandLineRunner {
             def.setNodeName(nodeType);
             def.setIsActive(1);
             def.setAiSpecJson(aiSpec);
+            def.setCreatedAt(LocalDateTime.now());
+            def.setUpdatedAt(LocalDateTime.now());
             nodeDefMapper.insert(def);
             log.info("NodeDefSeeder: inserted wf_node_def for node_type='{}' with ai_spec_json", nodeType);
         } else if (existing.getAiSpecJson() == null) {
-            // Row exists but ai_spec_json is null — update it
-            LambdaUpdateWrapper<WfNodeDef> u = new LambdaUpdateWrapper<>();
-            u.eq(WfNodeDef::getId, existing.getId())
-                    .set(WfNodeDef::getAiSpecJson, aiSpec);
-            nodeDefMapper.update(null, u);
+            // Row exists but ai_spec_json is null — update via entity so TypeHandler is applied
+            existing.setAiSpecJson(aiSpec);
+            existing.setUpdatedAt(LocalDateTime.now());
+            nodeDefMapper.updateById(existing);
             log.info("NodeDefSeeder: updated ai_spec_json for node_type='{}'", nodeType);
         }
     }
