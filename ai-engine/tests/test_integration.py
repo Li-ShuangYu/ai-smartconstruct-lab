@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from agents.supervisor import SupervisorAgent, detect_ai_nodes
+from agents.supervisor import SupervisorAgent, detect_ai_nodes_phased
 from models.agent_outputs import (
     TextAgentResult,
     StructAgentResult,
@@ -47,64 +47,93 @@ from tests.mocks.mock_llm import (
 
 SAMPLE_CANVAS_JSON = {
     "orchestration_id": "integration-test-001",
-    "nodes": [
+    "phases": [
         {
-            "node_id": "start-1",
-            "node_type": "START",
-            "name": "开始节点",
-            "config": {"enable_ai_welcome": True, "welcome_style": "formal"},
+            "phase_id": "phase-1",
+            "phase_name": "课前阶段",
+            "sort_num": 1,
+            "nodes": [
+                {
+                    "node_id": "start-1",
+                    "node_type": "START",
+                    "name": "开始节点",
+                    "config": {"enable_ai_welcome": True, "welcome_style": "formal"},
+                    "ai_spec": {"target_agent": "TEXT", "priority": 5, "ai_flags": ["enable_ai_welcome"]},
+                },
+                {
+                    "node_id": "resource-1",
+                    "node_type": "RESOURCE_READ",
+                    "name": "阅读材料",
+                    "config": {"enable_ai_summary": True, "enable_ai_key_points": True},
+                    "ai_spec": {"target_agent": "TEXT", "priority": 3, "ai_flags": ["enable_ai_summary", "enable_ai_key_points"]},
+                },
+            ],
+            "edges": [
+                {"source": "start-1", "target": "resource-1"},
+            ],
         },
         {
-            "node_id": "resource-1",
-            "node_type": "RESOURCE_READ",
-            "name": "阅读材料",
-            "config": {"enable_ai_summary": True, "enable_ai_key_points": True},
+            "phase_id": "phase-2",
+            "phase_name": "课中阶段",
+            "sort_num": 2,
+            "nodes": [
+                {
+                    "node_id": "video-1",
+                    "node_type": "VIDEO_LEARN",
+                    "name": "视频学习",
+                    "config": {"enable_ai_chapter": True, "video_url": "https://example.com/video.mp4"},
+                    "ai_spec": {"target_agent": "VIDEO", "priority": 4, "ai_flags": ["enable_ai_chapter"]},
+                },
+                {
+                    "node_id": "mindmap-1",
+                    "node_type": "MINDMAP_PREVIEW",
+                    "name": "思维导图",
+                    "config": {"enable_ai_generate_map": True, "max_nodes": 20},
+                    "ai_spec": {"target_agent": "STRUCT", "priority": 5, "ai_flags": ["enable_ai_generate_map"]},
+                },
+                {
+                    "node_id": "homework-1",
+                    "node_type": "HOMEWORK",
+                    "name": "作业",
+                    "config": {"source_mode": "ai", "question_type_counts": {"single_choice": 3}},
+                    "ai_spec": {"target_agent": "EXAM", "priority": 2, "ai_flags": ["enable_ai_grading"]},
+                },
+                {
+                    "node_id": "coding-1",
+                    "node_type": "CODING_CLASS",
+                    "name": "编程实践",
+                    "config": {"enable_ai_code_review": True, "language": "python"},
+                    "ai_spec": {"target_agent": "CODE", "priority": 4, "ai_flags": ["enable_ai_code_review"]},
+                },
+            ],
+            "edges": [
+                {"source": "video-1", "target": "mindmap-1"},
+                {"source": "mindmap-1", "target": "homework-1"},
+                {"source": "homework-1", "target": "coding-1"},
+            ],
         },
         {
-            "node_id": "video-1",
-            "node_type": "VIDEO_LEARN",
-            "name": "视频学习",
-            "config": {"enable_ai_chapter": True, "video_url": "https://example.com/video.mp4"},
+            "phase_id": "phase-3",
+            "phase_name": "课后阶段",
+            "sort_num": 3,
+            "nodes": [
+                {
+                    "node_id": "survey-1",
+                    "node_type": "SEMESTER_SURVEY",
+                    "name": "问卷调查",
+                    "config": {"survey_title": "课程反馈"},
+                },
+                {
+                    "node_id": "end-1",
+                    "node_type": "END",
+                    "name": "结束",
+                    "config": {},
+                },
+            ],
+            "edges": [
+                {"source": "survey-1", "target": "end-1"},
+            ],
         },
-        {
-            "node_id": "mindmap-1",
-            "node_type": "MINDMAP_PREVIEW",
-            "name": "思维导图",
-            "config": {"enable_ai_generate_map": True, "max_nodes": 20},
-        },
-        {
-            "node_id": "homework-1",
-            "node_type": "HOMEWORK",
-            "name": "作业",
-            "config": {"source_mode": "ai", "question_type_counts": {"single_choice": 3}},
-        },
-        {
-            "node_id": "coding-1",
-            "node_type": "CODING_CLASS",
-            "name": "编程实践",
-            "config": {"enable_code_review": True, "language": "python"},
-        },
-        {
-            "node_id": "survey-1",
-            "node_type": "SEMESTER_SURVEY",
-            "name": "问卷调查",
-            "config": {"survey_title": "课程反馈"},
-        },
-        {
-            "node_id": "end-1",
-            "node_type": "END",
-            "name": "结束",
-            "config": {},
-        },
-    ],
-    "edges": [
-        {"source": "start-1", "target": "resource-1"},
-        {"source": "resource-1", "target": "video-1"},
-        {"source": "video-1", "target": "mindmap-1"},
-        {"source": "mindmap-1", "target": "homework-1"},
-        {"source": "homework-1", "target": "coding-1"},
-        {"source": "coding-1", "target": "survey-1"},
-        {"source": "survey-1", "target": "end-1"},
     ],
 }
 
@@ -151,7 +180,7 @@ class TestMergedOutputIntegration:
     """Verify merged output has correct _ai_status values."""
 
     def test_merged_output_preserves_structure(self):
-        """Merged output preserves nodes and edges arrays."""
+        """Merged output preserves phases and nodes structure."""
         # Simulate successful agent results
         results = [
             TextAgentResult(node_id="start-1", welcome_message="Welcome!"),
@@ -165,8 +194,7 @@ class TestMergedOutputIntegration:
         payload = merge_results_into_payload(SAMPLE_CANVAS_JSON, results)
 
         # Structure preserved
-        assert len(payload["nodes"]) == len(SAMPLE_CANVAS_JSON["nodes"])
-        assert len(payload["edges"]) == len(SAMPLE_CANVAS_JSON["edges"])
+        assert len(payload["phases"]) == len(SAMPLE_CANVAS_JSON["phases"])
         assert payload["orchestration_id"] == "integration-test-001"
 
     def test_ai_nodes_get_ready_status(self):
@@ -182,7 +210,11 @@ class TestMergedOutputIntegration:
 
         payload = merge_results_into_payload(SAMPLE_CANVAS_JSON, results)
 
-        node_map = {n["node_id"]: n for n in payload["nodes"]}
+        # Collect all nodes from phases
+        all_nodes = []
+        for phase in payload["phases"]:
+            all_nodes.extend(phase.get("nodes", []))
+        node_map = {n["node_id"]: n for n in all_nodes}
         assert node_map["start-1"]["config"]["_ai_status"] == "ready"
         assert node_map["resource-1"]["config"]["_ai_status"] == "ready"
         assert node_map["video-1"]["config"]["_ai_status"] == "ready"
@@ -203,7 +235,11 @@ class TestMergedOutputIntegration:
 
         payload = merge_results_into_payload(SAMPLE_CANVAS_JSON, results)
 
-        node_map = {n["node_id"]: n for n in payload["nodes"]}
+        # Collect all nodes from phases
+        all_nodes = []
+        for phase in payload["phases"]:
+            all_nodes.extend(phase.get("nodes", []))
+        node_map = {n["node_id"]: n for n in all_nodes}
         assert node_map["survey-1"]["config"]["_ai_status"] == "not_required"
         assert node_map["end-1"]["config"]["_ai_status"] == "not_required"
 
@@ -221,7 +257,11 @@ class TestMergedOutputIntegration:
 
         payload = merge_results_into_payload(SAMPLE_CANVAS_JSON, results)
 
-        node_map = {n["node_id"]: n for n in payload["nodes"]}
+        # Collect all nodes from phases
+        all_nodes = []
+        for phase in payload["phases"]:
+            all_nodes.extend(phase.get("nodes", []))
+        node_map = {n["node_id"]: n for n in all_nodes}
         # coding-1 was AI-required but has no result → error
         assert node_map["coding-1"]["config"]["_ai_status"] == "error"
 
@@ -238,7 +278,11 @@ class TestMergedOutputIntegration:
 
         payload = merge_results_into_payload(SAMPLE_CANVAS_JSON, results)
 
-        node_map = {n["node_id"]: n for n in payload["nodes"]}
+        # Collect all nodes from phases
+        all_nodes = []
+        for phase in payload["phases"]:
+            all_nodes.extend(phase.get("nodes", []))
+        node_map = {n["node_id"]: n for n in all_nodes}
         ai_gen = node_map["start-1"]["config"]["_ai_generated"]
         assert ai_gen["node_id"] == "start-1"
         assert ai_gen["welcome_message"] == "Hello!"

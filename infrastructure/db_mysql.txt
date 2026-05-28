@@ -515,3 +515,1236 @@ CREATE TABLE `sys_operation_log` (
   `created_at` DATETIME NOT NULL COMMENT '操作流水记录时间',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统操作日志表';
+
+-- 节点AI处理状态表
+CREATE TABLE `wf_node_ai_status` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `template_id` BIGINT NOT NULL COMMENT '关联模板ID',
+  `node_id` VARCHAR(64) NOT NULL COMMENT '画布节点ID',
+  `node_type` VARCHAR(32) NOT NULL COMMENT '节点类型',
+  `phase_id` VARCHAR(64) NOT NULL COMMENT '所属阶段ID',
+  `ai_status` TINYINT NOT NULL DEFAULT 0 COMMENT '0-待处理 1-处理中 2-成功 3-失败',
+  `error_reason` TEXT DEFAULT NULL COMMENT '失败原因',
+  `retry_count` INT NOT NULL DEFAULT 0 COMMENT '已重试次数',
+  `result_json` JSON DEFAULT NULL COMMENT 'AI处理结果JSON',
+  `last_processed_at` DATETIME DEFAULT NULL COMMENT '最后处理时间',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_template_node` (`template_id`, `node_id`),
+  KEY `idx_template_status` (`template_id`, `ai_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='节点AI处理状态表';
+
+-- 节点配置Schema表
+CREATE TABLE `wf_node_config_schema` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `node_type` VARCHAR(32) NOT NULL COMMENT '节点类型',
+  `schema_json` JSON NOT NULL COMMENT 'JSON Schema定义',
+  `schema_version` INT NOT NULL DEFAULT 1 COMMENT '版本号',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_node_type` (`node_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='节点配置Schema表';
+
+-- 学情调查回答表
+CREATE TABLE `biz_learning_survey_response` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `participation_id` BIGINT NOT NULL COMMENT '关联参与表ID',
+  `node_instance_id` BIGINT NOT NULL COMMENT '关联节点实例ID',
+  `student_id` BIGINT NOT NULL COMMENT '学生ID',
+  `responses_json` JSON NOT NULL COMMENT '问卷回答JSON数组',
+  `submitted_at` DATETIME DEFAULT NULL COMMENT '提交时间',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_participation_node` (`participation_id`, `node_instance_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学情调查回答表';
+
+-- ALTER: wf_training_template 新增 phases_json
+ALTER TABLE `wf_training_template`
+  ADD COLUMN `phases_json` JSON DEFAULT NULL COMMENT '阶段定义JSON' AFTER `raw_canvas_json`;
+
+-- ALTER: wf_node_def 新增 ai_spec_json, default_config_json
+ALTER TABLE `wf_node_def`
+  ADD COLUMN `ai_spec_json` JSON DEFAULT NULL COMMENT '节点AI规格声明' AFTER `is_active`,
+  ADD COLUMN `default_config_json` JSON DEFAULT NULL COMMENT '默认配置模板(6维度)' AFTER `ai_spec_json`;
+
+-- ALTER: wf_node_instance 新增 phase_id
+ALTER TABLE `wf_node_instance`
+  ADD COLUMN `phase_id` VARCHAR(64) DEFAULT NULL COMMENT '所属阶段ID' AFTER `task_id`;
+
+-- Seed: wf_node_def.ai_spec_json for all 17 node types
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "topic_name", "type": "string"},
+    {"name": "training_description", "type": "string"},
+    {"name": "node_topology", "type": "array"}
+  ],
+  "output_fields": [
+    {"name": "welcome_text", "type": "string"},
+    {"name": "flow_overview_json", "type": "object"}
+  ],
+  "target_agent": "TEXT",
+  "priority": 5,
+  "ai_flags": ["enable_ai_welcome"]
+}' WHERE `node_type` = 'start';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "resource_id", "type": "bigint"},
+    {"name": "topic_name", "type": "string"}
+  ],
+  "output_fields": [
+    {"name": "summary_text", "type": "string"},
+    {"name": "key_points", "type": "array"}
+  ],
+  "target_agent": "TEXT",
+  "priority": 3,
+  "ai_flags": ["enable_ai_summary", "enable_ai_key_points"]
+}' WHERE `node_type` = 'resource_read';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "code_content", "type": "string"},
+    {"name": "task_description", "type": "string"},
+    {"name": "environment_type", "type": "string"},
+    {"name": "guidance_level", "type": "string"}
+  ],
+  "output_fields": [
+    {"name": "review_score", "type": "number"},
+    {"name": "review_comments", "type": "array"},
+    {"name": "improvement_suggestions", "type": "array"}
+  ],
+  "target_agent": "CODE",
+  "priority": 4,
+  "ai_flags": ["enable_ai_code_review"]
+}' WHERE `node_type` = 'coding_class';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "survey_responses", "type": "array"},
+    {"name": "student_count", "type": "integer"}
+  ],
+  "output_fields": [
+    {"name": "analysis_report", "type": "object"},
+    {"name": "knowledge_distribution", "type": "object"},
+    {"name": "teaching_strategy_suggestions", "type": "array"}
+  ],
+  "target_agent": "TEXT",
+  "priority": 6,
+  "ai_flags": ["enable_ai_analysis"]
+}' WHERE `node_type` = 'learning_survey';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "task_title", "type": "string"},
+    {"name": "task_description", "type": "string"},
+    {"name": "group_info", "type": "array"},
+    {"name": "split_granularity", "type": "string"}
+  ],
+  "output_fields": [
+    {"name": "sub_tasks", "type": "array"},
+    {"name": "estimated_hours", "type": "array"}
+  ],
+  "target_agent": "STRUCT",
+  "priority": 4,
+  "ai_flags": ["enable_ai_task_split"]
+}' WHERE `node_type` = 'task_distribute';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "document_content", "type": "string"},
+    {"name": "scenario_description", "type": "string"}
+  ],
+  "output_fields": [
+    {"name": "review_score", "type": "number"},
+    {"name": "review_comments", "type": "array"},
+    {"name": "completeness_check", "type": "object"}
+  ],
+  "target_agent": "TEXT",
+  "priority": 4,
+  "ai_flags": ["enable_ai_pre_review"]
+}' WHERE `node_type` = 'req_upload';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "plan_content", "type": "string"},
+    {"name": "requirement_description", "type": "string"},
+    {"name": "evaluation_dimensions", "type": "array"}
+  ],
+  "output_fields": [
+    {"name": "feasibility_score", "type": "number"},
+    {"name": "dimension_scores", "type": "object"},
+    {"name": "improvement_suggestions", "type": "array"}
+  ],
+  "target_agent": "CODE",
+  "priority": 4,
+  "ai_flags": ["enable_ai_feasibility"]
+}' WHERE `node_type` = 'plan_upload';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "knowledge_points", "type": "array"},
+    {"name": "question_count", "type": "integer"},
+    {"name": "question_type_distribution", "type": "object"},
+    {"name": "difficulty_distribution", "type": "object"}
+  ],
+  "output_fields": [
+    {"name": "generated_questions", "type": "array"},
+    {"name": "grading_results", "type": "array"}
+  ],
+  "target_agent": "EXAM",
+  "priority": 2,
+  "ai_flags": ["enable_ai_grading"]
+}' WHERE `node_type` = 'homework';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "knowledge_points", "type": "array"},
+    {"name": "question_count", "type": "integer"},
+    {"name": "question_type_distribution", "type": "object"},
+    {"name": "difficulty_distribution", "type": "object"},
+    {"name": "exam_duration_minutes", "type": "integer"},
+    {"name": "total_score", "type": "number"}
+  ],
+  "output_fields": [
+    {"name": "generated_questions", "type": "array"},
+    {"name": "grading_results", "type": "array"}
+  ],
+  "target_agent": "EXAM",
+  "priority": 1,
+  "ai_flags": ["enable_ai_grading"]
+}' WHERE `node_type` = 'exam';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "topic_name", "type": "string"},
+    {"name": "knowledge_points", "type": "array"}
+  ],
+  "output_fields": [
+    {"name": "mindmap_json", "type": "object"},
+    {"name": "node_hierarchy", "type": "array"}
+  ],
+  "target_agent": "STRUCT",
+  "priority": 5,
+  "ai_flags": ["enable_ai_generate_map"]
+}' WHERE `node_type` = 'mindmap_preview';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "student_map_topology_json", "type": "object"},
+    {"name": "reference_knowledge_points", "type": "array"},
+    {"name": "drawing_topic", "type": "string"}
+  ],
+  "output_fields": [
+    {"name": "coverage_score", "type": "number"},
+    {"name": "hierarchy_score", "type": "number"},
+    {"name": "logic_score", "type": "number"},
+    {"name": "evaluation_comments", "type": "string"}
+  ],
+  "target_agent": "STRUCT",
+  "priority": 6,
+  "ai_flags": ["enable_ai_structure_eval"]
+}' WHERE `node_type` = 'mindmap_draw';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "knowledge_points", "type": "array"},
+    {"name": "student_evaluations", "type": "array"}
+  ],
+  "output_fields": [
+    {"name": "difficulty_distribution_report", "type": "object"},
+    {"name": "teaching_suggestions", "type": "array"}
+  ],
+  "target_agent": "TEXT",
+  "priority": 7,
+  "ai_flags": ["enable_ai_analysis"]
+}' WHERE `node_type` = 'knowledge_eval';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "review_scores", "type": "array"},
+    {"name": "review_comments", "type": "array"},
+    {"name": "review_dimensions", "type": "array"}
+  ],
+  "output_fields": [
+    {"name": "anomaly_flags", "type": "array"},
+    {"name": "anomaly_reasons", "type": "array"}
+  ],
+  "target_agent": "TEXT",
+  "priority": 6,
+  "ai_flags": ["enable_ai_anomaly_detection"]
+}' WHERE `node_type` = 'student_peer_review';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "group_scores", "type": "array"},
+    {"name": "group_comments", "type": "array"},
+    {"name": "review_dimensions", "type": "array"}
+  ],
+  "output_fields": [
+    {"name": "comprehensive_comment", "type": "string"},
+    {"name": "group_ranking_suggestion", "type": "array"}
+  ],
+  "target_agent": "TEXT",
+  "priority": 6,
+  "ai_flags": ["enable_ai_comprehensive_comment"]
+}' WHERE `node_type` = 'inter_group_review';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "student_performance_data", "type": "object"},
+    {"name": "node_scores", "type": "array"},
+    {"name": "weight_config", "type": "object"},
+    {"name": "eval_indicators", "type": "array"}
+  ],
+  "output_fields": [
+    {"name": "recommended_score", "type": "number"},
+    {"name": "evaluation_suggestion", "type": "string"},
+    {"name": "strength_areas", "type": "array"},
+    {"name": "improvement_areas", "type": "array"}
+  ],
+  "target_agent": "TEXT",
+  "priority": 3,
+  "ai_flags": ["enable_ai_eval_suggestion"]
+}' WHERE `node_type` = 'teacher_eval';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "student_full_progress", "type": "object"},
+    {"name": "node_scores", "type": "array"},
+    {"name": "ai_interaction_records", "type": "array"}
+  ],
+  "output_fields": [
+    {"name": "learning_report", "type": "object"},
+    {"name": "ability_radar", "type": "object"},
+    {"name": "knowledge_mastery", "type": "object"},
+    {"name": "improvement_suggestions", "type": "array"}
+  ],
+  "target_agent": "TEXT",
+  "priority": 8,
+  "ai_flags": ["enable_ai_report"]
+}' WHERE `node_type` = 'end';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "student_list", "type": "array"},
+    {"name": "historical_scores", "type": "array"},
+    {"name": "group_size", "type": "integer"},
+    {"name": "grouping_strategy", "type": "string"}
+  ],
+  "output_fields": [
+    {"name": "group_assignments", "type": "array"},
+    {"name": "balance_metrics", "type": "object"}
+  ],
+  "target_agent": "STRUCT",
+  "priority": 5,
+  "ai_flags": ["enable_ai_balanced_grouping"]
+}' WHERE `node_type` = 'grouping';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "video_url", "type": "string"},
+    {"name": "topic_name", "type": "string"},
+    {"name": "video_duration_seconds", "type": "integer"}
+  ],
+  "output_fields": [
+    {"name": "chapter_markers", "type": "array"},
+    {"name": "key_points_timeline", "type": "array"},
+    {"name": "summary_text", "type": "string"}
+  ],
+  "target_agent": "TEXT",
+  "priority": 3,
+  "ai_flags": ["enable_ai_chapter_markers", "enable_ai_video_summary"]
+}' WHERE `node_type` = 'video_watch';
+
+UPDATE `wf_node_def` SET `ai_spec_json` = '{
+  "input_fields": [
+    {"name": "survey_responses", "type": "array"},
+    {"name": "student_count", "type": "integer"},
+    {"name": "survey_title", "type": "string"}
+  ],
+  "output_fields": [
+    {"name": "analysis_report", "type": "object"},
+    {"name": "response_summary", "type": "object"},
+    {"name": "suggestions", "type": "array"}
+  ],
+  "target_agent": "TEXT",
+  "priority": 6,
+  "ai_flags": ["enable_ai_survey_analysis"]
+}' WHERE `node_type` = 'survey';
+
+-- Seed: wf_node_config_schema for all 17 node types
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('start', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "welcome_text": {"type": "string", "maxLength": 300},
+        "flow_overview_json": {"type": "object"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_welcome": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "topic_name": {"type": "string", "minLength": 1, "maxLength": 100},
+        "description": {"type": "string", "maxLength": 500},
+        "estimated_durations": {"type": "object"}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {}
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('resource_read', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_ai_summary_sidebar": {"type": "boolean"},
+        "show_knowledge_highlights": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {
+        "resource_id": {"type": "integer"}
+      }
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_summary": {"type": "boolean"},
+        "enable_ai_key_points": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "min_reading_duration": {"type": "integer", "minimum": 1, "maximum": 60},
+        "completion_scroll_percentage": {"type": "integer", "minimum": 0, "maximum": 100}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "track_reading_duration": {"type": "boolean"},
+        "track_scroll_percentage": {"type": "boolean"},
+        "track_knowledge_point_clicks": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('coding_class', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "task_description": {"type": "string"},
+        "show_ai_review_panel": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_code_review": {"type": "boolean"},
+        "guidance_level": {"type": "string", "enum": ["hint", "review", "full_review"]}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "environment_type": {"type": "string"},
+        "task_description": {"type": "string"}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "track_submissions": {"type": "boolean"},
+        "track_run_attempts": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "max_score": {"type": "number"},
+        "scoring_criteria": {"type": "string"}
+      }
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('learning_survey', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "survey_title": {"type": "string"},
+        "survey_description": {"type": "string"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_analysis": {"type": "boolean"},
+        "source_mode": {"type": "string", "enum": ["manual", "ai"]}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "questions": {"type": "array", "items": {"type": "object"}},
+        "is_required": {"type": "boolean"}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "collect_responses": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('task_distribute', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "task_title": {"type": "string"},
+        "task_description": {"type": "string"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_task_split": {"type": "boolean"},
+        "split_granularity": {"type": "string", "enum": ["by_group", "by_person"]}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "task_title": {"type": "string"},
+        "task_description": {"type": "string"}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "track_sub_task_completion": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('req_upload', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_word_cloud": {"type": "boolean"},
+        "show_ai_feedback": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_pre_review": {"type": "boolean"},
+        "enable_word_cloud": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "scenario_description": {"type": "string"},
+        "upload_format_requirements": {"type": "string"}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "track_upload_history": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "max_score": {"type": "number"}
+      }
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('plan_upload', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_radar_chart": {"type": "boolean"},
+        "show_ai_feedback": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_feasibility": {"type": "boolean"},
+        "evaluation_dimensions": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "requirement_description": {"type": "string"},
+        "upload_format": {"type": "string"}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "track_upload_history": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "max_score": {"type": "number"},
+        "dimension_weights": {"type": "object"}
+      }
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('homework', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_ai_grading_result": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {
+        "question_bank_id": {"type": "integer"},
+        "selected_question_ids": {"type": "array", "items": {"type": "integer"}}
+      }
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_grading": {"type": "boolean"},
+        "source_mode": {"type": "string", "enum": ["ai_generate", "manual", "bank_select"]}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "question_count": {"type": "integer", "minimum": 1},
+        "question_type_distribution": {"type": "object"},
+        "difficulty_distribution": {"type": "object"},
+        "knowledge_points": {"type": "array", "items": {"type": "integer"}}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "track_answer_time": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "total_score": {"type": "number"}
+      }
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('exam', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_countdown": {"type": "boolean"},
+        "show_ai_grading_result": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {
+        "question_bank_id": {"type": "integer"},
+        "selected_question_ids": {"type": "array", "items": {"type": "integer"}}
+      }
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_grading": {"type": "boolean"},
+        "source_mode": {"type": "string", "enum": ["ai_generate", "manual", "bank_select"]}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "exam_duration_minutes": {"type": "integer", "minimum": 1},
+        "total_score": {"type": "number"},
+        "question_count": {"type": "integer", "minimum": 1},
+        "question_type_distribution": {"type": "object"},
+        "difficulty_distribution": {"type": "object"},
+        "knowledge_points": {"type": "array", "items": {"type": "integer"}}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "track_time_spent": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "total_score": {"type": "number"},
+        "pass_score": {"type": "number"}
+      }
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('mindmap_preview', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "mindmap_json": {"type": "object"},
+        "allow_expand_collapse": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_mindmap": {"type": "boolean"},
+        "knowledge_points": {"type": "array", "items": {"type": "integer"}}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "preview_topic": {"type": "string"},
+        "knowledge_point_ids": {"type": "array", "items": {"type": "integer"}}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "track_browse_duration": {"type": "boolean"},
+        "track_node_interactions": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('mindmap_draw', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_ai_evaluation": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_structure_eval": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "draw_topic": {"type": "string"},
+        "reference_knowledge_point_ids": {"type": "array", "items": {"type": "integer"}}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "track_draw_operations": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "coverage_weight": {"type": "number"},
+        "hierarchy_weight": {"type": "number"},
+        "logic_weight": {"type": "number"}
+      }
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('knowledge_eval', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_difficulty_chart": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_summary_analysis": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "knowledge_point_ids": {"type": "array", "items": {"type": "integer"}}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "collect_difficulty_ratings": {"type": "boolean"},
+        "collect_student_doubts": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('student_peer_review', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_abnormal_flag": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_anomaly_detection": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "review_dimensions": {"type": "array", "items": {"type": "object"}},
+        "reviews_per_student": {"type": "integer", "minimum": 1},
+        "review_target_type": {"type": "string", "enum": ["code", "document", "plan"]}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "collect_scores": {"type": "boolean"},
+        "collect_comments": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "indicator_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('inter_group_review', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_comprehensive_comment": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_comprehensive_comment": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "review_dimensions": {"type": "array", "items": {"type": "object"}},
+        "assignment_method": {"type": "string", "enum": ["rotation", "random"]}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "collect_group_scores": {"type": "boolean"},
+        "collect_group_comments": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "indicator_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('teacher_eval', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_ai_recommendation": {"type": "boolean"},
+        "show_student_dashboard": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_eval_suggestion": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "weight_config": {"type": "object"},
+        "indicator_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {}
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {
+        "indicator_ids": {"type": "array", "items": {"type": "string"}},
+        "total_score": {"type": "number"}
+      }
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('end', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_learning_report": {"type": "boolean"},
+        "show_achievement_badges": {"type": "boolean"},
+        "show_satisfaction_survey": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_report": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "enable_achievement_badges": {"type": "boolean"},
+        "enable_satisfaction_survey": {"type": "boolean"}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "collect_satisfaction": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('grouping', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_group_info": {"type": "boolean"},
+        "show_member_list": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_balanced_grouping": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "grouping_method": {"type": "string", "enum": ["random", "manual", "ai_balanced"]},
+        "group_size": {"type": "integer", "minimum": 2},
+        "total_groups": {"type": "integer", "minimum": 1},
+        "assign_leader": {"type": "boolean"}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {}
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('video_watch', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "show_chapter_markers": {"type": "boolean"},
+        "show_ai_summary_sidebar": {"type": "boolean"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {
+        "resource_id": {"type": "integer"}
+      }
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_chapter_markers": {"type": "boolean"},
+        "enable_ai_video_summary": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "min_watch_duration_percentage": {"type": "integer", "minimum": 0, "maximum": 100},
+        "allow_speed_control": {"type": "boolean"},
+        "auto_play": {"type": "boolean"}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "track_watch_duration": {"type": "boolean"},
+        "track_pause_resume": {"type": "boolean"},
+        "track_playback_speed": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}', 1);
+
+INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version`) VALUES
+('survey', '{
+  "type": "object",
+  "required": ["display", "db_mapping", "ai_processing", "orchestration_settings", "data_collection", "evaluation"],
+  "additionalProperties": false,
+  "properties": {
+    "display": {
+      "type": "object",
+      "properties": {
+        "survey_title": {"type": "string"},
+        "survey_description": {"type": "string"}
+      }
+    },
+    "db_mapping": {
+      "type": "object",
+      "properties": {}
+    },
+    "ai_processing": {
+      "type": "object",
+      "properties": {
+        "enable_ai_survey_analysis": {"type": "boolean"}
+      }
+    },
+    "orchestration_settings": {
+      "type": "object",
+      "properties": {
+        "questions": {"type": "array", "items": {"type": "object"}},
+        "is_anonymous": {"type": "boolean"},
+        "is_required": {"type": "boolean"}
+      }
+    },
+    "data_collection": {
+      "type": "object",
+      "properties": {
+        "collect_responses": {"type": "boolean"}
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}', 1);

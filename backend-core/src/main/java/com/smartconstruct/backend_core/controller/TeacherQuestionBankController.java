@@ -58,7 +58,7 @@ public class TeacherQuestionBankController {
     public ApiResult<Void> create(@RequestBody Map<String, Object> body) {
         String bankName = (String) body.get("bankName");
         Integer isPublic = body.get("isPublic") != null ? Integer.valueOf(body.get("isPublic").toString()) : 0;
-        if (bankName == null || bankName.isBlank()) return ApiResult.error("题库名称不能为空");
+        if (bankName == null || bankName.trim().isEmpty()) return ApiResult.error("题库名称不能为空");
 
         BizQuestionBank bank = new BizQuestionBank();
         bank.setBankName(bankName);
@@ -80,7 +80,7 @@ public class TeacherQuestionBankController {
         if (!Long.valueOf(userId).equals(bank.getTeacherId())) return ApiResult.error("越权操作，您只能修改自己创建的题库");
 
         String bankName = (String) body.get("bankName");
-        if (bankName != null && !bankName.isBlank()) bank.setBankName(bankName);
+        if (bankName != null && !bankName.trim().isEmpty()) bank.setBankName(bankName);
         if (body.get("isPublic") != null) bank.setIsPublic(Integer.valueOf(body.get("isPublic").toString()));
         bank.setUpdatedAt(LocalDateTime.now());
         bankService.updateById(bank);

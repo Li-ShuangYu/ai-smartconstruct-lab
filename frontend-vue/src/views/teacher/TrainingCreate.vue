@@ -54,6 +54,9 @@
         <div class="flex-spacer"></div>
         <button class="secondary-action-btn" @click="handlePublish">🚀 发布模板</button>
       </div>
+
+      <!-- Phase Tab Bar -->
+      <PhaseTabBar />
       
       <div class="pipeline-scroll-area">
         <div class="pipeline-queue">
@@ -129,10 +132,6 @@
           <div class="section-title">基础配置</div>
           
           <template v-if="activeNode.type === 'start'">
-            <div class="config-field">
-              <label><span class="required">*</span>实训整体说明(场景)</label>
-              <textarea v-model.lazy="activeNode.config.desc" class="config-textarea" placeholder="设置实训的场景"></textarea>
-            </div>
             <div class="config-field">
               <label>实训学生背景</label>
               <textarea v-model.lazy="activeNode.config.student_bg" class="config-textarea" placeholder="介绍一下学生的背景，基础"></textarea>
@@ -423,8 +422,8 @@
             <input v-model="templateName" type="text" class="modal-input" placeholder="请输入模板名称" />
           </div>
           <div class="form-group">
-            <label>模板描述</label>
-            <textarea v-model="templateDesc" class="modal-textarea" placeholder="请输入模板描述（可选）" rows="3"></textarea>
+            <label>模板描述（即实训整体说明，发布后由AI参考生成内容）</label>
+            <textarea v-model="templateDesc" class="modal-textarea" placeholder="请描述本次实训的场景、目标和背景" rows="4"></textarea>
           </div>
         </div>
         <div class="modal-footer">
@@ -440,7 +439,33 @@
 import { ref, computed, onMounted } from 'vue'
 import { getActiveNodes } from '@/services/modules/admin.service'
 import { createTemplate } from '@/services/modules/teacher.service'
+import { publishTemplate } from '@/services/modules/orchestration.service'
+import { useOrchestrationStore } from '@/stores/modules/orchestration.store'
+import PhaseTabBar from '@/components/orchestration/PhaseTabBar.vue'
 import http from '@/services/api'
+
+// ==================== Orchestration Store Integration ====================
+const orchestrationStore = useOrchestrationStore()
+
+/** Initialize default 3 phases on new template creation */
+function initializeDefaultPhases() {
+  if (orchestrationStore.phases.length === 0) {
+    orchestrationStore.addPhase('课前阶段')
+    orchestrationStore.addPhase('课中阶段')
+    orchestrationStore.addPhase('课后阶段')
+    const firstPhase = orchestrationStore.phases[0]
+    if (firstPhase) {
+      orchestrationStore.setActivePhase(firstPhase.phase_id)
+    }
+    // Initialize each phase with start/end nodes
+    for (const phase of orchestrationStore.phases) {
+      phaseNodesMap.value[phase.phase_id] = [
+        createNodeDefaultData('start', '开始实训'),
+        createNodeDefaultData('end', '结束实训')
+      ]
+    }
+  }
+}
 
 // ==================== 文件上传 ====================
 const docFileInput = ref<HTMLInputElement | null>(null)
@@ -517,6 +542,9 @@ const onVideoFileSelected = async (e: Event) => {
 const activeNodeTypes = ref<Set<string>>(new Set())
 
 onMounted(async () => {
+  // Initialize default 3 phases for new template
+  initializeDefaultPhases()
+
   try {
     const res = await getActiveNodes()
     if (res.code === 200) {
@@ -658,10 +686,30 @@ const isSidebarCollapsed = ref(false)
 const expandedCats = ref(MATERIAL_CATEGORIES.map(c => c.type))
 const isAIExpanded = ref(false) 
 
-const orchestrationList = ref<any[]>([
-  createNodeDefaultData('start', '开始实训'),
-  createNodeDefaultData('end', '结束实训')
-])
+// 每个阶段独立的节点列表
+const phaseNodesMap = ref<Record<string, ReturnType<typeof createNodeDefaultData>[]>>({})
+
+/** 获取当前激活阶段的节点列表 */
+const orchestrationList = computed({
+  get: () => {
+    const phaseId = orchestrationStore.activePhaseId
+    if (!phaseId) return []
+    if (!phaseNodesMap.value[phaseId]) {
+      phaseNodesMap.value[phaseId] = [
+        createNodeDefaultData('start', '开始实训'),
+        createNodeDefaultData('end', '结束实训')
+      ]
+    }
+    return phaseNodesMap.value[phaseId]
+  },
+  set: (val) => {
+    const phaseId = orchestrationStore.activePhaseId
+    if (phaseId) {
+      phaseNodesMap.value[phaseId] = val
+    }
+  }
+})
+
 const selectedNodeId = ref<string | null>(null)
 const activeNode = computed(() => orchestrationList.value.find(n => n.id === selectedNodeId.value))
 
@@ -1014,34 +1062,32 @@ const buildNodeConfig = (node: any) => {
 const validateRequired = (): string[] => {
   const errors: string[] = []
 
-  for (const node of orchestrationList.value) {
-    const { type, config, name } = node
+  // Validate across all phases
+  for (const phase of orchestrationStore.phases) {
+    const phaseNodes = phaseNodesMap.value[phase.phase_id] || []
+    for (const node of phaseNodes) {
+      const { type, config, name } = node
 
-    switch (type) {
-      case 'start':
-        if (!config.desc?.trim()) {
-          errors.push(`"${name}"：实训整体说明(场景)为必填项`)
-        }
-        break
+      switch (type) {
+        case 'resource_read':
+          if (!config.files || config.files.length === 0 || !config.files[0].display_name?.trim()) {
+            errors.push(`[${phase.phase_name}]"${name}"：至少添加一个阅读文件并填写展示名`)
+          }
+          break
 
-      case 'resource_read':
-        if (!config.files || config.files.length === 0 || !config.files[0].display_name?.trim()) {
-          errors.push(`"${name}"：至少添加一个阅读文件并填写展示名`)
-        }
-        break
+        case 'video_watch':
+          if (!config.video_file?.trim()) {
+            errors.push(`[${phase.phase_name}]"${name}"：上传视频文件为必填项`)
+          }
+          break
 
-      case 'video_watch':
-        if (!config.video_file?.trim()) {
-          errors.push(`"${name}"：上传视频文件为必填项`)
-        }
-        break
-
-      case 'mindmap_preview':
-      case 'mindmap_draw':
-        if (config.ai_generated && !config.topic?.trim()) {
-          errors.push(`"${name}"：AI生成模式下导图主题为必填项`)
-        }
-        break
+        case 'mindmap_preview':
+        case 'mindmap_draw':
+          if (config.ai_generated && !config.topic?.trim()) {
+            errors.push(`[${phase.phase_name}]"${name}"：AI生成模式下导图主题为必填项`)
+          }
+          break
+      }
     }
   }
 
@@ -1066,50 +1112,74 @@ const confirmPublish = async () => {
     return
   }
 
-  const nodes = orchestrationList.value.map((node) => ({
-    node_id: node.id,
-    node_type: NODE_TYPE_MAP[node.type] || node.type.toUpperCase(),
-    name: node.name,
-    config: buildNodeConfig(node)
-  }))
+  // Build phased canvas structure
+  const phases = orchestrationStore.phases.map(phase => {
+    const phaseNodes = phaseNodesMap.value[phase.phase_id] || []
+    const nodes = phaseNodes.map((node: ReturnType<typeof createNodeDefaultData>) => ({
+      node_id: node.id,
+      node_type: NODE_TYPE_MAP[node.type] || node.type.toUpperCase(),
+      node_name: node.name,
+      config: buildNodeConfig(node)
+    }))
 
-  const edges: { source: string; target: string }[] = []
-  for (let i = 0; i < nodes.length - 1; i++) {
-    const current = nodes[i]
-    const next = nodes[i + 1]
-    if (current && next) {
-      edges.push({ source: current.node_id, target: next.node_id })
+    const edges: { source: string; target: string }[] = []
+    for (let i = 0; i < nodes.length - 1; i++) {
+      const current = nodes[i]
+      const next = nodes[i + 1]
+      if (current && next) {
+        edges.push({ source: current.node_id, target: next.node_id })
+      }
     }
-  }
+
+    return {
+      phase_id: phase.phase_id,
+      phase_name: phase.phase_name,
+      sort_num: phase.sort_num,
+      nodes,
+      edges
+    }
+  })
 
   const result = {
     orchestration_id: `flow_${Date.now().toString(36)}`,
-    nodes,
-    edges
+    phases
   }
 
-  console.log('=== 实训编排 JSON ===')
+  console.log('=== 实训编排 JSON (阶段化) ===')
   console.log(JSON.stringify(result, null, 2))
 
-  // 报告当前页面没有对应设置的字段
-  console.warn('=== 以下字段在当前页面中没有对应设置，输出中使用了占位值 ===')
-  console.warn('1. RESOURCE_READ.resource_list[].resource_id — 页面只有"上传文件名"和"展示名"，无"关联文件唯一标识"字段，暂用 original_name 填充')
-  console.warn('2. VIDEO_LEARN.video_id — 页面只有"上传视频文件"文本输入，无"视频源唯一标识"字段，暂用 video_file 填充')
-  console.warn('3. TASK_DISTRIBUTE.resource_list[].resource_id — 同资源阅读，无"关联文件唯一标识"字段')
-  console.warn('4. HOMEWORK.question_bank_ids / question_ids — 页面无"题库来源集合"和"手动选取题目列表"字段，输出为空数组')
-  console.warn('5. 学情调查(SURVEY) 节点 — 你提供的规范中未包含该类型映射，输出 node_type 为 SURVEY')
-
-  // 调用后端接口写入数据库
+  // 调用后端接口写入数据库并触发AI处理
   try {
+    // Step 1: 创建模板
     const res = await createTemplate(templateName.value, templateDesc.value, result)
     if (res.code === 200) {
-      showPublishModal.value = false
-      alert(`实训模板「${templateName.value}」保存成功！`)
+      const templateId = String(res.data.id)
+      
+      // Step 2: 发布模板，触发AI处理管线
+      try {
+        const publishRes = await publishTemplate(templateId, { canvasData: result as unknown as import('@/services/types/orchestration').CanvasJson })
+        if (publishRes.code === 200) {
+          showPublishModal.value = false
+          alert(`实训模板「${templateName.value}」已保存并提交AI处理！\nAI正在处理中，请在模板管理页面查看进度。`)
+          window.location.href = '/teacher/training-manage'
+        } else {
+          // 创建成功但发布失败，模板已保存为草稿
+          showPublishModal.value = false
+          alert(`模板已保存为草稿，但AI处理触发失败：${publishRes.message || '未知错误'}\n请在模板管理页面手动重试。`)
+          window.location.href = '/teacher/training-manage'
+        }
+      } catch (pubErr: unknown) {
+        const err = pubErr as { response?: { data?: { message?: string } } }
+        showPublishModal.value = false
+        alert(`模板已保存为草稿，但AI处理触发失败：${err?.response?.data?.message || '网络错误'}\n请在模板管理页面手动重试。`)
+        window.location.href = '/teacher/training-manage'
+      }
     } else {
       alert('保存失败：' + (res.message || '未知错误'))
     }
-  } catch (e: any) {
-    alert('保存失败：' + (e?.response?.data?.message || '网络错误'))
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } } }
+    alert('保存失败：' + (err?.response?.data?.message || '网络错误'))
   }
 }
 </script>

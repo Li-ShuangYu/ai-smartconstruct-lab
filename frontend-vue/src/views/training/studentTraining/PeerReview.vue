@@ -1,368 +1,371 @@
 <template>
-  <div style="height: 100%;">
-    <div class="glass-card w-full h-full p-6 flex flex-col z-10 font-sans">
-      
-      <div class="flex justify-between items-center mb-6 pb-4 border-b border-gray-200/50 shrink-0">
-        <div>
-          <div class="mb-1 text-xs font-bold text-indigo-400 tracking-widest uppercase italic">Node: PEER_REVIEW</div>
-          <h1 class="text-2xl font-bold text-gray-800">学生匿名互评</h1>
-        </div>
-        
-        <div class="flex items-center gap-6">
-          <div class="flex items-center gap-3">
-            <span class="text-xs font-bold text-gray-500 uppercase">互评进度</span>
-            <div class="flex gap-1.5">
-              <div 
-                v-for="(peer, index) in peers" :key="peer.id"
-                class="w-8 h-2 rounded-full transition-all"
-                :class="peer.status === 'completed' ? 'bg-green-500' : 'bg-gray-200'"
-              ></div>
-            </div>
-            <span class="font-mono font-bold text-indigo-600 ml-2">{{ completedCount }} / {{ peers.length }}</span>
+  <div class="peer-review">
+    <!-- Header -->
+    <section class="peer-review__header">
+      <h2 class="peer-review__title">学生互评</h2>
+      <p class="peer-review__desc">请对同学的作品进行多维度评价，给出客观公正的评分和建议。</p>
+    </section>
+
+    <!-- Target Student Info -->
+    <section class="peer-review__target">
+      <div class="peer-review__target-avatar">{{ targetStudent.name.charAt(0) }}</div>
+      <div class="peer-review__target-info">
+        <span class="peer-review__target-name">{{ targetStudent.name }}</span>
+        <span class="peer-review__target-work">{{ targetStudent.workTitle }}</span>
+      </div>
+    </section>
+
+    <!-- Dimension Scores -->
+    <section class="peer-review__dimensions">
+      <h3 class="peer-review__section-title">评分维度</h3>
+      <div class="peer-review__dimension-list">
+        <div
+          v-for="dimension in dimensions"
+          :key="dimension.id"
+          class="peer-review__dimension"
+        >
+          <div class="peer-review__dimension-header">
+            <span class="peer-review__dimension-name">{{ dimension.name }}</span>
+            <span class="peer-review__dimension-value">
+              {{ scores[dimension.id] ?? 0 }}/{{ dimension.maxScore }}
+            </span>
           </div>
-          
-          <button 
-            @click="submitAllReviews" 
-            class="hero-send-btn px-8 py-2.5 rounded-xl shadow-lg transition-all flex items-center gap-2"
-            :class="{
-              'opacity-50 grayscale cursor-not-allowed': !isAllReviewed || isWaiting,
-              'hover:shadow-indigo-500/30': isAllReviewed && !isWaiting && isTeacherConfirmed
-            }"
-            :disabled="!isAllReviewed || isWaiting"
-          >
-            {{ isTeacherConfirmed ? '进入下一节点' : (isWaiting ? '等待教师进入下一节点' : '提交全部互评') }}
-            <svg v-if="!isWaiting" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-          </button>
+          <p class="peer-review__dimension-desc">{{ dimension.description }}</p>
+          <input
+            type="range"
+            class="peer-review__slider"
+            :min="0"
+            :max="dimension.maxScore"
+            :value="scores[dimension.id] ?? 0"
+            @input="setScore(dimension.id, Number(($event.target as HTMLInputElement).value))"
+          />
         </div>
       </div>
+    </section>
 
-      <div class="flex-1 flex gap-6 min-h-0">
-        
-        <div class="w-56 flex flex-col bg-white/40 border border-gray-100 rounded-2xl p-4 shadow-sm shrink-0">
-          <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 px-2">分配名单</h3>
-          
-          <div class="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
-            <button 
-              v-for="(peer, index) in peers" :key="peer.id"
-              @click="activePeerId = peer.id"
-              class="w-full flex items-center justify-between p-3 rounded-xl transition-all border text-left"
-              :class="[
-                activePeerId === peer.id ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-100 shadow-sm' : 'bg-white border-transparent hover:border-gray-200 hover:bg-gray-50'
-              ]"
-            >
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold font-mono"
-                     :class="peer.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-indigo-100 text-indigo-600'">
-                  {{ peer.alias.split(' ')[1] }}
-                </div>
-                <span class="text-sm font-bold text-gray-700">{{ peer.alias }}</span>
-              </div>
-              <svg v-if="peer.status === 'completed'" class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </button>
-          </div>
-        </div>
+    <!-- Comments -->
+    <section class="peer-review__comments">
+      <h3 class="peer-review__section-title">评价意见</h3>
+      <textarea
+        class="peer-review__comment-input"
+        placeholder="请输入您对该同学作品的评价意见和改进建议..."
+        :value="comment"
+        rows="4"
+        @input="comment = ($event.target as HTMLTextAreaElement).value"
+      ></textarea>
+    </section>
 
-        <div class="flex-[1.8] bg-white/60 border border-gray-100 rounded-2xl flex flex-col shadow-sm overflow-hidden relative">
-          <div class="flex items-center bg-gray-50/80 border-b border-gray-100 p-2 shrink-0">
-            <button 
-              v-for="tab in ['plan', 'code']" :key="tab"
-              @click="currentViewTab = tab"
-              class="px-6 py-2 text-sm font-bold rounded-lg transition-all"
-              :class="currentViewTab === tab ? 'bg-white text-indigo-600 shadow-sm border border-gray-200/60' : 'text-gray-500 hover:text-gray-700'"
-            >
-              {{ tab === 'plan' ? '分析方案与要求' : '提交的源代码' }}
-            </button>
-          </div>
+    <!-- Total Score -->
+    <section class="peer-review__total">
+      <span class="peer-review__total-label">总分：</span>
+      <span class="peer-review__total-value">{{ totalScore }}</span>
+      <span class="peer-review__total-max">/{{ maxTotalScore }}</span>
+    </section>
 
-          <div class="flex-1 overflow-y-auto p-6 custom-scrollbar">
-            <div v-if="currentViewTab === 'plan'" class="space-y-6">
-              <div class="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100/50">
-                <h4 class="text-xs font-bold text-indigo-800 uppercase tracking-widest mb-2 flex items-center gap-2">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-                  原始任务要求
-                </h4>
-                <p class="text-sm text-indigo-900/80 leading-relaxed">{{ activePeer.plan.requirement }}</p>
-              </div>
-              
-              <div>
-                <h4 class="text-sm font-bold text-gray-700 mb-3 border-l-4 border-indigo-500 pl-3">该同学提交的方案</h4>
-                <div class="p-5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 leading-loose whitespace-pre-wrap shadow-inner min-h-[200px]">
-                  {{ activePeer.plan.content }}
-                </div>
-              </div>
-            </div>
-
-            <div v-if="currentViewTab === 'code'" class="h-full flex flex-col">
-              <h4 class="text-sm font-bold text-gray-700 mb-3 border-l-4 border-indigo-500 pl-3">该同学提交的代码</h4>
-              <div class="flex-1 bg-slate-900 rounded-xl overflow-hidden shadow-inner flex flex-col relative group">
-                <div class="bg-slate-800 px-4 py-2 flex items-center justify-between border-b border-slate-700 shrink-0">
-                  <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                    <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                  </div>
-                  <span class="text-xs font-mono text-slate-400">solution.py</span>
-                </div>
-                <div class="flex-1 overflow-auto custom-scrollbar-dark p-4">
-                  <pre class="text-sm font-mono text-slate-300 leading-relaxed"><code>{{ activePeer.code }}</code></pre>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="w-80 bg-white/60 border border-gray-100 rounded-2xl flex flex-col shadow-sm shrink-0">
-          <div class="p-5 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl shrink-0">
-            <h3 class="font-bold text-gray-800 flex items-center gap-2">
-              <svg class="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-              互评打分
-            </h3>
-            <p class="text-[10px] text-gray-400 mt-1">请客观评估 {{ activePeer.alias }} 的产出</p>
-          </div>
-
-          <div class="flex-1 overflow-y-auto p-5 custom-scrollbar space-y-6">
-            <div v-for="dim in dimensions" :key="dim.key" class="space-y-2">
-              <div class="flex justify-between items-end">
-                <label class="text-xs font-bold text-gray-700">{{ dim.label }}</label>
-                <span class="text-xs font-bold px-2 py-0.5 rounded-full" :class="activePeer.review.scores[dim.key] > 0 ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-100 text-gray-400'">
-                  {{ activePeer.review.scores[dim.key] || 0 }} / 10 分
-                </span>
-              </div>
-              <div class="relative">
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="10" 
-                  step="1"
-                  v-model="activePeer.review.scores[dim.key]"
-                  class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-indigo"
-                />
-                <div class="flex justify-between mt-1 text-[10px] text-gray-400">
-                  <span>0</span>
-                  <span>5</span>
-                  <span>10</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="space-y-2 pt-4 border-t border-gray-100">
-              <label class="text-xs font-bold text-gray-700 flex items-center justify-between">
-                综合评语建议
-                <span class="text-[10px] font-normal text-gray-400">必填项</span>
-              </label>
-              <textarea 
-                v-model="activePeer.review.comment"
-                placeholder="指出方案的亮点或提出优化建议..."
-                class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm text-gray-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100/30 resize-none h-32 custom-scrollbar"
-              ></textarea>
-            </div>
-          </div>
-
-          <div class="p-5 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl shrink-0">
-            <button 
-              @click="saveCurrentReview"
-              class="w-full py-3 rounded-xl font-bold transition-all shadow-sm flex justify-center items-center gap-2"
-              :class="isCurrentReviewValid ? 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200' : 'bg-gray-200 text-gray-400 cursor-not-allowed'"
-              :disabled="!isCurrentReviewValid"
-            >
-              {{ activePeer.status === 'completed' ? '已评审，更新修改' : '保存该同学评审' }}
-              <svg v-if="activePeer.status === 'completed'" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>
+    <!-- Submit -->
+    <section class="peer-review__footer">
+      <button
+        class="peer-review__submit-btn"
+        :disabled="totalScore === 0"
+        @click="handleSubmit"
+      >
+        提交互评
+      </button>
+    </section>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive, computed } from 'vue'
-import { useRouter } from 'vue-router'
+<script setup lang="ts">
+import { ref, computed } from 'vue'
 
-const router = useRouter()
-
-// 按钮状态管理
-const isWaiting = ref(false) // 是否正在等待教师确认
-const isTeacherConfirmed = ref(false) // 教师是否已确认
-
-const currentViewTab = ref('plan') // 'plan' | 'code'
-
-// 评分维度定义
-const dimensions = [
-  { key: 'logic', label: '逻辑正确性' },
-  { key: 'standard', label: '代码规范度' },
-  { key: 'completeness', label: '方案完整性' }
-]
-
-// 模拟分配的 3 个匿名同学数据
-const peers = reactive([
-  {
-    id: 'p1',
-    alias: '匿名同学 A',
-    status: 'pending', // 'pending' | 'completed'
-    plan: {
-      requirement: '找出成绩数组中的最高分和最低分，并处理可能出现的空数组异常。',
-      content: '方案思路：\n1. 首先判断数组长度是否为 0，如果是，则直接返回 None。\n2. 使用 Python 内置的 max() 和 min() 函数获取最值。\n3. 如果需要自己实现，可以设置两个变量初始值为 arr[0]，遍历一遍数组进行比对。我这里选择了直接使用内置函数以提高效率。'
-    },
-    code: `def get_extremes(arr):\n    if not arr:\n        return None, None\n    \n    highest = max(arr)\n    lowest = min(arr)\n    return highest, lowest\n\n# 测试代码\nscores = [85, 92, 78, 99, 60]\nprint(get_extremes(scores))`,
-    review: { scores: { logic: 0, standard: 0, completeness: 0 }, comment: '' }
-  },
-  {
-    id: 'p2',
-    alias: '匿名同学 B',
-    status: 'pending',
-    plan: {
-      requirement: '找出成绩数组中的最高分和最低分，并处理可能出现的空数组异常。',
-      content: '我没有使用内置函数，而是通过一个 for 循环遍历所有的元素。这样即使在不允许使用 max/min 的情况下也能工作。如果数组为空，使用 try-except 来捕获索引错误。'
-    },
-    code: `def get_extremes(arr):\n    try:\n        h = arr[0]\n        l = arr[0]\n        for s in arr:\n            if s > h: h = s\n            if s < l: l = s\n        return h, l\n    except IndexError:\n        return "数组为空"`,
-    review: { scores: { logic: 0, standard: 0, completeness: 0 }, comment: '' }
-  },
-  {
-    id: 'p3',
-    alias: '匿名同学 C',
-    status: 'pending',
-    plan: {
-      requirement: '找出成绩数组中的最高分和最低分，并处理可能出现的空数组异常。',
-      content: '先把数组排个序，然后取第一个和最后一个就行了，简单粗暴。'
-    },
-    code: `def get_extremes(arr):\n    if len(arr) == 0:\n        return 0, 0\n    arr.sort()\n    return arr[-1], arr[0]`,
-    review: { scores: { logic: 0, standard: 0, completeness: 0 }, comment: '' }
-  }
-])
-
-const activePeerId = ref(peers[0].id)
-
-const activePeer = computed(() => {
-  return peers.find(p => p.id === activePeerId.value)
-})
-
-const completedCount = computed(() => {
-  return peers.filter(p => p.status === 'completed').length
-})
-
-const isAllReviewed = computed(() => {
-  return completedCount.value === peers.length
-})
-
-// 校验当前同学的表单是否填写完整（所有维度分数 > 0 且评语不为空）
-const isCurrentReviewValid = computed(() => {
-  const r = activePeer.value.review
-  const hasScores = dimensions.every(d => r.scores[d.key] > 0)
-  const hasComment = r.comment.trim().length > 0
-  return hasScores && hasComment
-})
-
-const saveCurrentReview = () => {
-  if (!isCurrentReviewValid.value) return
-  activePeer.value.status = 'completed'
-  
-  // 自动切换到下一个未评审的同学
-  const nextPending = peers.find(p => p.status === 'pending')
-  if (nextPending) {
-    activePeerId.value = nextPending.id
-    currentViewTab.value = 'plan' // 切换同学时重置 Tab 到方案
-  }
+interface ReviewDimension {
+  id: string
+  name: string
+  description: string
+  maxScore: number
 }
 
-const submitAllReviews = () => {
-  if (!isAllReviewed.value || isWaiting.value) return
-  
-  if (!isTeacherConfirmed.value) {
-    // 第一次点击：进入等待状态
-    isWaiting.value = true
-    
-    // 模拟1秒后教师确认
-    setTimeout(() => {
-      isWaiting.value = false
-      isTeacherConfirmed.value = true
-    }, 1000)
-  } else {
-    // 教师确认后：进入下一节点
-    router.push('/student/training/teacher-comment')
+interface TargetStudent {
+  name: string
+  workTitle: string
+}
+
+interface PeerReviewConfig {
+  display?: {
+    title?: string
   }
+  evaluation?: {
+    dimensions?: ReviewDimension[]
+  }
+  [key: string]: unknown
+}
+
+const props = defineProps<{
+  nodeInstanceId: number
+  nodeConfig: PeerReviewConfig
+}>()
+
+const emit = defineEmits<{
+  complete: []
+}>()
+
+/** Placeholder target student */
+const targetStudent = computed<TargetStudent>(() => ({
+  name: '李娜',
+  workTitle: '需求分析文档 v2.0'
+}))
+
+/** Dimensions from config or placeholder */
+const dimensions = computed<ReviewDimension[]>(() =>
+  props.nodeConfig.evaluation?.dimensions ?? placeholderDimensions
+)
+
+const placeholderDimensions: ReviewDimension[] = [
+  { id: 'd1', name: '内容完整性', description: '文档是否涵盖了所有必要的需求描述', maxScore: 25 },
+  { id: 'd2', name: '逻辑清晰度', description: '需求描述是否逻辑清晰、条理分明', maxScore: 25 },
+  { id: 'd3', name: '技术可行性', description: '提出的方案是否技术上可行', maxScore: 25 },
+  { id: 'd4', name: '文档规范性', description: '格式、排版、用语是否规范', maxScore: 25 }
+]
+
+/** Scores: dimensionId -> score */
+const scores = ref<Record<string, number>>({})
+
+/** Comment text */
+const comment = ref<string>('')
+
+function setScore(dimensionId: string, value: number) {
+  scores.value[dimensionId] = value
+}
+
+const totalScore = computed<number>(() =>
+  Object.values(scores.value).reduce((sum, v) => sum + v, 0)
+)
+
+const maxTotalScore = computed<number>(() =>
+  dimensions.value.reduce((sum, d) => sum + d.maxScore, 0)
+)
+
+function handleSubmit() {
+  emit('complete')
 }
 </script>
 
 <style scoped>
-.glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 1.5rem;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+.peer-review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 1.5rem);
+  padding: var(--spacing-lg, 1.5rem);
+  height: 100%;
+  overflow-y: auto;
 }
 
-.hero-send-btn {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+.peer-review__header {
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: var(--spacing-lg, 1.5rem);
+}
+
+.peer-review__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-gray-800, #1e293b);
+  margin-bottom: 0.5rem;
+}
+
+.peer-review__desc {
+  font-size: 0.875rem;
+  color: var(--color-gray-500, #64748b);
+}
+
+.peer-review__target {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 1rem);
+  padding: var(--spacing-md, 1rem) var(--spacing-lg, 1.5rem);
+  background: var(--color-primary-50, #eef2ff);
+  border: 1px solid var(--color-primary-100, #e0e7ff);
+  border-radius: var(--radius-lg, 0.75rem);
+}
+
+.peer-review__target-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
 }
 
-.hero-send-btn:not(:disabled):hover {
-  transform: translateY(-2px);
+.peer-review__target-info {
+  display: flex;
+  flex-direction: column;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
+.peer-review__target-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-gray-800, #1e293b);
 }
 
-.custom-scrollbar-dark::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar-dark::-webkit-scrollbar-thumb {
-  background: #475569;
-  border-radius: 10px;
+.peer-review__target-work {
+  font-size: 0.8125rem;
+  color: var(--color-gray-500, #64748b);
 }
 
-/* 滑块样式 */
-.slider-indigo::-webkit-slider-thumb {
-  -webkit-appearance: none;
+.peer-review__section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-gray-800, #1e293b);
+  margin-bottom: var(--spacing-md, 1rem);
+}
+
+.peer-review__dimensions {
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: var(--spacing-lg, 1.5rem);
+}
+
+.peer-review__dimension-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 1rem);
+}
+
+.peer-review__dimension {
+  padding-bottom: var(--spacing-sm, 0.75rem);
+  border-bottom: 1px solid var(--color-gray-100, #f1f5f9);
+}
+
+.peer-review__dimension:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.peer-review__dimension-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.peer-review__dimension-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-gray-800, #1e293b);
+}
+
+.peer-review__dimension-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-primary-600, #4f46e5);
+}
+
+.peer-review__dimension-desc {
+  font-size: 0.75rem;
+  color: var(--color-gray-400, #94a3b8);
+  margin-bottom: 0.5rem;
+}
+
+.peer-review__slider {
+  width: 100%;
+  height: 6px;
   appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: var(--color-gray-100, #f1f5f9);
+  border-radius: 3px;
+  outline: none;
   cursor: pointer;
-  border: 3px solid white;
-  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
+}
+
+.peer-review__slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-primary-500, #6366f1);
+  cursor: pointer;
+}
+
+.peer-review__comments {
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: var(--spacing-lg, 1.5rem);
+}
+
+.peer-review__comment-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-md, 0.5rem);
+  font-size: 0.875rem;
+  color: var(--color-gray-800, #1e293b);
+  resize: vertical;
+  font-family: inherit;
+}
+
+.peer-review__comment-input:focus {
+  outline: none;
+  border-color: var(--color-primary-300, #a5b4fc);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.peer-review__total {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  padding: var(--spacing-md, 1rem);
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+}
+
+.peer-review__total-label {
+  font-size: 1rem;
+  color: var(--color-gray-600, #475569);
+}
+
+.peer-review__total-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-primary-600, #4f46e5);
+}
+
+.peer-review__total-max {
+  font-size: 1rem;
+  color: var(--color-gray-400, #94a3b8);
+}
+
+.peer-review__footer {
+  padding-top: var(--spacing-md, 1rem);
+}
+
+.peer-review__submit-btn {
+  width: 100%;
+  padding: 0.875rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border: none;
+  border-radius: var(--radius-lg, 0.75rem);
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.slider-indigo::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+.peer-review__submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -4px rgba(99, 102, 241, 0.4);
 }
 
-.slider-indigo::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  cursor: pointer;
-  border: 3px solid white;
-  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
-  transition: all 0.2s ease;
-}
-
-.slider-indigo::-moz-range-thumb:hover {
-  transform: scale(1.15);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
-}
-
-.slider-indigo::-webkit-slider-runnable-track {
-  background: linear-gradient(90deg, #6366f1 var(--progress, 0%), #e2e8f0 var(--progress, 0%));
-  border-radius: 8px;
-}
-
-.slider-indigo::-moz-range-track {
-  background: #e2e8f0;
-  border-radius: 8px;
-  height: 8px;
+.peer-review__submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

@@ -1,408 +1,360 @@
 <template>
-  <div style="height: 100%;">
-    <div class="glass-card w-full h-full p-6 flex flex-col z-10 relative overflow-hidden">
-      
-      <div class="flex justify-between items-center mb-6 shrink-0">
-        <div>
-          <div class="mb-1 text-xs font-bold text-indigo-400 tracking-widest uppercase">Node: MINDMAP_PREVIEW</div>
-          <h2 class="text-2xl font-bold text-gray-800">思维导图预习与自评</h2>
-        </div>
-        
-        <div class="flex items-center gap-6">
-          <div class="flex items-center gap-3 bg-white/50 px-4 py-2 rounded-xl border border-indigo-100 shadow-sm">
-            <div class="relative w-10 h-10">
-              <svg class="w-full h-full" viewBox="0 0 36 36">
-                <path class="text-gray-200" stroke-width="3" stroke="currentColor" fill="transparent" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                <path class="text-indigo-500 transition-all duration-500" stroke-width="3" :stroke-dasharray="`${evalProgress}, 100`" stroke-linecap="round" stroke="currentColor" fill="transparent" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              </svg>
-              <div class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-indigo-600">{{ Math.round(evalProgress) }}%</div>
-            </div>
-            <div class="text-xs">
-              <p class="text-gray-500">评估进度</p>
-              <p class="font-bold text-gray-700">{{ evaluatedCount }} / {{ totalNodes }} 核心节点</p>
-            </div>
-          </div>
-
-          <button 
-            @click="handleSubmit"
-            class="hero-send-btn px-8 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2"
-            :class="{
-              'opacity-50 grayscale cursor-not-allowed': (!isAllEvaluated || isWaiting),
-              'hover:shadow-indigo-500/30': isAllEvaluated && !isWaiting
-            }"
-            :disabled="!isAllEvaluated || isWaiting"
-          >
-            {{ isTeacherConfirmed ? '进入下一节点' : (isWaiting ? '等待教师进入下一节点' : '完成预习提交') }}
-            <svg v-if="!isWaiting" style="width: 18px; height: 18px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-            <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-          </button>
-        </div>
+  <div class="mindmap-preview">
+    <!-- Header -->
+    <header class="mindmap-preview__header">
+      <h2 class="mindmap-preview__title">{{ mapTitle }}</h2>
+      <div class="mindmap-preview__controls">
+        <button class="mindmap-preview__control-btn" @click="expandAll">全部展开</button>
+        <button class="mindmap-preview__control-btn" @click="collapseAll">全部折叠</button>
       </div>
+    </header>
 
-      <div class="flex-1 flex gap-6 min-h-0">
-        
-        <div class="flex-[3] bg-gray-50/50 rounded-2xl border border-gray-200/60 shadow-inner overflow-hidden relative group">
-          <div class="absolute inset-0 opacity-[0.03] pointer-events-none" style="background-image: radial-gradient(#6366f1 1px, transparent 1px); background-size: 30px 30px;"></div>
-          
-          <div ref="mindMapContainer" class="w-full h-full outline-none"></div>
-
-          <div class="absolute bottom-4 left-4 flex gap-2 z-10">
-            <button @click="handleZoomIn" class="p-2 bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-indigo-50 text-gray-600 transition-colors" title="放大">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-            </button>
-            <button @click="handleZoomOut" class="p-2 bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-indigo-50 text-gray-600 transition-colors" title="缩小">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg>
-            </button>
-            <button @click="handleFitView" class="p-2 bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-indigo-50 text-gray-600 transition-colors" title="适应屏幕">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16v16H4V4z" /></svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="flex-[1] min-w-[320px] max-w-[400px] flex flex-col gap-4">
-          <div class="flex-1 bg-white/60 border border-gray-200/60 rounded-2xl p-6 shadow-sm flex flex-col overflow-hidden">
-            <div v-if="activeNode" class="h-full flex flex-col">
-              <div class="shrink-0 mb-6">
-                <span class="px-2 py-1 bg-indigo-100 text-indigo-600 text-[10px] font-bold rounded uppercase tracking-wider">Knowledge Point</span>
-                <h3 class="text-xl font-bold text-gray-800 mt-2">{{ activeNode.label }}</h3>
-              </div>
-              
-              <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-6">
-                <div class="bg-indigo-50/30 border border-indigo-100/50 rounded-xl p-4 mb-4">
-                  <h4 class="text-xs font-bold text-indigo-500 mb-2 flex items-center gap-1">
-                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    AI 知识解析
-                  </h4>
-                  <p class="text-sm text-gray-600 leading-relaxed italic">
-                    {{ activeNode.desc || '选中节点以查看详细解析与学习建议。' }}
-                  </p>
-                </div>
-                
-                <div class="space-y-4">
-                  <h4 class="text-xs font-bold text-gray-400 uppercase tracking-widest">学习要点</h4>
-                  <ul class="space-y-2">
-                    <li v-for="(item, idx) in activeNode.points" :key="idx" class="flex gap-2 text-sm text-gray-600">
-                      <span class="text-indigo-400 font-bold">•</span> {{ item }}
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <div class="shrink-0 pt-6 border-t border-gray-100 mb-6">
-                <p class="text-xs font-bold text-amber-500 mb-3 flex items-center gap-1 uppercase tracking-tighter">
-                  <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  疑问记录
-                </p>
-                <textarea
-                  v-model="activeNode.question"
-                  placeholder="在此记录您对该知识点的疑问，系统将自动在导图生成标记..."
-                  class="w-full h-24 px-4 py-3 text-sm bg-amber-50/50 border border-amber-100/50 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-300 transition-all text-gray-600 placeholder-gray-400"
-                  @input="handleQuestionInput"
-                ></textarea>
-              </div>
-
-              <div class="shrink-0 pt-6 border-t border-gray-100">
-                <p class="text-xs font-bold text-gray-500 mb-4 text-center uppercase tracking-tighter">评估您对此知识点的掌握程度</p>
-                <div class="grid grid-cols-3 gap-3">
-                  <button 
-                    v-for="(label, key) in difficultyMap" :key="key"
-                    @click="markDifficulty(key)"
-                    class="flex flex-col items-center gap-2 py-3 rounded-xl border transition-all"
-                    :class="[
-                      activeNode.difficulty === key 
-                      ? `bg-${getColor(key)}-50 border-${getColor(key)}-200 text-${getColor(key)}-600 shadow-sm scale-[1.02]` 
-                      : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
-                    ]"
-                  >
-                    <span class="text-lg">{{ getEmoji(key) }}</span>
-                    <span class="text-xs font-bold">{{ label }}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div v-else class="h-full flex flex-col items-center justify-center text-center">
-              <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-300">
-                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
-              </div>
-              <p class="text-gray-400 text-sm">请在左侧思维导图中<br/>点击一个知识点进行预习</p>
-            </div>
-          </div>
-        </div>
+    <!-- Mind Map Tree -->
+    <section class="mindmap-preview__canvas">
+      <div class="mindmap-preview__tree">
+        <MindMapNode
+          :node="rootNode"
+          :depth="0"
+          :expanded-ids="expandedIds"
+          @toggle="toggleNode"
+        />
       </div>
+    </section>
 
-    </div>
+    <!-- Legend -->
+    <footer class="mindmap-preview__legend">
+      <span class="mindmap-preview__legend-item">
+        <span class="mindmap-preview__legend-dot mindmap-preview__legend-dot--root"></span>
+        根节点
+      </span>
+      <span class="mindmap-preview__legend-item">
+        <span class="mindmap-preview__legend-dot mindmap-preview__legend-dot--branch"></span>
+        分支节点
+      </span>
+      <span class="mindmap-preview__legend-item">
+        <span class="mindmap-preview__legend-dot mindmap-preview__legend-dot--leaf"></span>
+        叶子节点
+      </span>
+    </footer>
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
-import MindMap from 'simple-mind-map'
+<script setup lang="ts">
+import { ref, computed, defineComponent, h } from 'vue'
 
-const router = useRouter()
+interface MindMapNodeData {
+  id: string
+  label: string
+  children?: MindMapNodeData[]
+}
 
-const difficultyMap = { 'easy': '容易', 'medium': '一般', 'hard': '困难' }
+interface MindMapPreviewConfig {
+  display?: {
+    map_title?: string
+    map_data?: MindMapNodeData
+  }
+  [key: string]: unknown
+}
 
-// 按钮状态管理
-const isWaiting = ref(false) // 是否正在等待教师确认
-const isTeacherConfirmed = ref(false) // 教师是否已确认
+const props = defineProps<{
+  nodeInstanceId: number
+  nodeConfig: MindMapPreviewConfig
+}>()
 
-// 原始业务数据
-const rootNode = ref({
+const mapTitle = computed<string>(() =>
+  props.nodeConfig.display?.map_title ?? 'Python 数据结构知识图谱'
+)
+
+/** Placeholder mind map data */
+const rootNode = computed<MindMapNodeData>(() =>
+  props.nodeConfig.display?.map_data ?? placeholderMapData
+)
+
+const placeholderMapData: MindMapNodeData = {
   id: 'root',
-  label: 'Python 数组实训',
+  label: 'Python 数据结构',
   children: [
     {
-      id: 'n1',
-      label: '基础定义',
-      desc: '数组在 Python 中通常通过列表(List)或 array 模块实现，是存放相同类型数据的集合。',
-      points: ['List 的内存模型', '索引与偏移量关系', '时间复杂度分析'],
-      difficulty: null,
-      question: '',
+      id: 'linear',
+      label: '线性结构',
       children: [
-        { id: 'n1-1', label: '连续存储', points: ['Cache Line 对齐', '物理内存布局'], difficulty: null, question: '' },
-        { id: 'n1-2', label: '静态 vs 动态', points: ['扩容因子', 'Overhead 消耗'], difficulty: null, question: '' }
+        { id: 'list', label: '列表 (List)', children: [
+          { id: 'list-ops', label: '增删改查操作' },
+          { id: 'list-comp', label: '列表推导式' },
+          { id: 'list-slice', label: '切片操作' }
+        ]},
+        { id: 'tuple', label: '元组 (Tuple)', children: [
+          { id: 'tuple-immutable', label: '不可变性' },
+          { id: 'tuple-unpack', label: '解包操作' }
+        ]},
+        { id: 'stack', label: '栈 (Stack)' },
+        { id: 'queue', label: '队列 (Queue)' }
       ]
     },
     {
-      id: 'n2',
-      label: '核心操作',
-      desc: '掌握数组的增删改查是算法优化的基础，尤其是切片(Slicing)的高级用法。',
-      points: ['浅拷贝 vs 深拷贝', '正向/负向切片', 'Step 步长逻辑'],
-      difficulty: null,
-      question: '',
+      id: 'nonlinear',
+      label: '非线性结构',
       children: [
-        { id: 'n2-1', label: '高级切片', points: ['[::2] 隔行取样', '[::-1] 翻转数组'], difficulty: null, question: '' },
-        { id: 'n2-2', label: '原地操作', points: ['pop() 与 remove()', 'del 关键字'], difficulty: null, question: '' }
+        { id: 'dict', label: '字典 (Dict)', children: [
+          { id: 'dict-hash', label: '哈希表原理' },
+          { id: 'dict-methods', label: '常用方法' }
+        ]},
+        { id: 'set', label: '集合 (Set)', children: [
+          { id: 'set-ops', label: '集合运算' }
+        ]},
+        { id: 'tree', label: '树结构' }
+      ]
+    },
+    {
+      id: 'algorithm',
+      label: '常用算法',
+      children: [
+        { id: 'sort', label: '排序算法' },
+        { id: 'search', label: '搜索算法' },
+        { id: 'recursion', label: '递归' }
       ]
     }
   ]
-})
-
-const activeNode = ref(null)
-const mindMapContainer = ref(null)
-let mindMapInstance = null
-
-// 获取所有核心节点用于计算进度
-const allNodes = computed(() => {
-  const result = []
-  const traverse = (node) => {
-    if (node.id !== 'root') result.push(node)
-    if (node.children) node.children.forEach(traverse)
-  }
-  traverse(rootNode.value)
-  return result
-})
-
-const totalNodes = computed(() => allNodes.value.length)
-const evaluatedCount = computed(() => allNodes.value.filter(n => n.difficulty).length)
-const evalProgress = computed(() => (evaluatedCount.value / totalNodes.value) * 100)
-const isAllEvaluated = computed(() => evaluatedCount.value === totalNodes.value)
-
-// 转换业务数据为 simple-mind-map 所需格式
-const transformData = (node) => {
-  return {
-    data: {
-      text: node.label,
-      uid: node.id,
-      // 直接初始化原生 note
-      note: (node.question && node.question.trim()) ? node.question : '',
-      ...node
-    },
-    children: node.children ? node.children.map(transformData) : []
-  }
 }
 
-// 递归查找业务节点数据
-const findNodeById = (id, currentNode = rootNode.value) => {
-  if (currentNode.id === id) return currentNode
-  if (currentNode.children) {
-    for (let child of currentNode.children) {
-      const found = findNodeById(id, child)
-      if (found) return found
-    }
-  }
-  return null
-}
+/** Track expanded node IDs */
+const expandedIds = ref<Set<string>>(new Set(['root', 'linear', 'nonlinear', 'algorithm']))
 
-onMounted(() => {
-  mindMapInstance = new MindMap({
-    el: mindMapContainer.value,
-    direction: 'right',
-    theme: 'fresh-purple',
-    data: transformData(rootNode.value),
-    fit: true,
-    mouseScaleBehavior: 'zoom',
-    readonly: true,
-    enableFreeDrag: false,
-
-    // 所有非根节点统一使用二级节点样式（矩形、白色背景、绿色连接线）
-    themeConfig: {
-      root: { expandBtnSize: 0 },
-      second: {
-        expandBtnSize: 0,
-        shape: 'rectangle',
-        fillColor: '#ffffff',
-        borderColor: '#549688',
-        borderWidth: 1,
-        color: '#334155',
-        paddingX: 12,
-        paddingY: 6
-      },
-      node: {
-        expandBtnSize: 0,
-        shape: 'rectangle',
-        fillColor: '#ffffff',
-        borderColor: '#549688',
-        borderWidth: 1,
-        color: '#334155',
-        paddingX: 12,
-        paddingY: 6
-      },
-      line: {
-        color: '#549688',
-        width: 2
-      },
-      // 开启原生备注配置，使用醒目的绿色
-      note: {
-        show: true,
-        fillColor: '#10b981', 
-        margin: 6
-      }
-    }
-  })
-
-  mindMapInstance.on('node_click', (node, e) => {
-    const uid = node.nodeData.data.uid
-    const foundNode = findNodeById(uid)
-    if (foundNode) {
-      activeNode.value = foundNode
-    }
-  })
-})
-
-onBeforeUnmount(() => {
-  if (mindMapInstance) {
-    mindMapInstance.destroy()
-  }
-})
-
-// --- 控件与业务方法 ---
-const handleZoomIn = () => mindMapInstance && mindMapInstance.view.enlarge()
-const handleZoomOut = () => mindMapInstance && mindMapInstance.view.narrow()
-const handleFitView = () => mindMapInstance && mindMapInstance.view.fit()
-
-// 监听输入框，实时同步原生的备注数据
-const handleQuestionInput = () => {
-  if (activeNode.value && activeNode.value.id !== 'root') {
-    updateQuestionNote(activeNode.value.id, activeNode.value.question)
-  }
-}
-
-// 难度打分
-const markDifficulty = (level) => {
-  if (activeNode.value && activeNode.value.id !== 'root') {
-    activeNode.value.difficulty = level
-    updateNodeStyle(activeNode.value.id, level)
-  }
-}
-
-const getColor = (key) => key === 'easy' ? 'green' : (key === 'medium' ? 'indigo' : 'red')
-const getEmoji = (key) => key === 'easy' ? '😊' : (key === 'medium' ? '😐' : '😰')
-
-// 【修复 1】：恢复最正确的 setStyle 方法，完美实现颜色动态切换
-const updateNodeStyle = (nodeId, difficulty) => {
-  if (!mindMapInstance) return
-  
-  const styleMap = {
-    'easy': { fillColor: '#22c55e', color: '#ffffff', borderColor: '#16a34a' },
-    'medium': { fillColor: '#6366f1', color: '#ffffff', borderColor: '#4f46e5' },
-    'hard': { fillColor: '#ef4444', color: '#ffffff', borderColor: '#dc2626' }
-  }
-  
-  const styles = styleMap[difficulty]
-  const nodeInstance = mindMapInstance.renderer.findNodeByUid(nodeId)
-  
-  if (nodeInstance) {
-    nodeInstance.setStyle('fillColor', styles.fillColor)
-    nodeInstance.setStyle('color', styles.color)
-    nodeInstance.setStyle('borderColor', styles.borderColor)
-  }
-}
-
-// 【修复 2】：使用官方命令更新数据，保证标签图标实时渲染，且不会覆盖样式
-const updateQuestionNote = (nodeId, question) => {
-  if (!mindMapInstance) return
-  
-  const nodeInstance = mindMapInstance.renderer.findNodeByUid(nodeId)
-  
-  if (nodeInstance) {
-    const noteContent = question?.trim() || ''
-    mindMapInstance.execCommand('SET_NODE_DATA', nodeInstance, { note: noteContent })
-  }
-}
-
-const handleSubmit = () => {
-  if (!isAllEvaluated.value) return
-  
-  if (!isTeacherConfirmed.value) {
-    // 第一次点击：标记完成，进入等待状态
-    isWaiting.value = true
-    
-    // 模拟1秒后教师确认
-    setTimeout(() => {
-      isWaiting.value = false
-      isTeacherConfirmed.value = true
-    }, 1000)
+function toggleNode(nodeId: string) {
+  if (expandedIds.value.has(nodeId)) {
+    expandedIds.value.delete(nodeId)
   } else {
-    // 教师确认后：进入下一节点
-    router.push('/student/training/task-board')
+    expandedIds.value.add(nodeId)
   }
+  // Trigger reactivity
+  expandedIds.value = new Set(expandedIds.value)
 }
+
+function expandAll() {
+  const allIds = collectAllIds(rootNode.value)
+  expandedIds.value = new Set(allIds)
+}
+
+function collapseAll() {
+  expandedIds.value = new Set()
+}
+
+function collectAllIds(node: MindMapNodeData): string[] {
+  const ids: string[] = [node.id]
+  if (node.children) {
+    for (const child of node.children) {
+      ids.push(...collectAllIds(child))
+    }
+  }
+  return ids
+}
+
+/** Recursive MindMapNode component */
+const MindMapNode = defineComponent({
+  name: 'MindMapNode',
+  props: {
+    node: { type: Object as () => MindMapNodeData, required: true },
+    depth: { type: Number, required: true },
+    expandedIds: { type: Object as () => Set<string>, required: true }
+  },
+  emits: ['toggle'],
+  setup(nodeProps, { emit: nodeEmit }) {
+    return () => {
+      const node = nodeProps.node
+      const hasChildren = node.children && node.children.length > 0
+      const isExpanded = nodeProps.expandedIds.has(node.id)
+      const depthClass = `mindmap-node--depth-${Math.min(nodeProps.depth, 3)}`
+
+      const children: ReturnType<typeof h>[] = []
+
+      // Node label
+      children.push(
+        h('div', {
+          class: ['mindmap-node__label', depthClass],
+          onClick: () => { if (hasChildren) nodeEmit('toggle', node.id) }
+        }, [
+          hasChildren
+            ? h('span', { class: 'mindmap-node__toggle' }, isExpanded ? '▼' : '▶')
+            : h('span', { class: 'mindmap-node__leaf-dot' }, '●'),
+          h('span', { class: 'mindmap-node__text' }, node.label)
+        ])
+      )
+
+      // Children
+      if (hasChildren && isExpanded) {
+        const childNodes = node.children!.map(child =>
+          h(MindMapNode, {
+            node: child,
+            depth: nodeProps.depth + 1,
+            expandedIds: nodeProps.expandedIds,
+            onToggle: (id: string) => nodeEmit('toggle', id)
+          })
+        )
+        children.push(h('div', { class: 'mindmap-node__children' }, childNodes))
+      }
+
+      return h('div', { class: 'mindmap-node' }, children)
+    }
+  }
+})
 </script>
 
 <style scoped>
-.glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 1.5rem;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+.mindmap-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  padding: var(--spacing-lg, 1.5rem);
+  gap: var(--spacing-md, 1rem);
 }
 
-.hero-send-btn {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  color: white;
+.mindmap-preview__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.hero-send-btn:not(:disabled):hover {
-  transform: translateY(-2px);
+.mindmap-preview__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-gray-800, #1e293b);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
+.mindmap-preview__controls {
+  display: flex;
+  gap: 0.5rem;
 }
 
-/* 覆盖 simple-mind-map 默认获取焦点时的黑边 */
-:deep(.smm-canvas) {
-  outline: none !important;
+.mindmap-preview__control-btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--color-gray-600, #475569);
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-sm, 0.25rem);
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-/* 强制隐藏 simple-mind-map 的加减号展开按钮组 */
-:deep(.smm-expand-btn) {
-  display: none !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
+.mindmap-preview__control-btn:hover {
+  background: var(--color-gray-50, #f8fafc);
+  border-color: var(--color-gray-300, #cbd5e1);
 }
 
-/* 隐藏节点处于 active 状态下的自带外边框，让样式更加纯净 */
-:deep(.smm-node.active) {
-  outline: none !important;
+.mindmap-preview__canvas {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: var(--spacing-lg, 1.5rem);
+}
+
+.mindmap-preview__tree {
+  min-width: fit-content;
+}
+
+.mindmap-preview__legend {
+  display: flex;
+  gap: var(--spacing-md, 1rem);
+  justify-content: center;
+}
+
+.mindmap-preview__legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--color-gray-500, #64748b);
+}
+
+.mindmap-preview__legend-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+}
+
+.mindmap-preview__legend-dot--root {
+  background: var(--color-primary-500, #6366f1);
+}
+
+.mindmap-preview__legend-dot--branch {
+  background: #f59e0b;
+}
+
+.mindmap-preview__legend-dot--leaf {
+  background: #22c55e;
+}
+</style>
+
+<style>
+/* Unscoped styles for recursive component */
+.mindmap-node {
+  margin-left: 0;
+}
+
+.mindmap-node__label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  user-select: none;
+}
+
+.mindmap-node__label:hover {
+  background: #f1f5f9;
+}
+
+.mindmap-node--depth-0 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+.mindmap-node--depth-1 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.mindmap-node--depth-2 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.mindmap-node--depth-3 {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.mindmap-node__toggle {
+  font-size: 0.625rem;
+  color: #94a3b8;
+  width: 1rem;
+  text-align: center;
+}
+
+.mindmap-node__leaf-dot {
+  font-size: 0.5rem;
+  color: #22c55e;
+  width: 1rem;
+  text-align: center;
+}
+
+.mindmap-node__text {
+  flex: 1;
+}
+
+.mindmap-node__children {
+  margin-left: 1.5rem;
+  border-left: 1px solid #e2e8f0;
+  padding-left: 0.5rem;
 }
 </style>

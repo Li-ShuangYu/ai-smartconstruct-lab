@@ -2,8 +2,8 @@
 Test fixture validation — verifies the complete-orchestration.json fixture
 produces exactly the expected number of AI tasks.
 
-Task 8.7: The sample JSON (16 nodes) should produce exactly 10 AI tasks
-(nodes with AI flags enabled).
+Task 7: The sample JSON (16 nodes across 3 phases) should produce exactly 10 AI tasks
+(nodes with valid ai_spec and at least one enabled AI flag or source_mode="ai").
 """
 
 import sys
@@ -15,7 +15,7 @@ import os
 
 import pytest
 
-from agents.supervisor import SupervisorAgent, detect_ai_nodes
+from agents.supervisor import SupervisorAgent, detect_ai_nodes_phased
 from models.schemas import AgentType
 
 
@@ -41,19 +41,29 @@ def complete_canvas():
 
 
 class TestFixtureNodeCount:
-    """Verify the fixture has exactly 16 nodes."""
+    """Verify the fixture has exactly 16 nodes across 3 phases."""
 
     def test_fixture_has_16_nodes(self, complete_canvas):
         """The complete orchestration fixture contains exactly 16 nodes."""
-        assert len(complete_canvas["nodes"]) == 16
+        total_nodes = 0
+        for phase in complete_canvas["phases"]:
+            total_nodes += len(phase.get("nodes", []))
+        assert total_nodes == 16
+
+    def test_fixture_has_3_phases(self, complete_canvas):
+        """The fixture has 3 phases."""
+        assert len(complete_canvas["phases"]) == 3
 
     def test_fixture_has_edges(self, complete_canvas):
-        """The fixture has edges connecting the nodes."""
-        assert len(complete_canvas["edges"]) == 15  # 16 nodes, linear chain
+        """The fixture has edges connecting the nodes within phases."""
+        total_edges = 0
+        for phase in complete_canvas["phases"]:
+            total_edges += len(phase.get("edges", []))
+        assert total_edges == 13  # 2 + 6 + 5
 
 
 class TestAiTaskDetection:
-    """Verify detect_ai_nodes produces exactly 10 tasks from the 16-node fixture."""
+    """Verify detect_ai_nodes_phased produces exactly 10 tasks from the 16-node fixture."""
 
     def test_produces_exactly_10_ai_tasks(self, complete_canvas):
         """
@@ -67,24 +77,24 @@ class TestAiTaskDetection:
         - node-05: THEORY_CLASS with enable_ai_error_book=true → EXAM_AGENT
         - node-06: TASK_DISTRIBUTE with enable_ai_task_split=true → STRUCT_AGENT
         - node-07: HOMEWORK with source_mode="ai" → EXAM_AGENT
-        - node-08: CODING_CLASS with enable_code_review=true → CODE_AGENT
-        - node-09: PLAN_UPLOAD with enable_ai_pre_evaluation=true → CODE_AGENT
+        - node-08: CODING_CLASS with enable_ai_code_review=true → CODE_AGENT
+        - node-09: PLAN_UPLOAD with enable_ai_feasibility=true → CODE_AGENT
         - node-10: AI_PRACTICE with enable_ai_system_prompt=true → TEXT_AGENT
 
         Non-AI nodes (6):
-        - node-11: SEMESTER_SURVEY (no AI flags)
+        - node-11: SEMESTER_SURVEY (no ai_spec)
         - node-12: MINDMAP_DRAW with enable_ai_generate_map=false
-        - node-13: HOMEWORK with source_mode="manual"
-        - node-14: RESOURCE_READ (no AI flags)
-        - node-15: VIDEO_LEARN (no AI flags)
-        - node-16: END (no AI flags)
+        - node-13: HOMEWORK with source_mode="manual" (no enabled flags)
+        - node-14: RESOURCE_READ (no enabled AI flags in config)
+        - node-15: VIDEO_LEARN (no enabled AI flags in config)
+        - node-16: END (no ai_spec)
         """
-        tasks = detect_ai_nodes(complete_canvas)
+        tasks = detect_ai_nodes_phased(complete_canvas)
         assert len(tasks) == 10
 
     def test_correct_agent_type_routing(self, complete_canvas):
         """Each AI task is routed to the correct agent type."""
-        tasks = detect_ai_nodes(complete_canvas)
+        tasks = detect_ai_nodes_phased(complete_canvas)
         task_map = {t.node_id: t for t in tasks}
 
         # TEXT_AGENT nodes
@@ -109,16 +119,16 @@ class TestAiTaskDetection:
 
     def test_non_ai_nodes_excluded(self, complete_canvas):
         """Non-AI nodes are not included in the task list."""
-        tasks = detect_ai_nodes(complete_canvas)
+        tasks = detect_ai_nodes_phased(complete_canvas)
         task_node_ids = {t.node_id for t in tasks}
 
         # These should NOT be in the task list
-        assert "node-11" not in task_node_ids  # SEMESTER_SURVEY
-        assert "node-12" not in task_node_ids  # MINDMAP_DRAW (ai=false)
-        assert "node-13" not in task_node_ids  # HOMEWORK (manual)
-        assert "node-14" not in task_node_ids  # RESOURCE_READ (no flags)
-        assert "node-15" not in task_node_ids  # VIDEO_LEARN (no flags)
-        assert "node-16" not in task_node_ids  # END
+        assert "node-11" not in task_node_ids  # SEMESTER_SURVEY (no ai_spec)
+        assert "node-12" not in task_node_ids  # MINDMAP_DRAW (ai flag=false)
+        assert "node-13" not in task_node_ids  # HOMEWORK (source_mode=manual, no enabled flags)
+        assert "node-14" not in task_node_ids  # RESOURCE_READ (no enabled flags)
+        assert "node-15" not in task_node_ids  # VIDEO_LEARN (no enabled flags)
+        assert "node-16" not in task_node_ids  # END (no ai_spec)
 
     def test_execution_plan_from_fixture(self, complete_canvas):
         """SupervisorAgent.analyze_orchestration produces correct plan from fixture."""
@@ -131,7 +141,7 @@ class TestAiTaskDetection:
 
     def test_agent_type_distribution(self, complete_canvas):
         """Verify the distribution of agent types across the 10 tasks."""
-        tasks = detect_ai_nodes(complete_canvas)
+        tasks = detect_ai_nodes_phased(complete_canvas)
 
         type_counts = {}
         for task in tasks:
@@ -143,3 +153,16 @@ class TestAiTaskDetection:
         assert type_counts["STRUCT_AGENT"] == 2
         assert type_counts["EXAM_AGENT"] == 2
         assert type_counts["CODE_AGENT"] == 2
+
+    def test_tasks_sorted_by_priority(self, complete_canvas):
+        """Tasks are returned sorted by priority (lower number first)."""
+        tasks = detect_ai_nodes_phased(complete_canvas)
+        priorities = [t.priority for t in tasks]
+        assert priorities == sorted(priorities)
+
+    def test_phase_id_assigned(self, complete_canvas):
+        """Each task has a phase_id assigned from its containing phase."""
+        tasks = detect_ai_nodes_phased(complete_canvas)
+        for task in tasks:
+            assert task.phase_id is not None
+            assert task.phase_id in ("phase-pre", "phase-during", "phase-post")

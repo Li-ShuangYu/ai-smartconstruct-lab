@@ -63,19 +63,33 @@ def merge_results_into_payload(
     # Instead, nodes not in result_map that were AI-required will be marked as error
 
     # Determine which nodes had AI flags (same logic as supervisor)
-    from agents.supervisor import _has_ai_flags, ROUTING_TABLE
+    from agents.supervisor import _should_process_node
 
     ai_required_node_ids: set[str] = set()
-    for node in payload.get("nodes", []):
-        node_id = node.get("node_id", "")
-        node_type = node.get("node_type", "")
-        config = node.get("config", {})
 
-        if _has_ai_flags(config) and node_type in ROUTING_TABLE:
+    # Support both phased and flat canvas structures
+    nodes_to_check: list[dict] = []
+    if "phases" in payload:
+        for phase in payload.get("phases", []):
+            nodes_to_check.extend(phase.get("nodes", []))
+    else:
+        nodes_to_check = payload.get("nodes", [])
+
+    for node in nodes_to_check:
+        node_id = node.get("node_id", "")
+        ai_spec = node.get("ai_spec")
+        if _should_process_node(node, ai_spec):
             ai_required_node_ids.add(node_id)
 
-    # Enrich each node's config
-    for node in payload.get("nodes", []):
+    # Enrich each node's config (support both phased and flat structures)
+    all_nodes: list[dict] = []
+    if "phases" in payload:
+        for phase in payload.get("phases", []):
+            all_nodes.extend(phase.get("nodes", []))
+    else:
+        all_nodes = payload.get("nodes", [])
+
+    for node in all_nodes:
         node_id = node.get("node_id", "")
         config = node.get("config", {})
 

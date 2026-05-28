@@ -2,209 +2,302 @@
   "orchestration_id": "complete-orch-001",
   "template_name": "软件工程综合实训",
   "description": "涵盖需求分析、系统设计、编码实现、测试验收全流程的综合实训模板",
-  "nodes": [
+  "phases": [
     {
-      "node_id": "node-01",
-      "node_type": "START",
-      "name": "实训开始",
-      "config": {
-        "enable_ai_welcome": true,
-        "welcome_style": "formal",
-        "max_length": 250
-      },
-      "position": {"x": 100, "y": 100}
-    },
-    {
-      "node_id": "node-02",
-      "node_type": "RESOURCE_READ",
-      "name": "阅读需求文档",
-      "config": {
-        "enable_ai_summary": true,
-        "enable_ai_key_points": true,
-        "enable_ai_quick_nav": true,
-        "resource_url": "https://example.com/requirements.pdf"
-      },
-      "position": {"x": 300, "y": 100}
-    },
-    {
-      "node_id": "node-03",
-      "node_type": "VIDEO_LEARN",
-      "name": "观看架构设计视频",
-      "config": {
-        "enable_ai_chapter": true,
-        "enable_ai_subtitle": true,
-        "video_url": "https://example.com/architecture-video.mp4",
-        "duration_minutes": 35
-      },
-      "position": {"x": 500, "y": 100}
-    },
-    {
-      "node_id": "node-04",
-      "node_type": "MINDMAP_PREVIEW",
-      "name": "知识体系思维导图",
-      "config": {
-        "enable_ai_generate_map": true,
-        "max_nodes": 25,
-        "depth_levels": 4,
-        "topic": "软件工程知识体系"
-      },
-      "position": {"x": 700, "y": 100}
-    },
-    {
-      "node_id": "node-05",
-      "node_type": "THEORY_CLASS",
-      "name": "设计模式理论课",
-      "config": {
-        "enable_ai_error_book": true,
-        "topic": "常用设计模式",
-        "flashcard_count": 10
-      },
-      "position": {"x": 100, "y": 300}
-    },
-    {
-      "node_id": "node-06",
-      "node_type": "TASK_DISTRIBUTE",
-      "name": "项目任务分配",
-      "config": {
-        "enable_ai_task_split": true,
-        "project_name": "在线商城系统",
-        "team_size": 4,
-        "duration_days": 14
-      },
-      "position": {"x": 300, "y": 300}
-    },
-    {
-      "node_id": "node-07",
-      "node_type": "HOMEWORK",
-      "name": "AI生成练习题",
-      "config": {
-        "source_mode": "ai",
-        "question_type_counts": {
-          "single_choice": 5,
-          "multi_choice": 3,
-          "fill_blank": 2,
-          "true_false": 3,
-          "essay": 1
+      "phase_id": "phase-pre",
+      "phase_name": "课前阶段",
+      "sort_num": 1,
+      "nodes": [
+        {
+          "node_id": "node-01",
+          "node_type": "START",
+          "name": "实训开始",
+          "config": {
+            "enable_ai_welcome": true,
+            "welcome_style": "formal",
+            "max_length": 250
+          },
+          "ai_spec": {
+            "target_agent": "TEXT",
+            "priority": 5,
+            "ai_flags": ["enable_ai_welcome"]
+          },
+          "position": {"x": 100, "y": 100}
         },
-        "difficulty_level": "medium",
-        "topic": "面向对象设计原则"
-      },
-      "position": {"x": 500, "y": 300}
+        {
+          "node_id": "node-02",
+          "node_type": "RESOURCE_READ",
+          "name": "阅读需求文档",
+          "config": {
+            "enable_ai_summary": true,
+            "enable_ai_key_points": true,
+            "enable_ai_quick_nav": true,
+            "resource_url": "https://example.com/requirements.pdf"
+          },
+          "ai_spec": {
+            "target_agent": "TEXT",
+            "priority": 3,
+            "ai_flags": ["enable_ai_summary", "enable_ai_key_points"]
+          },
+          "position": {"x": 300, "y": 100}
+        },
+        {
+          "node_id": "node-03",
+          "node_type": "VIDEO_LEARN",
+          "name": "观看架构设计视频",
+          "config": {
+            "enable_ai_chapter": true,
+            "enable_ai_subtitle": true,
+            "video_url": "https://example.com/architecture-video.mp4",
+            "duration_minutes": 35
+          },
+          "ai_spec": {
+            "target_agent": "VIDEO",
+            "priority": 4,
+            "ai_flags": ["enable_ai_chapter", "enable_ai_subtitle"]
+          },
+          "position": {"x": 500, "y": 100}
+        }
+      ],
+      "edges": [
+        {"source": "node-01", "target": "node-02"},
+        {"source": "node-02", "target": "node-03"}
+      ]
     },
     {
-      "node_id": "node-08",
-      "node_type": "CODING_CLASS",
-      "name": "编程实践-代码审查",
-      "config": {
-        "enable_code_review": true,
-        "language": "java",
-        "framework": "spring-boot",
-        "review_focus": ["naming", "error_handling", "performance"]
-      },
-      "position": {"x": 700, "y": 300}
+      "phase_id": "phase-during",
+      "phase_name": "课中阶段",
+      "sort_num": 2,
+      "nodes": [
+        {
+          "node_id": "node-04",
+          "node_type": "MINDMAP_PREVIEW",
+          "name": "知识体系思维导图",
+          "config": {
+            "enable_ai_generate_map": true,
+            "max_nodes": 25,
+            "depth_levels": 4,
+            "topic": "软件工程知识体系"
+          },
+          "ai_spec": {
+            "target_agent": "STRUCT",
+            "priority": 5,
+            "ai_flags": ["enable_ai_generate_map"]
+          },
+          "position": {"x": 700, "y": 100}
+        },
+        {
+          "node_id": "node-05",
+          "node_type": "THEORY_CLASS",
+          "name": "设计模式理论课",
+          "config": {
+            "enable_ai_error_book": true,
+            "topic": "常用设计模式",
+            "flashcard_count": 10
+          },
+          "ai_spec": {
+            "target_agent": "EXAM",
+            "priority": 4,
+            "ai_flags": ["enable_ai_error_book"]
+          },
+          "position": {"x": 100, "y": 300}
+        },
+        {
+          "node_id": "node-06",
+          "node_type": "TASK_DISTRIBUTE",
+          "name": "项目任务分配",
+          "config": {
+            "enable_ai_task_split": true,
+            "project_name": "在线商城系统",
+            "team_size": 4,
+            "duration_days": 14
+          },
+          "ai_spec": {
+            "target_agent": "STRUCT",
+            "priority": 4,
+            "ai_flags": ["enable_ai_task_split"]
+          },
+          "position": {"x": 300, "y": 300}
+        },
+        {
+          "node_id": "node-07",
+          "node_type": "HOMEWORK",
+          "name": "AI生成练习题",
+          "config": {
+            "source_mode": "ai",
+            "question_type_counts": {
+              "single_choice": 5,
+              "multi_choice": 3,
+              "fill_blank": 2,
+              "true_false": 3,
+              "essay": 1
+            },
+            "difficulty_level": "medium",
+            "topic": "面向对象设计原则"
+          },
+          "ai_spec": {
+            "target_agent": "EXAM",
+            "priority": 2,
+            "ai_flags": ["enable_ai_grading"]
+          },
+          "position": {"x": 500, "y": 300}
+        },
+        {
+          "node_id": "node-08",
+          "node_type": "CODING_CLASS",
+          "name": "编程实践-代码审查",
+          "config": {
+            "enable_ai_code_review": true,
+            "language": "java",
+            "framework": "spring-boot",
+            "review_focus": ["naming", "error_handling", "performance"]
+          },
+          "ai_spec": {
+            "target_agent": "CODE",
+            "priority": 4,
+            "ai_flags": ["enable_ai_code_review"]
+          },
+          "position": {"x": 700, "y": 300}
+        },
+        {
+          "node_id": "node-09",
+          "node_type": "PLAN_UPLOAD",
+          "name": "方案提交与AI预评",
+          "config": {
+            "enable_ai_feasibility": true,
+            "evaluation_criteria": ["completeness", "feasibility", "innovation"],
+            "max_score": 100
+          },
+          "ai_spec": {
+            "target_agent": "CODE",
+            "priority": 4,
+            "ai_flags": ["enable_ai_feasibility"]
+          },
+          "position": {"x": 100, "y": 500}
+        },
+        {
+          "node_id": "node-10",
+          "node_type": "AI_PRACTICE",
+          "name": "AI对话练习",
+          "config": {
+            "enable_ai_system_prompt": true,
+            "practice_topic": "需求分析访谈模拟",
+            "ai_role": "产品经理",
+            "max_rounds": 10
+          },
+          "ai_spec": {
+            "target_agent": "TEXT",
+            "priority": 6,
+            "ai_flags": ["enable_ai_system_prompt"]
+          },
+          "position": {"x": 300, "y": 500}
+        }
+      ],
+      "edges": [
+        {"source": "node-04", "target": "node-05"},
+        {"source": "node-05", "target": "node-06"},
+        {"source": "node-06", "target": "node-07"},
+        {"source": "node-07", "target": "node-08"},
+        {"source": "node-08", "target": "node-09"},
+        {"source": "node-09", "target": "node-10"}
+      ]
     },
     {
-      "node_id": "node-09",
-      "node_type": "PLAN_UPLOAD",
-      "name": "方案提交与AI预评",
-      "config": {
-        "enable_ai_pre_evaluation": true,
-        "evaluation_criteria": ["completeness", "feasibility", "innovation"],
-        "max_score": 100
-      },
-      "position": {"x": 100, "y": 500}
-    },
-    {
-      "node_id": "node-10",
-      "node_type": "AI_PRACTICE",
-      "name": "AI对话练习",
-      "config": {
-        "enable_ai_system_prompt": true,
-        "practice_topic": "需求分析访谈模拟",
-        "ai_role": "产品经理",
-        "max_rounds": 10
-      },
-      "position": {"x": 300, "y": 500}
-    },
-    {
-      "node_id": "node-11",
-      "node_type": "SEMESTER_SURVEY",
-      "name": "课程满意度调查",
-      "config": {
-        "survey_title": "期末课程反馈",
-        "anonymous": true,
-        "question_count": 15
-      },
-      "position": {"x": 500, "y": 500}
-    },
-    {
-      "node_id": "node-12",
-      "node_type": "MINDMAP_DRAW",
-      "name": "手绘思维导图",
-      "config": {
-        "enable_ai_generate_map": false,
-        "topic": "自由创作",
-        "allow_collaboration": true
-      },
-      "position": {"x": 700, "y": 500}
-    },
-    {
-      "node_id": "node-13",
-      "node_type": "HOMEWORK",
-      "name": "手动出题作业",
-      "config": {
-        "source_mode": "manual",
-        "question_bank_id": 42,
-        "question_count": 10
-      },
-      "position": {"x": 100, "y": 700}
-    },
-    {
-      "node_id": "node-14",
-      "node_type": "RESOURCE_READ",
-      "name": "阅读参考资料(无AI)",
-      "config": {
-        "resource_url": "https://example.com/reference.pdf",
-        "required": false
-      },
-      "position": {"x": 300, "y": 700}
-    },
-    {
-      "node_id": "node-15",
-      "node_type": "VIDEO_LEARN",
-      "name": "补充视频(无AI)",
-      "config": {
-        "video_url": "https://example.com/supplementary.mp4",
-        "optional": true
-      },
-      "position": {"x": 500, "y": 700}
-    },
-    {
-      "node_id": "node-16",
-      "node_type": "END",
-      "name": "实训结束",
-      "config": {
-        "show_certificate": true,
-        "feedback_required": true
-      },
-      "position": {"x": 700, "y": 700}
+      "phase_id": "phase-post",
+      "phase_name": "课后阶段",
+      "sort_num": 3,
+      "nodes": [
+        {
+          "node_id": "node-11",
+          "node_type": "SEMESTER_SURVEY",
+          "name": "课程满意度调查",
+          "config": {
+            "survey_title": "期末课程反馈",
+            "anonymous": true,
+            "question_count": 15
+          },
+          "position": {"x": 500, "y": 500}
+        },
+        {
+          "node_id": "node-12",
+          "node_type": "MINDMAP_DRAW",
+          "name": "手绘思维导图",
+          "config": {
+            "enable_ai_generate_map": false,
+            "topic": "自由创作",
+            "allow_collaboration": true
+          },
+          "ai_spec": {
+            "target_agent": "STRUCT",
+            "priority": 6,
+            "ai_flags": ["enable_ai_generate_map"]
+          },
+          "position": {"x": 700, "y": 500}
+        },
+        {
+          "node_id": "node-13",
+          "node_type": "HOMEWORK",
+          "name": "手动出题作业",
+          "config": {
+            "source_mode": "manual",
+            "question_bank_id": 42,
+            "question_count": 10
+          },
+          "ai_spec": {
+            "target_agent": "EXAM",
+            "priority": 2,
+            "ai_flags": ["enable_ai_grading"]
+          },
+          "position": {"x": 100, "y": 700}
+        },
+        {
+          "node_id": "node-14",
+          "node_type": "RESOURCE_READ",
+          "name": "阅读参考资料(无AI)",
+          "config": {
+            "resource_url": "https://example.com/reference.pdf",
+            "required": false
+          },
+          "ai_spec": {
+            "target_agent": "TEXT",
+            "priority": 3,
+            "ai_flags": ["enable_ai_summary", "enable_ai_key_points"]
+          },
+          "position": {"x": 300, "y": 700}
+        },
+        {
+          "node_id": "node-15",
+          "node_type": "VIDEO_LEARN",
+          "name": "补充视频(无AI)",
+          "config": {
+            "video_url": "https://example.com/supplementary.mp4",
+            "optional": true
+          },
+          "ai_spec": {
+            "target_agent": "VIDEO",
+            "priority": 4,
+            "ai_flags": ["enable_ai_chapter"]
+          },
+          "position": {"x": 500, "y": 700}
+        },
+        {
+          "node_id": "node-16",
+          "node_type": "END",
+          "name": "实训结束",
+          "config": {
+            "show_certificate": true,
+            "feedback_required": true
+          },
+          "position": {"x": 700, "y": 700}
+        }
+      ],
+      "edges": [
+        {"source": "node-11", "target": "node-12"},
+        {"source": "node-12", "target": "node-13"},
+        {"source": "node-13", "target": "node-14"},
+        {"source": "node-14", "target": "node-15"},
+        {"source": "node-15", "target": "node-16"}
+      ]
     }
-  ],
-  "edges": [
-    {"source": "node-01", "target": "node-02"},
-    {"source": "node-02", "target": "node-03"},
-    {"source": "node-03", "target": "node-04"},
-    {"source": "node-04", "target": "node-05"},
-    {"source": "node-05", "target": "node-06"},
-    {"source": "node-06", "target": "node-07"},
-    {"source": "node-07", "target": "node-08"},
-    {"source": "node-08", "target": "node-09"},
-    {"source": "node-09", "target": "node-10"},
-    {"source": "node-10", "target": "node-11"},
-    {"source": "node-11", "target": "node-12"},
-    {"source": "node-12", "target": "node-13"},
-    {"source": "node-13", "target": "node-14"},
-    {"source": "node-14", "target": "node-15"},
-    {"source": "node-15", "target": "node-16"}
   ]
 }

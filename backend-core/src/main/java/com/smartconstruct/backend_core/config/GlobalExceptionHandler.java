@@ -1,6 +1,7 @@
 package com.smartconstruct.backend_core.config;
 
 import com.smartconstruct.backend_core.dto.ApiResult;
+import com.smartconstruct.backend_core.exception.BusinessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -70,6 +71,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理业务异常（BusinessException）
+     * 按异常中指定的HTTP状态码和错误码返回响应
+     */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResult<Object>> handleBusinessException(BusinessException e) {
+        return ResponseEntity.status(e.getHttpStatus())
+                .body(new ApiResult<>(e.getHttpStatus(), e.getMessage(), e.getErrorCode(), e.getData()));
+    }
+
+    /**
      * 处理业务运行时异常
      */
     @ExceptionHandler(RuntimeException.class)
@@ -79,6 +90,19 @@ public class GlobalExceptionHandler {
         if (message != null && (message.contains("Token") || message.contains("token") || message.contains("过期"))) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(ApiResult.error(401, "AUTH_TOKEN_EXPIRED", "Token无效或已过期"));
+        }
+        // 判断是否为认证上下文异常（未登录用户访问需认证接口）
+        if (e instanceof ClassCastException || e instanceof NullPointerException) {
+            String errMsg = e.getMessage();
+            if (errMsg != null && (errMsg.contains("SysUser") || errMsg.contains("Principal") || errMsg.contains("Authentication"))) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(ApiResult.error(401, "AUTH_NOT_LOGIN", "未登录或登录已过期"));
+            }
+        }
+        // 判断是否为数据库/SQL异常（不应返回400）
+        if (message != null && (message.contains("SQL") || message.contains("jdbc") || message.contains("Unknown column"))) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResult.error(500, "SYSTEM_INTERNAL_ERROR", "系统内部错误，请稍后重试"));
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResult.error(400, "BUSINESS_ERROR", message));

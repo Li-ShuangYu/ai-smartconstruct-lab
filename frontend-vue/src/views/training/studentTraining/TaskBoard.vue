@@ -1,189 +1,368 @@
 <template>
-  <div style="height: 100%;">
-    <div class="glass-card w-full h-full p-6 flex flex-col z-10 relative overflow-hidden font-sans">
-      
-      <div class="flex justify-between items-center mb-6 shrink-0 border-b border-gray-200/50 pb-4">
-        <div>
-          <div class="mb-1 text-xs font-bold text-indigo-400 tracking-widest uppercase italic">Node: TASK_DISPATCH</div>
-          <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">任务下发</h2>
+  <div class="task-board">
+    <!-- Task Overview -->
+    <section class="task-board__overview">
+      <div class="task-board__overview-header">
+        <h2 class="task-board__title">{{ taskTitle }}</h2>
+        <div class="task-board__progress-badge">
+          <span class="task-board__progress-value">{{ completedSubTasks }}/{{ subTasks.length }}</span>
+          <span class="task-board__progress-label">已完成</span>
         </div>
       </div>
+      <p class="task-board__description">{{ taskDescription }}</p>
+      <div class="task-board__progress-bar">
+        <div
+          class="task-board__progress-fill"
+          :style="{ width: `${taskProgressPercent}%` }"
+        ></div>
+      </div>
+    </section>
 
-      <div class="flex-1 flex gap-6 min-h-0">
-        
-        <div class="flex-[1.8] flex flex-col gap-4 overflow-y-auto custom-scrollbar pr-2">
-          
-          <div class="bg-white/60 p-5 rounded-xl border border-gray-200/60 shadow-sm">
-            <div class="flex justify-between items-start mb-2">
-              <h1 class="text-xl font-bold text-gray-800">{{ taskData.title }}</h1>
-              <span class="px-3 py-1 bg-red-50 text-red-600 rounded text-xs font-bold border border-red-100 shrink-0">
-                截止: {{ taskData.deadline }}
-              </span>
+    <!-- Sub-task List -->
+    <section class="task-board__list">
+      <h3 class="task-board__section-title">子任务列表</h3>
+      <div class="task-board__items">
+        <div
+          v-for="(task, index) in subTasks"
+          :key="task.id"
+          class="task-board__item"
+          :class="`task-board__item--${task.status}`"
+        >
+          <div class="task-board__item-left">
+            <div class="task-board__item-check">
+              <span v-if="task.status === 'completed'" class="task-board__check-icon">✓</span>
+              <span v-else-if="task.status === 'in_progress'" class="task-board__progress-icon">◐</span>
+              <span v-else class="task-board__pending-icon">{{ index + 1 }}</span>
+            </div>
+            <div class="task-board__item-content">
+              <span class="task-board__item-name">{{ task.name }}</span>
+              <span class="task-board__item-desc">{{ task.description }}</span>
             </div>
           </div>
-
-          <div class="bg-white/60 p-5 rounded-xl border border-gray-200/60 shadow-sm flex-1">
-            <h4 class="text-sm font-bold text-gray-500 mb-3 flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
-              任务要求
-            </h4>
-            <div class="text-sm text-gray-700 leading-loose whitespace-pre-wrap">{{ taskData.requirements }}</div>
+          <div class="task-board__item-right">
+            <span class="task-board__item-assignee">{{ task.assignee }}</span>
+            <span class="task-board__item-status-tag" :class="`task-board__item-status-tag--${task.status}`">
+              {{ statusLabel(task.status) }}
+            </span>
           </div>
-
-          <div class="bg-indigo-50/50 p-5 rounded-xl border border-indigo-100 shadow-sm shrink-0">
-            <h4 class="text-sm font-bold text-indigo-800 mb-3 flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
-              任务材料下载
-            </h4>
-            <div class="flex flex-col gap-2">
-              <div v-for="(file, index) in taskData.materials" :key="index" class="flex items-center justify-between bg-white px-4 py-3 rounded-lg border border-indigo-50 hover:border-indigo-200 transition-colors">
-                <div class="flex items-center gap-3">
-                  <div class="text-xl">{{ getFileIcon(file.type) }}</div>
-                  <span class="text-sm font-medium text-gray-700">{{ file.name }}</span>
-                </div>
-                <button class="text-indigo-600 hover:text-indigo-800 text-sm font-bold flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded">
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                  下载
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <div class="flex-[1] flex flex-col gap-4">
-          
-          <div class="flex-1 bg-gradient-to-b from-slate-800 to-slate-900 rounded-xl p-5 shadow-lg flex flex-col">
-             <div class="flex items-center gap-2 mb-4 shrink-0">
-                <svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                <h3 class="text-white font-bold text-sm tracking-widest uppercase">AI 任务指引</h3>
-             </div>
-
-             <div class="mb-6 shrink-0 bg-white/10 rounded-lg p-3 border border-white/5">
-                <p class="text-xs text-indigo-300 font-bold mb-1">难度与预计耗时评估</p>
-                <p class="text-sm text-white font-medium">{{ taskData.aiDifficulty }}</p>
-             </div>
-
-             <div class="flex-1 overflow-y-auto custom-scrollbar-dark">
-                <p class="text-xs text-indigo-300 font-bold mb-2">建议完成步骤</p>
-                <div class="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">{{ taskData.aiSteps }}</div>
-             </div>
-          </div>
-
-          <div class="shrink-0 pt-2">
-            <button 
-               @click="handleAccept"
-               class="hero-send-btn w-full justify-center py-4 rounded-xl text-base font-bold shadow-lg transition-all flex items-center gap-2"
-               :class="{
-                 'opacity-50 grayscale cursor-not-allowed': isWaiting,
-                 'hover:shadow-indigo-500/30': !isWaiting && (isTaskAccepted || isTeacherConfirmed)
-               }"
-               :disabled="isWaiting"
-             >
-               {{ isTeacherConfirmed ? '进入下一节点' : (isWaiting ? '等待教师进入下一节点' : '接收任务') }}
-               <svg v-if="!isWaiting" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-               <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-            </button>
-          </div>
-
         </div>
       </div>
+    </section>
 
-    </div>
+    <!-- Deadline Info -->
+    <section class="task-board__deadline">
+      <div class="task-board__deadline-icon">⏰</div>
+      <div class="task-board__deadline-info">
+        <span class="task-board__deadline-label">截止时间</span>
+        <span class="task-board__deadline-value">{{ deadline }}</span>
+      </div>
+    </section>
   </div>
 </template>
 
-<script setup>
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
+<script setup lang="ts">
+import { computed } from 'vue'
 
-const router = useRouter()
+type SubTaskStatus = 'pending' | 'in_progress' | 'completed'
 
-const isTaskAccepted = ref(false)
-const isWaiting = ref(false) // 是否正在等待教师确认
-const isTeacherConfirmed = ref(false) // 教师是否已确认
-
-// 核心数据模型：直接对应后端接口返回的简单字段
-const taskData = reactive({
-  title: 'Python 数组入门：学生成绩统计',
-  deadline: '2026-06-30 23:59',
-  requirements: `本次作业需要你掌握 Python 列表（List）的基础操作。
-  
-1. 读取代码片段中提供的学生成绩数组。
-2. 使用内置函数找出成绩的最高分和最低分。
-3. 将数组翻转，并使用切片语法 [0:3] 提取最后录入的3个成绩。
-4. 运行代码，将终端的输出结果截图。
-5. 将代码和截图粘贴到提供的 Word 模板中，并提交。`,
-  materials: [
-    { name: '作业提交说明模板.docx', type: 'word' },
-    { name: 'score_practice.py', type: 'code' }
-  ],
-  aiDifficulty: '入门级，预计用时 15 分钟。',
-  aiSteps: `1. 点击左侧下载 Word 模板和 Python 代码片段。
-2. 使用 IDE 打开 score_practice.py。
-3. 在注释提示的区域，编写 max()、min() 和切片代码。
-4. 运行并检查终端输出是否正确。
-5. 截图并保存至 Word 文档，点击下方按钮进入下一步。`
-})
-
-const getFileIcon = (type) => {
-  if (type === 'word') return '📄'
-  if (type === 'code') return '💻'
-  return '📎'
+interface SubTask {
+  id: string
+  name: string
+  description: string
+  assignee: string
+  status: SubTaskStatus
 }
 
-const handleAccept = () => {
-  if (isWaiting.value) return
-  
-  if (!isTeacherConfirmed.value) {
-    // 第一次点击：标记完成，进入等待状态
-    isTaskAccepted.value = true
-    isWaiting.value = true
-    
-    // 模拟1秒后教师确认
-    setTimeout(() => {
-      isWaiting.value = false
-      isTeacherConfirmed.value = true
-    }, 1000)
-  } else {
-    // 教师确认后：进入下一节点
-    router.push('/student/training/ai-study-card')
+interface TaskBoardConfig {
+  display?: {
+    task_title?: string
+    task_description?: string
+    deadline?: string
+  }
+  data_collection?: {
+    sub_tasks?: SubTask[]
+  }
+  [key: string]: unknown
+}
+
+const props = defineProps<{
+  nodeInstanceId: number
+  nodeConfig: TaskBoardConfig
+}>()
+
+const taskTitle = computed<string>(() =>
+  props.nodeConfig.display?.task_title ?? '项目任务分配'
+)
+
+const taskDescription = computed<string>(() =>
+  props.nodeConfig.display?.task_description ?? '请按照分配的子任务完成各自的工作，注意截止时间。'
+)
+
+const deadline = computed<string>(() =>
+  props.nodeConfig.display?.deadline ?? '2025-03-15 23:59'
+)
+
+/** Sub-tasks from config or placeholder */
+const subTasks = computed<SubTask[]>(() =>
+  props.nodeConfig.data_collection?.sub_tasks ?? placeholderSubTasks
+)
+
+const placeholderSubTasks: SubTask[] = [
+  { id: 't1', name: '需求分析文档', description: '编写项目需求分析报告', assignee: '张伟', status: 'completed' },
+  { id: 't2', name: '系统设计', description: '完成系统架构设计图', assignee: '李娜', status: 'in_progress' },
+  { id: 't3', name: '数据库设计', description: '设计数据库ER图和表结构', assignee: '王磊', status: 'in_progress' },
+  { id: 't4', name: '前端开发', description: '实现用户界面原型', assignee: '刘洋', status: 'pending' },
+  { id: 't5', name: '后端开发', description: '实现核心业务逻辑', assignee: '陈静', status: 'pending' },
+  { id: 't6', name: '测试报告', description: '编写测试用例并执行', assignee: '张伟', status: 'pending' }
+]
+
+const completedSubTasks = computed<number>(() =>
+  subTasks.value.filter(t => t.status === 'completed').length
+)
+
+const taskProgressPercent = computed<number>(() => {
+  if (subTasks.value.length === 0) return 0
+  return Math.round((completedSubTasks.value / subTasks.value.length) * 100)
+})
+
+function statusLabel(status: SubTaskStatus): string {
+  switch (status) {
+    case 'completed': return '已完成'
+    case 'in_progress': return '进行中'
+    case 'pending': return '待开始'
   }
 }
 </script>
 
 <style scoped>
-.glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 1.5rem;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+.task-board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 1.5rem);
+  padding: var(--spacing-lg, 1.5rem);
+  height: 100%;
+  overflow-y: auto;
 }
 
-.hero-send-btn {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  color: white;
+.task-board__overview {
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: var(--spacing-lg, 1.5rem);
 }
 
-.hero-send-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
+.task-board__overview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
+.task-board__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-gray-800, #1e293b);
 }
 
-.custom-scrollbar-dark::-webkit-scrollbar {
-  width: 4px;
+.task-board__progress-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: var(--color-primary-50, #eef2ff);
+  border-radius: var(--radius-md, 0.5rem);
 }
-.custom-scrollbar-dark::-webkit-scrollbar-thumb {
-  background: #475569;
-  border-radius: 10px;
+
+.task-board__progress-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary-600, #4f46e5);
+}
+
+.task-board__progress-label {
+  font-size: 0.75rem;
+  color: var(--color-primary-500, #6366f1);
+}
+
+.task-board__description {
+  font-size: 0.875rem;
+  color: var(--color-gray-500, #64748b);
+  margin-bottom: var(--spacing-md, 1rem);
+}
+
+.task-board__progress-bar {
+  height: 6px;
+  background: var(--color-gray-100, #f1f5f9);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.task-board__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.task-board__list {
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: var(--spacing-lg, 1.5rem);
+}
+
+.task-board__section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-gray-800, #1e293b);
+  margin-bottom: var(--spacing-md, 1rem);
+}
+
+.task-board__items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.task-board__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-gray-100, #f1f5f9);
+  border-radius: var(--radius-md, 0.5rem);
+  transition: border-color 0.15s ease;
+}
+
+.task-board__item--completed {
+  border-left: 3px solid #22c55e;
+  background: rgba(34, 197, 94, 0.03);
+}
+
+.task-board__item--in_progress {
+  border-left: 3px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.03);
+}
+
+.task-board__item--pending {
+  border-left: 3px solid var(--color-gray-300, #cbd5e1);
+}
+
+.task-board__item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.task-board__item-check {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.task-board__check-icon {
+  color: #22c55e;
+  font-size: 1rem;
+}
+
+.task-board__progress-icon {
+  color: #f59e0b;
+  font-size: 1rem;
+}
+
+.task-board__pending-icon {
+  color: var(--color-gray-400, #94a3b8);
+  background: var(--color-gray-100, #f1f5f9);
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-board__item-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.task-board__item-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-gray-800, #1e293b);
+}
+
+.task-board__item-desc {
+  font-size: 0.75rem;
+  color: var(--color-gray-400, #94a3b8);
+}
+
+.task-board__item-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.task-board__item-assignee {
+  font-size: 0.75rem;
+  color: var(--color-gray-500, #64748b);
+}
+
+.task-board__item-status-tag {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.125rem 0.5rem;
+  border-radius: var(--radius-sm, 0.25rem);
+}
+
+.task-board__item-status-tag--completed {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+}
+
+.task-board__item-status-tag--in_progress {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+}
+
+.task-board__item-status-tag--pending {
+  background: var(--color-gray-100, #f1f5f9);
+  color: var(--color-gray-500, #64748b);
+}
+
+.task-board__deadline {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 1rem);
+  padding: var(--spacing-md, 1rem) var(--spacing-lg, 1.5rem);
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+}
+
+.task-board__deadline-icon {
+  font-size: 1.5rem;
+}
+
+.task-board__deadline-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.task-board__deadline-label {
+  font-size: 0.75rem;
+  color: var(--color-gray-500, #64748b);
+}
+
+.task-board__deadline-value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-gray-800, #1e293b);
 }
 </style>

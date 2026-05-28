@@ -1,95 +1,144 @@
 """
 Supervisor Agent — parses orchestration canvas JSON, detects AI-enabled nodes,
 and generates a parallel execution plan.
+
+Refactored to use data-driven routing via ai_spec_json instead of a hardcoded
+ROUTING_TABLE. Each node declares its AI requirements through ai_spec attached
+to the node in the canvas JSON.
 """
+
+import logging
 
 from models.schemas import AgentTask, AgentType, ExecutionPlan
 
+logger = logging.getLogger(__name__)
 
-# Node type → Agent type routing table
-ROUTING_TABLE: dict[str, AgentType] = {
-    "START": AgentType.TEXT,            # enable_ai_welcome
-    "RESOURCE_READ": AgentType.TEXT,    # enable_ai_summary, key_points, quick_nav
-    "VIDEO_LEARN": AgentType.VIDEO,     # enable_ai_subtitle, enable_ai_chapter
-    "MINDMAP_PREVIEW": AgentType.STRUCT,  # enable_ai_generate_map
-    "THEORY_CLASS": AgentType.EXAM,     # enable_ai_error_book (flashcards)
-    "TASK_DISTRIBUTE": AgentType.STRUCT,  # enable_ai_task_split
-    "HOMEWORK": AgentType.EXAM,         # source_mode == "ai"
-    "CODING_CLASS": AgentType.CODE,     # enable_code_review
-    "PLAN_UPLOAD": AgentType.CODE,      # enable_ai_pre_evaluation
-    "AI_PRACTICE": AgentType.TEXT,      # system prompt generation
-}
+# Valid agent type identifiers that can appear in ai_spec.target_agent
+VALID_AGENT_TYPES = {"TEXT", "STRUCT", "EXAM", "CODE", "VIDEO"}
 
 
-def _has_ai_flags(config: dict) -> bool:
+def _should_process_node(node: dict, ai_spec: dict | None) -> bool:
     """
-    Check whether a node's config contains any AI-processing flags.
+    Determine whether a node requires AI processing based on its ai_spec.
 
-    AI flags are:
-    - Any key starting with "enable_ai_" with value True
-    - "source_mode" == "ai"
-    - "enable_code_review" == True
-    - "enable_ai_pre_evaluation" == True (also caught by enable_ai_* prefix)
+    A node is processed when ALL of the following are true:
+    1. ai_spec is not None
+    2. ai_spec.target_agent is in the VALID_AGENT_TYPES set
+    3. At least one of:
+       - A flag listed in ai_spec.ai_flags is True in the node config
+       - The node config contains source_mode="ai"
+
+    Teacher overrides: fields listed in config.ai_processing._overrides are
+    considered already handled by the teacher and excluded from AI flag checks.
+
+    Args:
+        node: The raw node dict from the canvas JSON.
+        ai_spec: The ai_spec dict for this node (may be None).
+
+    Returns:
+        True if the node should be dispatched for AI processing.
     """
-    for key, value in config.items():
-        if key.startswith("enable_ai_") and value is True:
+    if ai_spec is None:
+        logger.warning(
+            "Node %s: ai_spec is null, skipping AI processing",
+            node.get("node_id", "unknown"),
+        )
+        return False
+
+    target_agent = ai_spec.get("target_agent", "")
+    if target_agent not in VALID_AGENT_TYPES:
+        logger.warning(
+            "Node %s: invalid target_agent '%s', skipping AI processing",
+            node.get("node_id", "unknown"),
+            target_agent,
+        )
+        return False
+
+    config = node.get("config", {})
+
+    # Determine teacher-overridden fields to skip
+    ai_processing = config.get("ai_processing", {})
+    overrides = ai_processing.get("_overrides", {})
+    overridden_fields: set[str] = {
+        field for field, is_overridden in overrides.items() if is_overridden
+    }
+
+    # Check if any declared AI flag is enabled (and not overridden)
+    ai_flags = ai_spec.get("ai_flags", [])
+    for flag in ai_flags:
+        if flag in overridden_fields:
+            continue
+        if config.get(flag) is True:
             return True
+
+    # Check for source_mode == "ai" (not subject to override check)
+    for key, value in config.items():
         if key == "source_mode" and value == "ai":
             return True
-        if key == "enable_code_review" and value is True:
-            return True
+
     return False
 
 
-def detect_ai_nodes(canvas_json: dict) -> list[AgentTask]:
+def detect_ai_nodes_phased(canvas_json: dict) -> list[AgentTask]:
     """
-    Traverse all nodes in the canvas JSON and identify nodes requiring AI processing.
+    Traverse all phases and nodes in the canvas JSON, building a prioritized
+    list of AgentTasks based on each node's ai_spec.
 
-    For each node:
-    1. Extract its config and check for AI flags.
-    2. If AI flags are present AND the node_type is in the routing table,
-       create exactly one AgentTask (no duplicates per node_id).
-    3. Nodes without AI flags or with node_types not in the routing table are skipped.
+    The canvas_json is expected to have the phased structure:
+    {
+        "orchestration_id": "...",
+        "phases": [
+            {
+                "phase_id": "...",
+                "phase_name": "...",
+                "sort_num": 1,
+                "nodes": [...],
+                "edges": [...]
+            },
+            ...
+        ]
+    }
+
+    Nodes are deduplicated by node_id. The returned list is sorted by priority
+    (lower number = higher priority).
 
     Args:
-        canvas_json: The raw canvas JSON dict containing "nodes" and "edges".
+        canvas_json: The raw canvas JSON dict with phased structure.
 
     Returns:
-        A list of AgentTask objects, one per AI-enabled node.
+        A sorted list of AgentTask objects for AI-enabled nodes.
     """
     tasks: list[AgentTask] = []
     seen_node_ids: set[str] = set()
-
     orchestration_id = canvas_json.get("orchestration_id", "unknown")
 
-    for node in canvas_json.get("nodes", []):
-        node_id = node.get("node_id", "")
-        node_type = node.get("node_type", "")
-        config = node.get("config", {})
+    for phase in canvas_json.get("phases", []):
+        for node in phase.get("nodes", []):
+            node_id = node.get("node_id", "")
+            if node_id in seen_node_ids:
+                continue
 
-        # Skip if we already created a task for this node_id (deduplication)
-        if node_id in seen_node_ids:
-            continue
+            ai_spec = node.get("ai_spec")
+            if not _should_process_node(node, ai_spec):
+                continue
 
-        # Skip nodes without AI flags
-        if not _has_ai_flags(config):
-            continue
+            target_agent = ai_spec["target_agent"]
+            priority = ai_spec.get("priority", 5)
 
-        # Skip node types not in the routing table
-        agent_type = ROUTING_TABLE.get(node_type)
-        if agent_type is None:
-            continue
+            task = AgentTask(
+                task_id=f"{orchestration_id}_{node_id}",
+                agent_type=AgentType(f"{target_agent}_AGENT"),
+                node_id=node_id,
+                node_type=node.get("node_type", ""),
+                config=node.get("config", {}),
+                priority=priority,
+                phase_id=phase.get("phase_id"),
+            )
+            tasks.append(task)
+            seen_node_ids.add(node_id)
 
-        task = AgentTask(
-            task_id=f"{orchestration_id}_{node_id}",
-            agent_type=agent_type,
-            node_id=node_id,
-            node_type=node_type,
-            config=config,
-        )
-        tasks.append(task)
-        seen_node_ids.add(node_id)
-
+    # Sort by priority (lower number = higher priority)
+    tasks.sort(key=lambda t: t.priority)
     return tasks
 
 
@@ -97,6 +146,9 @@ class SupervisorAgent:
     """
     Supervisor Agent responsible for analyzing orchestration canvas JSON
     and producing a parallel execution plan for domain agents.
+
+    Uses data-driven routing: each node's ai_spec declares which agent
+    should handle it, eliminating the need for a hardcoded routing table.
     """
 
     def analyze_orchestration(self, canvas_json: dict) -> ExecutionPlan:
@@ -104,14 +156,14 @@ class SupervisorAgent:
         Parse the canvas JSON, detect AI-enabled nodes, and return an ExecutionPlan.
 
         Args:
-            canvas_json: The raw canvas JSON dict with "nodes", "edges",
-                         and "orchestration_id".
+            canvas_json: The raw canvas JSON dict with phased structure
+                         containing "phases" and "orchestration_id".
 
         Returns:
-            An ExecutionPlan containing all parallel AgentTasks.
+            An ExecutionPlan containing all parallel AgentTasks sorted by priority.
         """
         orchestration_id = canvas_json.get("orchestration_id", "unknown")
-        tasks = detect_ai_nodes(canvas_json)
+        tasks = detect_ai_nodes_phased(canvas_json)
 
         return ExecutionPlan(
             orchestration_id=orchestration_id,

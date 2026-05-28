@@ -1,355 +1,459 @@
 <template>
-  <div style="height: 100%;">
-    <div class="glass-card w-full h-full p-6 flex flex-col z-10 relative overflow-hidden">
-      
-      <div class="flex justify-between items-center mb-6 shrink-0">
-        <div>
-          <div class="mb-1 text-xs font-bold text-indigo-400 tracking-widest uppercase">Node: MINDMAP_DRAWING</div>
-          <h2 class="text-2xl font-bold text-gray-800">思维导图绘制练习</h2>
-        </div>
-        
-        <div class="flex items-center gap-6">
-          <div class="flex items-center gap-3 bg-white/50 px-4 py-2 rounded-xl border border-indigo-100 shadow-sm">
-            <div class="flex flex-col items-end">
-              <p class="text-[10px] text-gray-400 uppercase font-bold tracking-tighter">当前节点数</p>
-              <p class="font-mono font-bold text-indigo-600">
-                <span class="text-xl">{{ currentNodeCount }}</span>
-                <span class="text-xs text-gray-400 ml-1">/ {{ minRequiredNodes }}</span>
-              </p>
-            </div>
-            <div class="w-10 h-10 flex items-center justify-center">
-              <svg class="w-8 h-8" :class="currentNodeCount >= minRequiredNodes ? 'text-green-500' : 'text-indigo-300'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-          </div>
-
-          <div class="flex gap-3">
-            <button @click="handleSave" class="px-6 py-3 rounded-xl border border-indigo-200 text-indigo-600 font-bold bg-white hover:bg-indigo-50 transition-all flex items-center gap-2">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>
-              暂存草稿
-            </button>
-            <button 
-              @click="handleSubmit"
-              class="hero-send-btn px-8 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2"
-              :class="{
-                'opacity-50 grayscale cursor-not-allowed': !isReadyToSubmit || isWaiting,
-                'hover:shadow-indigo-500/30': isReadyToSubmit && !isWaiting && isTeacherConfirmed
-              }"
-              :disabled="!isReadyToSubmit || isWaiting"
-            >
-              {{ isTeacherConfirmed ? '进入下一节点' : (isWaiting ? '等待教师进入下一节点' : '完成思维导图绘制，并提交') }}
-              <svg v-if="!isWaiting" style="width: 18px; height: 18px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-              <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-            </button>
-          </div>
-        </div>
+  <div class="mindmap-editor">
+    <!-- Toolbar -->
+    <header class="mindmap-editor__toolbar">
+      <div class="mindmap-editor__toolbar-left">
+        <h2 class="mindmap-editor__title">思维导图绘制</h2>
       </div>
-
-      <div class="flex-1 flex gap-6 min-h-0">
-        
-        <div class="flex-[3] flex flex-col bg-gray-50/50 rounded-2xl border border-gray-200/60 shadow-inner overflow-hidden relative group">
-          
-          <div class="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-1 p-1.5 bg-white/90 backdrop-blur shadow-xl border border-indigo-100 rounded-2xl z-20">
-            <button @mousedown.stop.prevent @click.stop.prevent="execCommand('INSERT_CHILD_NODE')" class="toolbar-btn" title="插入子节点 (Tab)">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-              <span class="text-[10px] mt-0.5">子节点</span>
-            </button>
-            <button @mousedown.stop.prevent @click.stop.prevent="execCommand('INSERT_NODE')" class="toolbar-btn" title="插入同级节点 (Enter)">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z" /></svg>
-              <span class="text-[10px] mt-0.5">同级节点</span>
-            </button>
-            <div class="w-px h-8 bg-gray-100 mx-1"></div>
-            <button @mousedown.stop.prevent @click.stop.prevent="execCommand('REMOVE_NODE')" class="toolbar-btn text-red-400 hover:text-red-500" title="删除节点 (Del)">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              <span class="text-[10px] mt-0.5">删除</span>
-            </button>
-            <div class="w-px h-8 bg-gray-100 mx-1"></div>
-            <button @mousedown.stop.prevent @click.stop.prevent="execCommand('BACK')" class="toolbar-btn" title="撤销 (Ctrl+Z)">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>
-            </button>
-            <button @mousedown.stop.prevent @click.stop.prevent="execCommand('FORWARD')" class="toolbar-btn" title="重做 (Ctrl+Y)">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2m18-10l-6 6m6-6l-6-6" /></svg>
-            </button>
-          </div>
-
-          <div ref="mindMapContainer" class="w-full h-full outline-none"></div>
-
-          <div class="absolute bottom-4 left-4 flex gap-2 z-10">
-            <button @click="handleZoomIn" class="p-2 bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-indigo-50 text-gray-600 transition-colors">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
-            </button>
-            <button @click="handleZoomOut" class="p-2 bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-indigo-50 text-gray-600 transition-colors">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg>
-            </button>
-            <button @click="handleFitView" class="p-2 bg-white rounded-lg border border-gray-200 shadow-sm hover:bg-indigo-50 text-gray-600 transition-colors">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16v16H4V4z" /></svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="flex-[1] min-w-[320px] max-w-[400px] flex flex-col gap-4">
-          <div class="flex-1 bg-white/60 border border-gray-200/60 rounded-2xl p-6 shadow-sm flex flex-col overflow-hidden">
-            
-            <div v-if="activeNodeId" class="h-full flex flex-col">
-              <div class="shrink-0 mb-6 flex justify-between items-end">
-                <div>
-                  <span class="px-2 py-1 bg-indigo-500 text-white text-[10px] font-bold rounded uppercase tracking-wider">Node Editor</span>
-                  <h3 class="text-xl font-bold text-gray-800 mt-2">编辑知识点</h3>
-                </div>
-                <button 
-                  @click="saveCurrentNode" 
-                  class="px-5 py-2 bg-indigo-600 text-white text-sm font-bold rounded-lg shadow-md hover:bg-indigo-700 transition-colors flex items-center gap-1"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                  确定
-                </button>
-              </div>
-              
-              <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 mb-4 space-y-6">
-                <div class="space-y-2">
-                  <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">节点名称 (显示文本)</label>
-                  <input 
-                    v-model="formData.text" 
-                    @blur="saveCurrentNode"
-                    @keydown.enter.prevent="saveCurrentNode"
-                    type="text" 
-                    placeholder="请输入节点标题..."
-                    class="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-sm font-medium"
-                  />
-                </div>
-                
-                <div class="space-y-2">
-                  <label class="text-xs font-bold text-gray-400 uppercase tracking-widest">知识点详细内容</label>
-                  <textarea 
-                    v-model="formData.note"
-                    @blur="saveCurrentNode"
-                    rows="8"
-                    placeholder="请输入该知识点的详细解析，保存后将会在节点右上角生成文档Tag..."
-                    class="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-sm leading-relaxed custom-scrollbar resize-none"
-                  ></textarea>
-                </div>
-              </div>
-            </div>
-
-            <div v-else class="h-full flex flex-col items-center justify-center text-center">
-              <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-300">
-                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
-              </div>
-              <p class="text-gray-400 text-sm italic">点击画布中的节点<br/>开始完善知识点内容</p>
-            </div>
-
-          </div>
-        </div>
+      <div class="mindmap-editor__toolbar-actions">
+        <button class="mindmap-editor__tool-btn" @click="addNode">
+          ➕ 添加节点
+        </button>
+        <button class="mindmap-editor__tool-btn" @click="deleteSelected">
+          🗑️ 删除
+        </button>
+        <button class="mindmap-editor__tool-btn mindmap-editor__tool-btn--submit" @click="handleSubmit">
+          📤 提交评估
+        </button>
       </div>
+    </header>
 
+    <!-- Canvas Area -->
+    <div class="mindmap-editor__canvas-wrapper">
+      <div class="mindmap-editor__canvas" @click="handleCanvasClick">
+        <!-- Rendered nodes -->
+        <div
+          v-for="node in mapNodes"
+          :key="node.id"
+          class="mindmap-editor__node"
+          :class="{
+            'mindmap-editor__node--selected': selectedNodeId === node.id,
+            'mindmap-editor__node--root': node.isRoot
+          }"
+          :style="{ left: `${node.x}px`, top: `${node.y}px` }"
+          draggable="true"
+          @mousedown.stop="startDrag(node.id, $event)"
+          @click.stop="selectNode(node.id)"
+        >
+          <input
+            v-if="editingNodeId === node.id"
+            class="mindmap-editor__node-input"
+            :value="node.label"
+            @blur="finishEdit"
+            @keydown.enter="finishEdit"
+            @input="updateNodeLabel(node.id, ($event.target as HTMLInputElement).value)"
+          />
+          <span v-else class="mindmap-editor__node-label" @dblclick="startEdit(node.id)">
+            {{ node.label }}
+          </span>
+        </div>
+
+        <!-- Connection lines (SVG) -->
+        <svg class="mindmap-editor__connections">
+          <line
+            v-for="edge in edges"
+            :key="`${edge.from}-${edge.to}`"
+            :x1="getNodeCenter(edge.from).x"
+            :y1="getNodeCenter(edge.from).y"
+            :x2="getNodeCenter(edge.to).x"
+            :y2="getNodeCenter(edge.to).y"
+            class="mindmap-editor__edge"
+          />
+        </svg>
+      </div>
     </div>
+
+    <!-- AI Evaluation Result -->
+    <section v-if="aiEvaluation" class="mindmap-editor__evaluation">
+      <h3 class="mindmap-editor__eval-title">
+        <span class="mindmap-editor__ai-badge">AI</span>
+        结构评估结果
+      </h3>
+      <div class="mindmap-editor__eval-content">
+        <div class="mindmap-editor__eval-score">
+          <span class="mindmap-editor__eval-score-value">{{ aiEvaluation.score }}</span>
+          <span class="mindmap-editor__eval-score-label">/100</span>
+        </div>
+        <div class="mindmap-editor__eval-dimensions">
+          <div
+            v-for="dim in aiEvaluation.dimensions"
+            :key="dim.name"
+            class="mindmap-editor__eval-dim"
+          >
+            <span class="mindmap-editor__eval-dim-name">{{ dim.name }}</span>
+            <span class="mindmap-editor__eval-dim-score">{{ dim.score }}分</span>
+          </div>
+        </div>
+        <p class="mindmap-editor__eval-comment">{{ aiEvaluation.comment }}</p>
+      </div>
+    </section>
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
-import MindMap from 'simple-mind-map'
+<script setup lang="ts">
+import { ref, computed } from 'vue'
 
-const router = useRouter()
-
-const minRequiredNodes = 8
-const currentNodeCount = ref(1)
-const mindMapContainer = ref(null)
-let mindMapInstance = null
-
-// 视图层双向绑定数据
-const activeNodeId = ref(null)
-const formData = ref({ text: '', note: '' })
-
-// 按钮状态管理
-const isWaiting = ref(false) // 是否正在等待教师确认
-const isTeacherConfirmed = ref(false) // 教师是否已确认
-
-// 核心修复：状态机互斥锁，防止程序保存时触发节点重绘导致的死循环
-let isInternalStateUpdate = false
-
-const initialData = {
-  data: {
-    text: 'Python 数组实训成果',
-    note: '我的实训总结'
-  },
-  children: []
+interface MapNode {
+  id: string
+  label: string
+  x: number
+  y: number
+  isRoot: boolean
+  parentId: string | null
 }
 
-onMounted(() => {
-  mindMapInstance = new MindMap({
-    el: mindMapContainer.value,
-    direction: 'right',
-    theme: 'fresh-purple',
-    data: initialData,
-    fit: true,
-    mouseScaleBehavior: 'zoom',
-    readonly: false,
-    themeConfig: {
-      // 强制设定 shape 为 'rectangle'，彻底解决 3 级节点无边框问题
-      root: { shape: 'rectangle', fillColor: '#6366f1', color: '#ffffff', borderColor: '#4f46e5', borderWidth: 2 },
-      second: { shape: 'rectangle', fillColor: '#ffffff', borderColor: '#549688', color: '#334155', borderWidth: 2 },
-      node: { shape: 'rectangle', fillColor: '#ffffff', borderColor: '#549688', color: '#334155', borderWidth: 1 },
-      // 配置 note 标签显示 - 使用简单配置
-      note: {
-        show: true
-      }
-    }
-  })
+interface MapEdge {
+  from: string
+  to: string
+}
 
-  // 监听画布节点主动切换
-  mindMapInstance.on('node_active', (node, activeNodeList) => {
-    // 切换节点前先保存当前编辑的内容
-    if (activeNodeId.value && activeNodeList.length > 0) {
-      const newActiveId = activeNodeList[0].uid
-      if (activeNodeId.value !== newActiveId) {
-        saveCurrentNode()
-      }
-    }
+interface EvalDimension {
+  name: string
+  score: number
+}
 
-    if (activeNodeList.length > 0) {
-      const currentActive = activeNodeList[0]
-      activeNodeId.value = currentActive.uid
-      formData.value.text = currentActive.nodeData.data.text || ''
-      formData.value.note = currentActive.nodeData.data.note || ''
-    } else {
-      // 点击画布空白处时，先保存再关闭侧边栏
-      saveCurrentNode()
-      activeNodeId.value = null
-    }
-  })
+interface AiEvaluation {
+  score: number
+  dimensions: EvalDimension[]
+  comment: string
+}
 
-  mindMapInstance.on('data_change', (data) => {
-    currentNodeCount.value = countNodes(data)
-  })
+interface MindMapEditorConfig {
+  display?: {
+    topic?: string
+  }
+  ai_processing?: {
+    enable_ai_structure_eval?: boolean
+  }
+  [key: string]: unknown
+}
+
+const props = defineProps<{
+  nodeInstanceId: number
+  nodeConfig: MindMapEditorConfig
+}>()
+
+const emit = defineEmits<{
+  complete: []
+}>()
+
+/** Canvas nodes */
+const mapNodes = ref<MapNode[]>([
+  { id: 'root', label: '中心主题', x: 300, y: 200, isRoot: true, parentId: null },
+  { id: 'n1', label: '分支一', x: 150, y: 100, isRoot: false, parentId: 'root' },
+  { id: 'n2', label: '分支二', x: 450, y: 100, isRoot: false, parentId: 'root' },
+  { id: 'n3', label: '分支三', x: 150, y: 300, isRoot: false, parentId: 'root' },
+  { id: 'n4', label: '子节点', x: 50, y: 50, isRoot: false, parentId: 'n1' }
+])
+
+/** Edges derived from parent relationships */
+const edges = computed<MapEdge[]>(() =>
+  mapNodes.value
+    .filter(n => n.parentId !== null)
+    .map(n => ({ from: n.parentId!, to: n.id }))
+)
+
+const selectedNodeId = ref<string | null>(null)
+const editingNodeId = ref<string | null>(null)
+const dragNodeId = ref<string | null>(null)
+const dragOffset = ref<{ x: number; y: number }>({ x: 0, y: 0 })
+
+/** Placeholder AI evaluation */
+const aiEvaluation = ref<AiEvaluation | null>({
+  score: 75,
+  dimensions: [
+    { name: '结构完整性', score: 80 },
+    { name: '层次合理性', score: 70 },
+    { name: '覆盖度', score: 72 },
+    { name: '逻辑关联', score: 78 }
+  ],
+  comment: '思维导图结构基本合理，建议增加更多子节点以提高知识覆盖度，部分分支层次可进一步细化。'
 })
 
-onBeforeUnmount(() => {
-  if (mindMapInstance) mindMapInstance.destroy()
-})
-
-// 画布基础指令
-const execCommand = (cmd) => {
-  if (!mindMapInstance) return
-  
-  // 对于需要选中节点的命令，检查是否有选中的节点
-  const activeNodes = mindMapInstance.renderer.activeNodeList
-  if ((cmd === 'INSERT_CHILD_NODE' || cmd === 'INSERT_NODE') && activeNodes.length === 0) {
-    // 如果没有选中节点，自动选中根节点
-    const rootNode = mindMapInstance.renderer.rootNode
-    if (rootNode) {
-      mindMapInstance.execCommand('CLEAR_ACTIVE_NODE')
-      mindMapInstance.renderer.addActiveNode(rootNode)
-    }
-  }
-  
-  mindMapInstance.execCommand(cmd)
+function selectNode(nodeId: string) {
+  selectedNodeId.value = nodeId
 }
 
-// 保存当前节点内容
-const saveCurrentNode = () => {
-  if (!mindMapInstance || !activeNodeId.value) return
-  
-  const targetNode = mindMapInstance.renderer.findNodeByUid(activeNodeId.value)
-  if (!targetNode) return
+function startEdit(nodeId: string) {
+  editingNodeId.value = nodeId
+}
 
-  // Diff 检查：防止无意义的覆盖
-  const oldText = targetNode.nodeData.data.text || ''
-  const oldNote = targetNode.nodeData.data.note || ''
-  
-  // 只有当内容真正改变时才保存
-  if (oldText !== formData.value.text || oldNote !== formData.value.note) {
-    // 直接修改节点数据
-    targetNode.nodeData.data.text = formData.value.text
-    targetNode.nodeData.data.note = formData.value.note
-    
-    // 触发数据变更事件，确保视图更新
-    if (mindMapInstance.renderer) {
-      mindMapInstance.renderer.render()
-    }
+function finishEdit() {
+  editingNodeId.value = null
+}
+
+function updateNodeLabel(nodeId: string, label: string) {
+  const node = mapNodes.value.find(n => n.id === nodeId)
+  if (node) {
+    node.label = label
   }
 }
 
-// 切换节点前保存当前内容
-const saveBeforeSwitch = () => {
-  if (activeNodeId.value) {
-    saveCurrentNode()
+function addNode() {
+  const parentId = selectedNodeId.value ?? 'root'
+  const parent = mapNodes.value.find(n => n.id === parentId)
+  const newId = `n_${Date.now()}`
+  mapNodes.value.push({
+    id: newId,
+    label: '新节点',
+    x: (parent?.x ?? 300) + 100 + Math.random() * 50,
+    y: (parent?.y ?? 200) + 80 + Math.random() * 50,
+    isRoot: false,
+    parentId
+  })
+  selectedNodeId.value = newId
+  editingNodeId.value = newId
+}
+
+function deleteSelected() {
+  if (!selectedNodeId.value || selectedNodeId.value === 'root') return
+  mapNodes.value = mapNodes.value.filter(n => n.id !== selectedNodeId.value && n.parentId !== selectedNodeId.value)
+  selectedNodeId.value = null
+}
+
+function startDrag(nodeId: string, event: MouseEvent) {
+  dragNodeId.value = nodeId
+  const node = mapNodes.value.find(n => n.id === nodeId)
+  if (node) {
+    dragOffset.value = { x: event.clientX - node.x, y: event.clientY - node.y }
+  }
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+}
+
+function onDrag(event: MouseEvent) {
+  if (!dragNodeId.value) return
+  const node = mapNodes.value.find(n => n.id === dragNodeId.value)
+  if (node) {
+    node.x = event.clientX - dragOffset.value.x
+    node.y = event.clientY - dragOffset.value.y
   }
 }
 
-const handleZoomIn = () => mindMapInstance?.view.enlarge()
-const handleZoomOut = () => mindMapInstance?.view.narrow()
-const handleFitView = () => mindMapInstance?.view.fit()
-
-const isReadyToSubmit = computed(() => currentNodeCount.value >= minRequiredNodes)
-
-const handleSave = () => alert('草稿暂存成功')
-
-const handleSubmit = () => {
-  if (!isReadyToSubmit.value || isWaiting.value) return
-  
-  if (!isTeacherConfirmed.value) {
-    // 第一次点击：标记完成，进入等待状态
-    isWaiting.value = true
-    
-    // 模拟1秒后教师确认
-    setTimeout(() => {
-      isWaiting.value = false
-      isTeacherConfirmed.value = true
-    }, 1000)
-  } else {
-    // 教师确认后：进入下一节点
-    router.push('/student/training/summary-report')
-  }
+function stopDrag() {
+  dragNodeId.value = null
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
 }
 
-function countNodes(node) {
-  let count = 1
-  if (node.children && node.children.length > 0) {
-    node.children.forEach(child => { count += countNodes(child) })
-  }
-  return count
+function handleCanvasClick() {
+  selectedNodeId.value = null
+}
+
+function getNodeCenter(nodeId: string): { x: number; y: number } {
+  const node = mapNodes.value.find(n => n.id === nodeId)
+  if (!node) return { x: 0, y: 0 }
+  return { x: node.x + 50, y: node.y + 16 }
+}
+
+function handleSubmit() {
+  emit('complete')
 }
 </script>
 
 <style scoped>
-.glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 1.5rem;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.07);
+.mindmap-editor {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
-.toolbar-btn {
-  @apply flex flex-col items-center justify-center w-14 h-14 rounded-xl text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-all;
+.mindmap-editor__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem var(--spacing-md, 1rem);
+  background: var(--color-white, #ffffff);
+  border-bottom: 1px solid var(--color-gray-200, #e2e8f0);
 }
 
-.hero-send-btn {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+.mindmap-editor__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-gray-800, #1e293b);
+}
+
+.mindmap-editor__toolbar-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mindmap-editor__tool-btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-gray-600, #475569);
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-sm, 0.25rem);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.mindmap-editor__tool-btn:hover {
+  background: var(--color-gray-50, #f8fafc);
+}
+
+.mindmap-editor__tool-btn--submit {
+  background: var(--color-primary-500, #6366f1);
+  color: white;
+  border-color: var(--color-primary-500, #6366f1);
+}
+
+.mindmap-editor__tool-btn--submit:hover {
+  background: var(--color-primary-600, #4f46e5);
+}
+
+.mindmap-editor__canvas-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  background: var(--color-gray-50, #f8fafc);
+}
+
+.mindmap-editor__canvas {
+  position: relative;
+  width: 800px;
+  height: 500px;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.mindmap-editor__connections {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.mindmap-editor__edge {
+  stroke: var(--color-gray-300, #cbd5e1);
+  stroke-width: 2;
+}
+
+.mindmap-editor__node {
+  position: absolute;
+  padding: 0.375rem 0.75rem;
+  background: var(--color-white, #ffffff);
+  border: 2px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-md, 0.5rem);
+  cursor: grab;
+  user-select: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  min-width: 80px;
+  text-align: center;
+}
+
+.mindmap-editor__node:hover {
+  border-color: var(--color-primary-300, #a5b4fc);
+}
+
+.mindmap-editor__node--selected {
+  border-color: var(--color-primary-500, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.mindmap-editor__node--root {
+  background: var(--color-primary-50, #eef2ff);
+  border-color: var(--color-primary-300, #a5b4fc);
+  font-weight: 700;
+}
+
+.mindmap-editor__node-label {
+  font-size: 0.8125rem;
+  color: var(--color-gray-800, #1e293b);
+}
+
+.mindmap-editor__node-input {
+  font-size: 0.8125rem;
+  border: none;
+  outline: none;
+  background: transparent;
+  text-align: center;
+  width: 100%;
+  color: var(--color-gray-800, #1e293b);
+}
+
+.mindmap-editor__evaluation {
+  padding: var(--spacing-md, 1rem) var(--spacing-lg, 1.5rem);
+  background: var(--color-white, #ffffff);
+  border-top: 1px solid var(--color-gray-200, #e2e8f0);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.mindmap-editor__eval-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-gray-800, #1e293b);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mindmap-editor__ai-badge {
+  font-size: 0.5625rem;
+  font-weight: 700;
+  padding: 0.0625rem 0.25rem;
+  border-radius: 2px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
   color: white;
 }
 
-.hero-send-btn:not(:disabled):hover {
-  transform: translateY(-2px);
+.mindmap-editor__eval-content {
+  display: flex;
+  gap: var(--spacing-md, 1rem);
+  align-items: flex-start;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
+.mindmap-editor__eval-score {
+  display: flex;
+  align-items: baseline;
 }
 
-:deep(.smm-canvas) {
-  outline: none !important;
+.mindmap-editor__eval-score-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-primary-600, #4f46e5);
 }
 
-:deep(.smm-node.active) {
-  outline: 2px solid #6366f1 !important;
-  outline-offset: 2px;
+.mindmap-editor__eval-score-label {
+  font-size: 0.75rem;
+  color: var(--color-gray-400, #94a3b8);
+}
+
+.mindmap-editor__eval-dimensions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mindmap-editor__eval-dim {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--color-gray-50, #f8fafc);
+  border-radius: var(--radius-sm, 0.25rem);
+  font-size: 0.75rem;
+}
+
+.mindmap-editor__eval-dim-name {
+  color: var(--color-gray-600, #475569);
+}
+
+.mindmap-editor__eval-dim-score {
+  font-weight: 600;
+  color: var(--color-primary-600, #4f46e5);
+}
+
+.mindmap-editor__eval-comment {
+  font-size: 0.8125rem;
+  color: var(--color-gray-500, #64748b);
+  line-height: 1.5;
+  flex: 1;
 }
 </style>

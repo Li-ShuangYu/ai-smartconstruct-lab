@@ -1,286 +1,626 @@
 <template>
-  <div style="height: 100%;">
-    
-    <div class="glass-card w-full h-full p-8 md:p-6 flex flex-col md:flex-row gap-10 z-10" >
-      
-      <div class="flex-1 flex flex-col">
-        <div class="mb-2 text-xs font-bold text-indigo-400 tracking-widest uppercase">Node: PLAN_UPLOAD</div>
-        <h1 class="text-3xl font-bold mb-6 text-gray-800">方案文件上传</h1>
-        
-        <div class="bg-indigo-50/50 border border-indigo-100 rounded-2xl p-6 mb-6 shadow-sm flex-1">
-          <h3 class="font-bold text-indigo-900 mb-4 flex items-center gap-2">
-            <svg class="text-indigo-500" style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            上传具体要求
-          </h3>
-          <p class="text-gray-600 leading-relaxed whitespace-pre-wrap text-sm">{{ nodeConfig.uploadReq }}</p>
-        </div>
+  <div class="plan-upload">
+    <!-- Loading State -->
+    <div v-if="store.loading" class="plan-upload__loading">
+      <div class="plan-upload__loading-spinner"></div>
+      <p class="plan-upload__loading-text">加载 AI 分析数据中...</p>
+    </div>
 
-        <div class="flex items-center gap-3 text-sm">
-          <span class="text-gray-500">允许的文件格式：</span>
-          <div class="flex gap-2">
-            <span v-for="fmt in allowedFormats" :key="fmt" class="px-2 py-1 bg-gray-100 text-gray-600 font-bold rounded uppercase border border-gray-200">
-              .{{ fmt }}
+    <!-- Error State -->
+    <div v-else-if="store.error && !store.hasAnalysis" class="plan-upload__error">
+      <p class="plan-upload__error-text">{{ store.error }}</p>
+      <button class="plan-upload__retry-btn" @click="loadData">重试</button>
+    </div>
+
+    <!-- Main Content -->
+    <template v-else>
+      <!-- Upload Section -->
+      <section class="plan-upload__upload">
+        <h2 class="plan-upload__title">方案文档上传</h2>
+        <div
+          class="plan-upload__dropzone"
+          :class="{ 'plan-upload__dropzone--active': isDragging }"
+          @dragover.prevent="isDragging = true"
+          @dragleave="isDragging = false"
+          @drop.prevent="handleDrop"
+        >
+          <div class="plan-upload__dropzone-icon">📋</div>
+          <p class="plan-upload__dropzone-text">拖拽方案文件到此处，或点击上传</p>
+          <p class="plan-upload__dropzone-hint">支持 .doc, .docx, .pdf, .pptx 格式</p>
+          <input
+            type="file"
+            class="plan-upload__file-input"
+            accept=".doc,.docx,.pdf,.pptx"
+            @change="handleFileSelect"
+          />
+        </div>
+        <div v-if="uploadedFile" class="plan-upload__file-info">
+          <span class="plan-upload__file-name">{{ uploadedFile.name }}</span>
+          <span class="plan-upload__file-size">{{ formatFileSize(uploadedFile.size) }}</span>
+          <button class="plan-upload__file-remove" @click="removeFile">✕</button>
+        </div>
+      </section>
+
+      <!-- AI Feasibility Radar Chart -->
+      <section v-if="store.hasAnalysis" class="plan-upload__radar">
+        <h3 class="plan-upload__section-title">
+          <span class="plan-upload__ai-badge">AI</span>
+          可行性分析雷达图
+        </h3>
+        <div class="plan-upload__radar-chart">
+          <!-- Simplified radar visualization using CSS -->
+          <div class="plan-upload__radar-grid">
+            <div
+              v-for="dimension in store.dimensions"
+              :key="dimension.name"
+              class="plan-upload__radar-axis"
+            >
+              <div class="plan-upload__radar-bar">
+                <div
+                  class="plan-upload__radar-fill"
+                  :style="{ height: `${dimension.score}%` }"
+                ></div>
+              </div>
+              <span class="plan-upload__radar-label">{{ dimension.name }}</span>
+              <span class="plan-upload__radar-score">{{ dimension.score }}</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Empty State: No AI Analysis Yet -->
+      <section v-else class="plan-upload__empty">
+        <div class="plan-upload__empty-icon">🔍</div>
+        <p class="plan-upload__empty-title">暂无 AI 可行性分析</p>
+        <p class="plan-upload__empty-hint">上传方案文档后，AI 将自动进行可行性分析</p>
+      </section>
+
+      <!-- Dimension Scores Detail (only when analysis available) -->
+      <section v-if="store.hasAnalysis" class="plan-upload__scores">
+        <h3 class="plan-upload__section-title">维度评分详情</h3>
+        <div class="plan-upload__score-list">
+          <div
+            v-for="dimension in store.dimensions"
+            :key="dimension.name"
+            class="plan-upload__score-item"
+          >
+            <div class="plan-upload__score-header">
+              <span class="plan-upload__score-name">{{ dimension.name }}</span>
+              <span class="plan-upload__score-value">{{ dimension.score }}/100</span>
+            </div>
+            <div class="plan-upload__score-bar">
+              <div
+                class="plan-upload__score-fill"
+                :style="{ width: `${dimension.score}%` }"
+                :class="getScoreClass(dimension.score)"
+              ></div>
+            </div>
+            <p class="plan-upload__score-feedback">{{ dimension.feedback }}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Submission Status (after successful submit) -->
+      <section v-if="store.submitResult" class="plan-upload__status">
+        <h3 class="plan-upload__section-title">提交状态</h3>
+        <div class="plan-upload__status-card">
+          <div class="plan-upload__status-row">
+            <span class="plan-upload__status-label">提交状态</span>
+            <span class="plan-upload__status-value plan-upload__status-value--success">已提交</span>
+          </div>
+          <div class="plan-upload__status-row">
+            <span class="plan-upload__status-label">AI 评审</span>
+            <span class="plan-upload__status-value plan-upload__status-value--pending">
+              {{ store.submitResult.aiReviewStatus === 'pending' ? '等待评审中...' : store.submitResult.aiReviewStatus }}
             </span>
           </div>
         </div>
+      </section>
+
+      <!-- Error message during submission -->
+      <div v-if="store.error && !store.loading" class="plan-upload__submit-error">
+        <p class="plan-upload__error-text">{{ store.error }}</p>
       </div>
 
-      <div class="flex-[1.2] flex flex-col justify-center relative">
-        
-        <div v-if="status === 'rejected'" class="mb-4 flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl animate-fade-in shadow-sm">
-           <svg class="text-red-500 mt-0.5" style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-           <div>
-             <h4 class="text-sm font-bold text-red-700">方案被驳回打回</h4>
-             <p class="text-xs text-red-600 mt-1">教师留言：请重新核对 Python 数组知识点覆盖完整性，缺少切片操作和深拷贝的内容，请修改后重新上传。</p>
-           </div>
-        </div>
-
-        <div 
-          class="flex-1 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center p-8 transition-all duration-300 relative overflow-hidden group"
-          :class="[
-            isDragging ? 'border-indigo-500 bg-indigo-50/50' : 'border-gray-300 bg-white/40 hover:border-indigo-400 hover:bg-white/60',
-            status === 'success' ? 'border-green-400 bg-green-50/30' : ''
-          ]"
-          @dragover.prevent="isDragging = true"
-          @dragleave.prevent="isDragging = false"
-          @drop.prevent="handleDrop"
+      <!-- Submit -->
+      <section class="plan-upload__footer">
+        <button
+          class="plan-upload__submit-btn"
+          :disabled="!uploadedFile || store.submitting"
+          @click="handleSubmit"
         >
-          <input type="file" ref="fileInput" class="hidden" :accept="acceptString" @change="handleFileSelect">
-
-          <template v-if="status === 'idle' || status === 'rejected'">
-            <div class="w-20 h-20 rounded-full bg-indigo-50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-inner">
-              <svg class="text-indigo-400" style="width: 40px; height: 40px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
-            </div>
-            <h3 class="text-lg font-bold text-gray-700 mb-2">点击或将文件拖拽到此处</h3>
-            <p class="text-sm text-gray-500 text-center">支持 {{ nodeConfig.format }} 格式<br>文件大小不超过 50MB</p>
-            <button @click="$refs.fileInput.click()" class="mt-6 px-6 py-2.5 bg-white border border-gray-200 text-indigo-600 font-bold rounded-lg hover:border-indigo-300 hover:shadow-md transition-all">
-              选择本地文件
-            </button>
-          </template>
-
-          <template v-else-if="status === 'uploading'">
-            <svg class="text-indigo-500 mb-4" style="width: 48px; height: 48px; animation: spin 1s linear infinite;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-            <h3 class="text-lg font-bold text-gray-700 mb-4">正在上传中...</h3>
-            <div class="w-full max-w-xs bg-gray-200 rounded-full h-2">
-              <div class="bg-indigo-500 h-2 rounded-full transition-all duration-300" :style="{ width: uploadProgress + '%' }"></div>
-            </div>
-            <span class="text-xs text-gray-500 mt-2">{{ uploadProgress }}%</span>
-          </template>
-
-          <template v-else-if="status === 'success'">
-            <div class="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-6 shadow-inner animate-pop-in">
-              <svg class="text-green-500" style="width: 40px; height: 40px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-            </div>
-            <h3 class="text-lg font-bold text-gray-800 mb-2">文件上传成功</h3>
-            <div class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-100 rounded-lg shadow-sm mb-6">
-               <svg class="text-gray-400" style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-               <span class="text-sm font-medium text-gray-700 truncate max-w-[200px]">{{ selectedFile?.name || '设计方案v1.pdf' }}</span>
-            </div>
-            <button @click="resetUpload" class="text-sm text-indigo-500 hover:text-indigo-600 underline">重新上传</button>
-          </template>
-
-          <template v-else-if="status === 'analyzing'">
-            <svg class="text-indigo-500 mb-4" style="width: 48px; height: 48px; animation: spin 1s linear infinite;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-            <h3 class="text-lg font-bold text-gray-700 mb-4">AI 正在分析方案结构...</h3>
-            <div class="w-full max-w-xs bg-gray-200 rounded-full h-2">
-              <div class="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300" :style="{ width: analysisProgress + '%' }"></div>
-            </div>
-            <span class="text-xs text-gray-500 mt-2">{{ analysisProgress }}%</span>
-          </template>
-
-          <template v-else-if="status === 'analyzed'">
-            <div class="w-20 h-20 rounded-full bg-purple-100 flex items-center justify-center mb-6 shadow-inner animate-pop-in">
-              <svg class="text-purple-500" style="width: 40px; height: 40px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-            </div>
-            <h3 class="text-lg font-bold text-gray-800 mb-3">AI 分析完成</h3>
-            <div class="w-full max-w-sm bg-white border border-gray-100 rounded-xl p-4 shadow-sm mb-4 text-left">
-              <h4 class="text-xs font-bold text-gray-400 uppercase mb-2">方案结构分析</h4>
-              <p class="text-sm text-gray-600 leading-relaxed">{{ analysisResult.structure }}</p>
-              <h4 class="text-xs font-bold text-gray-400 uppercase mb-2 mt-3">问题点标注</h4>
-              <ul class="text-xs text-red-500 space-y-1">
-                <li v-for="(issue, index) in analysisResult.issues" :key="index" class="flex items-start gap-1">
-                  <span class="mt-0.5">•</span>
-                  <span>{{ issue }}</span>
-                </li>
-              </ul>
-              <h4 class="text-xs font-bold text-gray-400 uppercase mb-2 mt-3">优化建议</h4>
-              <p class="text-sm text-green-600 leading-relaxed">{{ analysisResult.suggestion }}</p>
-            </div>
-            <button @click="resetUpload" class="text-sm text-indigo-500 hover:text-indigo-600 underline">重新上传并分析</button>
-          </template>
-
-        </div>
-
-        <div class="mt-6 space-y-3">
-          <button 
-            v-if="status === 'success'"
-            @click="submitAndAnalyze"
-            class="w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all bg-indigo-600 text-white font-bold hover:bg-indigo-700 flex items-center justify-center gap-2"
-          >
-            <svg style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
-            提交方案并进行AI分析
-          </button>
-          <button 
-            v-else-if="status === 'analyzed'"
-            class="hero-send-btn w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
-            :class="{
-              'opacity-50 grayscale cursor-not-allowed': isWaiting,
-              'hover:shadow-indigo-500/30': !isWaiting && isTeacherConfirmed
-            }"
-            :disabled="isWaiting"
-            @click="handleComplete"
-          >
-            {{ isTeacherConfirmed ? '进入下一节点' : (isWaiting ? '等待教师进入下一节点' : '完成，进入下一环节') }}
-            <svg v-if="!isWaiting" style="width: 16px; height: 16px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-            <svg v-else class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-          </button>
-          <button 
-            v-else
-            disabled
-            class="w-full justify-center text-base py-3.5 rounded-xl shadow-lg transition-all opacity-50 grayscale cursor-not-allowed bg-gray-400 text-white font-bold"
-          >
-            请先上传方案文件
-          </button>
-        </div>
-
-      </div>
-    </div>
+          {{ store.submitting ? '提交中...' : '提交方案' }}
+        </button>
+      </section>
+    </template>
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
+import { usePlanUploadStore } from '@/stores/modules/planUpload.store'
 
-const router = useRouter()
-
-const nodeConfig = ref({
-  format: 'pdf,docx',
-  uploadReq: '1. 方案需包含 Python 数组（列表）的核心知识点思维导图或架构图。\n2. 需详细说明数组常用操作方法、时间复杂度分析及使用注意事项。\n3. 文档排版清晰，需使用提供的标准化模板撰写。\n4. 建议包含典型应用场景和常见错误案例分析。'
-})
-
-// 按钮状态管理
-const isWaiting = ref(false) // 是否正在等待教师确认
-const isTeacherConfirmed = ref(false) // 教师是否已确认
-
-const allowedFormats = computed(() => nodeConfig.value.format.split(',').map(f => f.trim()))
-const acceptString = computed(() => allowedFormats.value.map(f => `.${f}`).join(','))
-
-const isDragging = ref(false)
-const status = ref('idle') // idle, uploading, success, analyzing, analyzed, rejected
-const uploadProgress = ref(0)
-const analysisProgress = ref(0)
-const selectedFile = ref(null)
-const analysisResult = ref({
-  structure: '',
-  issues: [],
-  suggestion: ''
-})
-
-// 模拟文件校验与上传
-const processFile = (file) => {
-  if (!file) return
-  
-  // 校验后缀名
-  const ext = file.name.split('.').pop().toLowerCase()
-  if (!allowedFormats.value.includes(ext)) {
-    alert(`仅支持 ${nodeConfig.value.format} 格式的文件！`)
-    return
+interface PlanUploadConfig {
+  display?: {
+    title?: string
   }
-
-  selectedFile.value = file
-  status.value = 'uploading'
-  uploadProgress.value = 0
-
-  // 模拟上传进度
-  const timer = setInterval(() => {
-    uploadProgress.value += Math.floor(Math.random() * 20) + 5
-    if (uploadProgress.value >= 100) {
-      uploadProgress.value = 100
-      clearInterval(timer)
-      setTimeout(() => { status.value = 'success' }, 300)
-    }
-  }, 200)
+  ai_processing?: {
+    enable_ai_feasibility?: boolean
+  }
+  [key: string]: unknown
 }
 
-const handleFileSelect = (e) => {
-  processFile(e.target.files[0])
+const props = defineProps<{
+  nodeInstanceId: number
+  nodeConfig: PlanUploadConfig
+}>()
+
+const emit = defineEmits<{
+  complete: []
+}>()
+
+const store = usePlanUploadStore()
+
+const isDragging = ref<boolean>(false)
+const uploadedFile = ref<File | null>(null)
+
+/** Load AI analysis data and submission state on mount */
+onMounted(() => {
+  loadData()
+})
+
+/** Clean up store on unmount */
+onUnmounted(() => {
+  store.reset()
+})
+
+function loadData() {
+  store.loadNodeState(props.nodeInstanceId)
 }
 
-const handleDrop = (e) => {
+function handleDrop(event: DragEvent) {
   isDragging.value = false
-  processFile(e.dataTransfer.files[0])
+  const files = event.dataTransfer?.files
+  if (files && files.length > 0) {
+    const file = files[0]
+    if (file) uploadedFile.value = file
+  }
 }
 
-const resetUpload = () => {
-  status.value = 'idle'
-  selectedFile.value = null
-  uploadProgress.value = 0
-  analysisProgress.value = 0
-  analysisResult.value = { structure: '', issues: [], suggestion: '' }
+function handleFileSelect(event: Event) {
+  const target = event.target as HTMLInputElement
+  if (target.files && target.files.length > 0) {
+    const file = target.files[0]
+    if (file) uploadedFile.value = file
+  }
 }
 
-const submitAndAnalyze = () => {
-  status.value = 'analyzing'
-  analysisProgress.value = 0
-  
-  // 模拟 AI 分析进度
-  const timer = setInterval(() => {
-    analysisProgress.value += Math.floor(Math.random() * 15) + 5
-    if (analysisProgress.value >= 100) {
-      analysisProgress.value = 100
-      clearInterval(timer)
-      setTimeout(() => {
-        // 模拟 AI 分析结果
-        analysisResult.value = {
-          structure: '您的方案整体结构清晰，包含了 Python 数组的基本概念、常用方法、时间复杂度分析等核心内容。章节划分合理，逻辑连贯。',
-          issues: [
-            '缺少切片操作的详细说明和示例',
-            '深拷贝与浅拷贝的区别阐述不够清晰',
-            '建议增加更多实际应用场景案例',
-            '可变对象特性对程序的影响分析不足'
-          ],
-          suggestion: '建议补充切片操作的实战案例，特别是负数索引和步长参数的使用。增加深拷贝与浅拷贝的对比表格会更直观。'
-        }
-        status.value = 'analyzed'
-      }, 500)
-    }
-  }, 250)
+function removeFile() {
+  uploadedFile.value = null
 }
 
-// 开发调试用：可以暴露一个方法模拟被教师驳回
-const mockReject = () => {
-  status.value = 'rejected'
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-const handleComplete = () => {
-  if (isWaiting.value) return
-  
-  if (!isTeacherConfirmed.value) {
-    // 第一次点击：进入等待状态
-    isWaiting.value = true
-    
-    // 模拟1秒后教师确认
-    setTimeout(() => {
-      isWaiting.value = false
-      isTeacherConfirmed.value = true
-    }, 1000)
-  } else {
-    // 教师确认后：进入下一节点
-    router.push('/student/training/homework-engine')
+function getScoreClass(score: number): string {
+  if (score >= 80) return 'plan-upload__score-fill--high'
+  if (score >= 60) return 'plan-upload__score-fill--medium'
+  return 'plan-upload__score-fill--low'
+}
+
+async function handleSubmit() {
+  if (!uploadedFile.value) return
+
+  const success = await store.uploadAndSubmit(uploadedFile.value)
+  if (success) {
+    emit('complete')
   }
 }
 </script>
 
 <style scoped>
-.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+.plan-upload {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg, 1.5rem);
+  padding: var(--spacing-lg, 1.5rem);
+  height: 100%;
+  overflow-y: auto;
 }
-.animate-pop-in { animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-@keyframes popIn {
-  0% { opacity: 0; transform: scale(0.5); }
-  100% { opacity: 1; transform: scale(1); }
+
+.plan-upload__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-gray-800, #1e293b);
+  margin-bottom: var(--spacing-md, 1rem);
+}
+
+.plan-upload__upload {
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: var(--spacing-lg, 1.5rem);
+}
+
+.plan-upload__dropzone {
+  border: 2px dashed var(--color-gray-300, #cbd5e1);
+  border-radius: var(--radius-md, 0.5rem);
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.plan-upload__dropzone--active {
+  border-color: var(--color-primary-400, #818cf8);
+  background: var(--color-primary-50, #eef2ff);
+}
+
+.plan-upload__dropzone-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.plan-upload__dropzone-text {
+  font-size: 0.9375rem;
+  color: var(--color-gray-600, #475569);
+  font-weight: 500;
+}
+
+.plan-upload__dropzone-hint {
+  font-size: 0.75rem;
+  color: var(--color-gray-400, #94a3b8);
+  margin-top: 0.25rem;
+}
+
+.plan-upload__file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.plan-upload__file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: var(--spacing-sm, 0.75rem);
+  padding: 0.5rem 0.75rem;
+  background: var(--color-gray-50, #f8fafc);
+  border-radius: var(--radius-sm, 0.25rem);
+}
+
+.plan-upload__file-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-gray-700, #334155);
+  flex: 1;
+}
+
+.plan-upload__file-size {
+  font-size: 0.75rem;
+  color: var(--color-gray-400, #94a3b8);
+}
+
+.plan-upload__file-remove {
+  background: none;
+  border: none;
+  color: var(--color-gray-400, #94a3b8);
+  cursor: pointer;
+}
+
+.plan-upload__section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-gray-800, #1e293b);
+  margin-bottom: var(--spacing-md, 1rem);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.plan-upload__ai-badge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm, 0.25rem);
+  background: linear-gradient(135deg, var(--color-primary-500, #6366f1), var(--color-primary-600, #4f46e5));
+  color: var(--color-white, #ffffff);
+}
+
+.plan-upload__radar {
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: var(--spacing-lg, 1.5rem);
+}
+
+.plan-upload__radar-chart {
+  padding: var(--spacing-md, 1rem);
+}
+
+.plan-upload__radar-grid {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 160px;
+  padding: 0 var(--spacing-md, 1rem);
+}
+
+.plan-upload__radar-axis {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.plan-upload__radar-bar {
+  width: 2rem;
+  height: 120px;
+  background: var(--color-gray-100, #f1f5f9);
+  border-radius: var(--radius-sm, 0.25rem);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+}
+
+.plan-upload__radar-fill {
+  width: 100%;
+  background: linear-gradient(180deg, var(--color-primary-500, #6366f1), var(--color-primary-600, #4f46e5));
+  border-radius: var(--radius-sm, 0.25rem);
+  transition: height 0.5s ease;
+}
+
+.plan-upload__radar-label {
+  font-size: 0.6875rem;
+  color: var(--color-gray-600, #475569);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.plan-upload__radar-score {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-primary-600, #4f46e5);
+}
+
+.plan-upload__scores {
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: var(--spacing-lg, 1.5rem);
+}
+
+.plan-upload__score-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md, 1rem);
+}
+
+.plan-upload__score-item {
+  padding-bottom: var(--spacing-sm, 0.75rem);
+  border-bottom: 1px solid var(--color-gray-100, #f1f5f9);
+}
+
+.plan-upload__score-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.plan-upload__score-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.375rem;
+}
+
+.plan-upload__score-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-gray-700, #334155);
+}
+
+.plan-upload__score-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-primary-600, #4f46e5);
+}
+
+.plan-upload__score-bar {
+  height: 6px;
+  background: var(--color-gray-100, #f1f5f9);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.plan-upload__score-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.plan-upload__score-fill--high {
+  background: var(--color-success, #22c55e);
+}
+
+.plan-upload__score-fill--medium {
+  background: var(--color-warning, #f59e0b);
+}
+
+.plan-upload__score-fill--low {
+  background: var(--color-error, #ef4444);
+}
+
+.plan-upload__score-feedback {
+  font-size: 0.8125rem;
+  color: var(--color-gray-500, #64748b);
+  line-height: 1.5;
+}
+
+.plan-upload__footer {
+  padding-top: var(--spacing-md, 1rem);
+}
+
+.plan-upload__submit-btn {
+  width: 100%;
+  padding: 0.875rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-white, #ffffff);
+  background: linear-gradient(135deg, var(--color-primary-500, #6366f1) 0%, var(--color-primary-600, #4f46e5) 100%);
+  border: none;
+  border-radius: var(--radius-lg, 0.75rem);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.plan-upload__submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -4px rgba(99, 102, 241, 0.4);
+}
+
+.plan-upload__submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Loading State */
+.plan-upload__loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: var(--spacing-md, 1rem);
+}
+
+.plan-upload__loading-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 3px solid var(--color-gray-200, #e2e8f0);
+  border-top-color: var(--color-primary-500, #6366f1);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.plan-upload__loading-text {
+  font-size: 0.875rem;
+  color: var(--color-gray-500, #64748b);
+}
+
+/* Error State */
+.plan-upload__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  gap: var(--spacing-md, 1rem);
+}
+
+.plan-upload__error-text {
+  font-size: 0.875rem;
+  color: var(--color-error, #ef4444);
+  text-align: center;
+}
+
+.plan-upload__retry-btn {
+  padding: 0.5rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-primary-600, #4f46e5);
+  background: var(--color-primary-50, #eef2ff);
+  border: 1px solid var(--color-primary-200, #c7d2fe);
+  border-radius: var(--radius-md, 0.5rem);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.plan-upload__retry-btn:hover {
+  background: var(--color-primary-100, #e0e7ff);
+}
+
+/* Empty State */
+.plan-upload__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem;
+  background: var(--color-white, #ffffff);
+  border: 1px dashed var(--color-gray-300, #cbd5e1);
+  border-radius: var(--radius-lg, 0.75rem);
+  gap: 0.5rem;
+}
+
+.plan-upload__empty-icon {
+  font-size: 2rem;
+  opacity: 0.6;
+}
+
+.plan-upload__empty-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-gray-600, #475569);
+}
+
+.plan-upload__empty-hint {
+  font-size: 0.8125rem;
+  color: var(--color-gray-400, #94a3b8);
+}
+
+/* Submission Status */
+.plan-upload__status {
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-gray-200, #e2e8f0);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: var(--spacing-lg, 1.5rem);
+}
+
+.plan-upload__status-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.plan-upload__status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.plan-upload__status-label {
+  font-size: 0.875rem;
+  color: var(--color-gray-600, #475569);
+}
+
+.plan-upload__status-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.plan-upload__status-value--success {
+  color: var(--color-success, #22c55e);
+}
+
+.plan-upload__status-value--pending {
+  color: var(--color-warning, #f59e0b);
+}
+
+/* Submit Error */
+.plan-upload__submit-error {
+  padding: 0.75rem;
+  background: var(--color-error-50, #fef2f2);
+  border: 1px solid var(--color-error-200, #fecaca);
+  border-radius: var(--radius-md, 0.5rem);
 }
 </style>

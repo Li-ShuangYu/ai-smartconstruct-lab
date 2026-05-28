@@ -50,7 +50,7 @@ public class TeacherQuestionController {
         BigDecimal defaultScore = body.get("defaultScore") != null ? new BigDecimal(body.get("defaultScore").toString()) : BigDecimal.valueOf(5);
         Integer sortNum = body.get("sortNum") != null ? Integer.valueOf(body.get("sortNum").toString()) : 0;
 
-        if (questionType == null || content == null || content.isBlank()) {
+        if (questionType == null || content == null || content.trim().isEmpty()) {
             return ApiResult.error("参数不完整");
         }
 

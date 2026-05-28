@@ -50,6 +50,12 @@ const teacherRoutes = [
         meta: { title: '发布实训', hideSidebar: true }
       },
       {
+        path: 'template-preview/:templateId',
+        name: 'TemplatePreview',
+        component: () => import('@/views/teacher/TemplatePreview.vue'),
+        meta: { title: '模板预览', hideSidebar: true }
+      },
+      {
         path: 'profile',
         name: 'UserProfile',
         component: () => import('@/views/teacher/UserProfile.vue'),
@@ -72,6 +78,12 @@ const teacherRoutes = [
         name: 'EvaluationDashboard',
         component: () => import('@/views/teacher/EvaluationDashboard.vue'),
         meta: { title: '评估分析'}
+      },
+      {
+        path: 'training-monitor/:taskId',
+        name: 'TrainingMonitor',
+        component: () => import('@/views/teacher/TrainingMonitor.vue'),
+        meta: { title: '实训监控', hideSidebar: true }
       },
     ]
   }

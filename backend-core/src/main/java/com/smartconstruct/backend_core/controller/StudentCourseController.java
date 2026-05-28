@@ -57,7 +57,7 @@ public class StudentCourseController {
         if (!enrolledIds.isEmpty()) {
             qw.notIn(BizCourse::getId, enrolledIds);
         }
-        if (keyword != null && !keyword.isBlank()) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
             qw.and(w -> w.like(BizCourse::getCourseName, keyword));
         }
         qw.orderByDesc(BizCourse::getCreatedAt);

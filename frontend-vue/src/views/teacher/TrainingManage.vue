@@ -40,7 +40,10 @@
             <span class="time">{{ formatTime(tpl.createdAt) }}</span>
             <div class="actions">
               <button class="text-btn" @click="openEditTemplate(tpl)">修改</button>
+              <button class="text-btn" @click="$router.push(`/teacher/template-preview/${tpl.id}`)">预览</button>
+              <button v-if="tpl.aiStatus === 0 || tpl.aiStatus === 2" class="text-btn primary" @click="triggerAiProcess(tpl)">AI处理</button>
               <button v-if="tpl.aiStatus === 2" class="text-btn primary" @click="openPublish(tpl)">发布任务</button>
+              <button v-if="tpl.aiStatus === 3" class="text-btn" @click="retryAi(tpl)">重试AI</button>
               <button v-if="tpl.aiStatus === 3" class="text-btn" @click="showError(tpl)">查看原因</button>
               <button class="text-btn danger" @click="handleDeleteTemplate(tpl)">删除</button>
             </div>
@@ -219,6 +222,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { NButton, NPagination, NSpin, NTag, NModal, NForm, NFormItem, NInput, NSelect, NRadioGroup, NRadio, NSwitch, NDatePicker, useMessage } from 'naive-ui'
 import type { FormRules, FormInst } from 'naive-ui'
 import { getTemplates, deleteTemplate, updateTemplate } from '@/services/modules/teacher-template.service'
+import { retryTemplate, publishTemplate } from '@/services/modules/orchestration.service'
 import { getTrainingTasks, createTrainingTask, startTrainingTask, reDispatchTrainingTask, updateTrainingTask, deleteTrainingTask } from '@/services/modules/teacher-dashboard.service'
 import { getClasses } from '@/services/modules/admin.service'
 import { getTeacherCourses } from '@/services/modules/teacher.service'
@@ -269,6 +273,38 @@ function formatTimeRange(start?: string, end?: string) {
 async function loadTemplates() { loading.value=true; try { const r = await getTemplates(tplPage.value,tplPageSize.value); if(r.code===200){templates.value=r.data.records;tplTotal.value=r.data.total} } finally {loading.value=false} }
 async function handleDeleteTemplate(tpl: TrainingTemplate) { if(!tpl.id)return; try{await deleteTemplate(String(tpl.id));message.success('模板已删除');loadTemplates()}catch{message.error('删除失败')} }
 function showError(tpl: TrainingTemplate) { message.error(tpl.errorReason||'AI处理异常') }
+
+async function retryAi(tpl: TrainingTemplate) {
+  if (!tpl.id) return
+  try {
+    const res = await retryTemplate(String(tpl.id))
+    if (res.code === 200) {
+      message.success('已重新触发AI处理')
+      loadTemplates()
+    } else {
+      message.error(res.message || '重试失败')
+    }
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } } }
+    message.error(err?.response?.data?.message || '重试失败')
+  }
+}
+
+async function triggerAiProcess(tpl: TrainingTemplate) {
+  if (!tpl.id) return
+  try {
+    const res = await publishTemplate(String(tpl.id), {} as import('@/services/types/orchestration').PublishTemplateRequest)
+    if (res.code === 200) {
+      message.success('AI处理已触发，状态将变为"处理中"')
+      loadTemplates()
+    } else {
+      message.error(res.message || 'AI处理触发失败')
+    }
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } } }
+    message.error(err?.response?.data?.message || 'AI处理触发失败')
+  }
+}
 
 async function loadTasks() { loading.value=true; try{ let s:number|undefined; if(taskTab.value===1)s=0;else if(taskTab.value===2)s=1;else if(taskTab.value===3)s=2; const r = await getTrainingTasks(taskPage.value,taskPageSize.value,s); if(r.code===200){tasks.value=r.data.records;taskTotal.value=r.data.total} } finally{loading.value=false} }
 function switchMainTab(t:string) { mainTab.value=t; if(t==='template'){loadTemplates()}else{loadTasks()} }
@@ -522,8 +558,18 @@ async function handleStartTask(task: TrainingTaskItem) {
   }
 }
 
-onMounted(()=>{loadTemplates()})
-onUnmounted(()=>{})
+onMounted(()=>{
+  loadTemplates()
+  // Poll for AI status changes every 10 seconds
+  pollTimer = setInterval(() => {
+    if (mainTab.value === 'template' && templates.value.some(t => t.aiStatus === 1)) {
+      loadTemplates()
+    }
+  }, 10000)
+})
+onUnmounted(()=>{
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = undefined }
+})
 </script>
 
 <style scoped>

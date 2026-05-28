@@ -69,7 +69,7 @@
                 <div class="q-header-left">
                   <n-checkbox :value="q.id" v-model:checked="q._selected" @update:checked="handleSelectChange" />
                   <span class="q-num">{{ index + 1 }}.</span>
-                  <span class="tag type-tag">{{ getQuestionTypeName(q.question_type) }}</span>
+                  <span class="tag type-tag">{{ getQuestionTypeName(q.question_type ?? 0) }}</span>
                   <span class="tag source-tag" :class="q.create_type === 1 ? 'ai-source' : 'manual-source'">
                     {{ q.create_type === 1 ? 'AI生成' : '手动录入' }}
                   </span>
@@ -77,14 +77,14 @@
                 <div class="q-header-right">
                   <span class="q-score">{{ q.default_score }} 分</span>
                   <button class="btn-text-small" @click="openQuestionModal(q)">编辑</button>
-                  <button class="btn-text-small danger" @click="deleteQuestion(q.id)">删除</button>
+                  <button class="btn-text-small danger" @click="handleDeleteQuestion(String(q.id ?? ''))">删除</button>
                 </div>
               </div>
 
               <div class="q-body">
-                <div class="stem" v-html="q.content.rich_stem || q.content.stem"></div>
+                <div class="stem" v-html="getContentStem(q.content)"></div>
                 <div v-if="q.question_type === 1 || q.question_type === 2" class="options-list">
-                  <div class="option-item" v-for="opt in q.content.options" :key="opt.id">
+                  <div class="option-item" v-for="opt in getContentOptions(q.content)" :key="opt.id">
                     <span class="opt-id">{{ opt.id }}.</span>
                     <span class="opt-text">{{ opt.text }}</span>
                   </div>
@@ -365,19 +365,44 @@ interface QuestionBank {
 }
 
 interface Question {
-  id?: string
-  bankId: string
-  questionType: number
-  content: string   // JSON字符串
-  standardAnswer: string // JSON字符串
-  defaultScore: number
-  sortNum: number
+  id?: string | number
+  bankId?: string
+  bank_id?: string
+  questionType?: number
+  question_type?: number
+  content: string | Record<string, unknown>
+  standardAnswer?: string | Record<string, unknown>
+  standard_answer?: string | Record<string, unknown>
+  defaultScore?: number
+  default_score?: number
+  sortNum?: number
+  sort_order?: number
+  create_type?: number
   createdAt?: string
   updatedAt?: string
+  _selected?: boolean
 }
 
 // === 状态数据 ===
 const loading = ref(false)
+
+// === 内容解析辅助函数 ===
+function parseContent(content: string | Record<string, unknown>): Record<string, unknown> {
+  if (typeof content === 'string') {
+    try { return JSON.parse(content) } catch { return {} }
+  }
+  return content
+}
+
+function getContentStem(content: string | Record<string, unknown>): string {
+  const parsed = parseContent(content)
+  return String(parsed.rich_stem || parsed.stem || '')
+}
+
+function getContentOptions(content: string | Record<string, unknown>): Array<{ id: string; text: string }> {
+  const parsed = parseContent(content)
+  return (parsed.options as Array<{ id: string; text: string }>) ?? []
+}
 const banks = ref<QuestionBank[]>([])
 const activeBankId = ref<string | null>(null)
 const questions = ref<Question[]>([])
@@ -399,8 +424,11 @@ async function fetchBanks() {
     if (res.code === 200) {
       banks.value = res.data
       if (banks.value.length > 0 && !activeBankId.value) {
-        activeBankId.value = banks.value[0].id
-        loadQuestions(activeBankId.value)
+        const firstBank = banks.value[0]
+        if (firstBank) {
+          activeBankId.value = firstBank.id
+          loadQuestions(activeBankId.value)
+        }
       }
     }
   } catch { mess.error('获取题库失败') }
@@ -430,21 +458,21 @@ function getQuestionTypeName(type: number) {
   return map[type] || '未知'
 }
 
-function parseContent(q: any) {
+function parseQuestionContent(q: Record<string, unknown>) {
   if (!q) return {}
-  if (q.contentObj) return q.contentObj
-  try { return JSON.parse(q.content || '{}') } catch { return {} }
+  if (q.contentObj) return q.contentObj as Record<string, unknown>
+  try { return JSON.parse(String(q.content || '{}')) } catch { return {} }
 }
-function parseAnswer(q: any) {
-  if (!q) return {}
-  if (q.answerObj) return q.answerObj
-  try { return JSON.parse(q.standardAnswer || '{}') } catch { return {} }
+function parseAnswer(q: Record<string, unknown>) {
+  if (!q) return {} as Record<string, unknown>
+  if (q.answerObj) return q.answerObj as Record<string, unknown>
+  try { return JSON.parse(String(q.standardAnswer || '{}')) as Record<string, unknown> } catch { return {} as Record<string, unknown> }
 }
-function formatAnswer(q: any) {
+function formatAnswer(q: Record<string, unknown>) {
   const ans = parseAnswer(q)
   if (q.questionType === 1 || q.questionType === 5) return ans.answer
   if (q.questionType === 4) return ans.answer ? '正确' : '错误'
-  if (q.questionType === 2 || q.questionType === 3) return (ans.answers || []).join(', ')
+  if (q.questionType === 2 || q.questionType === 3) return ((ans.answers as string[]) || []).join(', ')
   return ''
 }
 
@@ -476,7 +504,7 @@ function openBankModal(bank?: QuestionBank) {
 
 async function saveBank() {
   try {
-    const body = { bankName: bankForm.value.bankName, isPublic: bankForm.value.isPublic ?? 0 }
+    const body = { bankName: bankForm.value.bankName ?? '', isPublic: bankForm.value.isPublic ?? 0 }
     if (bankForm.value.id) {
       const res = await updateQuestionBank(bankForm.value.id, body)
       if (res.code !== 200) { mess.error(res.message || '保存失败'); return }
@@ -875,7 +903,7 @@ function removeFillAnswer(idx: number) {
   }
 }
 
-async function deleteQuestion(id: string) {
+async function handleDeleteQuestion(id: string) {
   try {
     const res = await deleteQuestion(id)
     if (res.code !== 200) { mess.error(res.message || '删除失败'); return }

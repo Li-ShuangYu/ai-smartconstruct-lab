@@ -1,145 +1,201 @@
-"""Quick verification tests for SupervisorAgent (tasks 5.1-5.6)."""
+"""Quick verification tests for SupervisorAgent (Task 7 refactor)."""
 
 import sys
 sys.path.insert(0, ".")
 
-from agents.supervisor import SupervisorAgent, detect_ai_nodes, _has_ai_flags
+from agents.supervisor import (
+    SupervisorAgent,
+    detect_ai_nodes_phased,
+    _should_process_node,
+    VALID_AGENT_TYPES,
+)
 from models.schemas import AgentType
 
 
-def test_ai_flag_detection():
-    """Task 5.3: AI flag detection logic."""
-    # Positive cases
-    assert _has_ai_flags({"enable_ai_welcome": True}) is True
-    assert _has_ai_flags({"enable_ai_summary": True, "enable_ai_key_points": True}) is True
-    assert _has_ai_flags({"source_mode": "ai"}) is True
-    assert _has_ai_flags({"enable_code_review": True}) is True
-    assert _has_ai_flags({"enable_ai_pre_evaluation": True}) is True
-    # Negative cases
-    assert _has_ai_flags({"enable_ai_welcome": False}) is False
-    assert _has_ai_flags({"source_mode": "manual"}) is False
-    assert _has_ai_flags({"enable_code_review": False}) is False
-    assert _has_ai_flags({}) is False
-    print("PASSED: AI flag detection")
+def _make_ai_spec(target_agent="TEXT", priority=5, ai_flags=None):
+    return {"target_agent": target_agent, "priority": priority, "ai_flags": ai_flags or []}
 
 
-def test_nodes_without_ai_flags_skipped():
-    """Task 5.4: Nodes without AI flags are skipped."""
+def test_should_process_node_valid():
+    """Valid ai_spec with enabled flag returns True."""
+    node = {"node_id": "n1", "node_type": "START", "config": {"enable_ai_welcome": True}}
+    ai_spec = _make_ai_spec("TEXT", 5, ["enable_ai_welcome"])
+    assert _should_process_node(node, ai_spec) is True
+    print("PASSED: _should_process_node valid case")
+
+
+def test_should_process_node_null_spec():
+    """Null ai_spec returns False."""
+    node = {"node_id": "n1", "node_type": "START", "config": {"enable_ai_welcome": True}}
+    assert _should_process_node(node, None) is False
+    print("PASSED: _should_process_node null ai_spec")
+
+
+def test_should_process_node_invalid_agent():
+    """Invalid target_agent returns False."""
+    node = {"node_id": "n1", "node_type": "START", "config": {"enable_ai_welcome": True}}
+    ai_spec = _make_ai_spec("INVALID", 5, ["enable_ai_welcome"])
+    assert _should_process_node(node, ai_spec) is False
+    print("PASSED: _should_process_node invalid target_agent")
+
+
+def test_should_process_node_source_mode_ai():
+    """source_mode='ai' triggers processing."""
+    node = {"node_id": "n1", "node_type": "HOMEWORK", "config": {"source_mode": "ai"}}
+    ai_spec = _make_ai_spec("EXAM", 2, ["enable_ai_grading"])
+    assert _should_process_node(node, ai_spec) is True
+    print("PASSED: _should_process_node source_mode=ai")
+
+
+def test_should_process_node_all_flags_disabled():
+    """All flags disabled and no source_mode=ai returns False."""
+    node = {"node_id": "n1", "node_type": "START", "config": {"enable_ai_welcome": False}}
+    ai_spec = _make_ai_spec("TEXT", 5, ["enable_ai_welcome"])
+    assert _should_process_node(node, ai_spec) is False
+    print("PASSED: _should_process_node all flags disabled")
+
+
+def test_teacher_override_skips_flag():
+    """Overridden flag is skipped from AI processing check."""
+    node = {
+        "node_id": "n1",
+        "node_type": "START",
+        "config": {
+            "enable_ai_welcome": True,
+            "ai_processing": {"_overrides": {"enable_ai_welcome": True}},
+        },
+    }
+    ai_spec = _make_ai_spec("TEXT", 5, ["enable_ai_welcome"])
+    assert _should_process_node(node, ai_spec) is False
+    print("PASSED: teacher override skips flag")
+
+
+def test_detect_ai_nodes_phased_basic():
+    """Basic phased detection works."""
     canvas = {
         "orchestration_id": "test-001",
-        "nodes": [
-            {"node_id": "n1", "node_type": "END", "config": {}},
-            {"node_id": "n2", "node_type": "SEMESTER_SURVEY", "config": {"some_flag": True}},
-            {"node_id": "n3", "node_type": "MINDMAP_PREVIEW", "config": {"enable_ai_generate_map": False}},
-        ],
-        "edges": [],
-    }
-    tasks = detect_ai_nodes(canvas)
-    assert len(tasks) == 0
-    print("PASSED: Nodes without AI flags skipped")
-
-
-def test_ai_nodes_detected_and_routed():
-    """Task 5.2: Routing table maps node_type to AgentType."""
-    canvas = {
-        "orchestration_id": "test-002",
-        "nodes": [
-            {"node_id": "n1", "node_type": "START", "config": {"enable_ai_welcome": True}},
-            {"node_id": "n2", "node_type": "HOMEWORK", "config": {"source_mode": "ai"}},
-            {"node_id": "n3", "node_type": "CODING_CLASS", "config": {"enable_code_review": True}},
-            {"node_id": "n4", "node_type": "VIDEO_LEARN", "config": {"enable_ai_chapter": True}},
-        ],
-        "edges": [],
-    }
-    tasks = detect_ai_nodes(canvas)
-    assert len(tasks) == 4
-    assert tasks[0].agent_type == AgentType.TEXT
-    assert tasks[1].agent_type == AgentType.EXAM
-    assert tasks[2].agent_type == AgentType.CODE
-    assert tasks[3].agent_type == AgentType.VIDEO
-    print("PASSED: AI nodes detected and routed correctly")
-
-
-def test_no_duplicate_tasks_per_node_id():
-    """Task 5.5: No duplicate tasks per node_id."""
-    canvas = {
-        "orchestration_id": "test-003",
-        "nodes": [
-            {"node_id": "n1", "node_type": "START", "config": {"enable_ai_welcome": True}},
-            {"node_id": "n1", "node_type": "START", "config": {"enable_ai_welcome": True}},
-        ],
-        "edges": [],
-    }
-    tasks = detect_ai_nodes(canvas)
-    assert len(tasks) == 1
-    print("PASSED: No duplicate tasks per node_id")
-
-
-def test_multiple_flags_one_task():
-    """Task 5.5: Multiple AI flags on one node produce one task."""
-    canvas = {
-        "orchestration_id": "test-004",
-        "nodes": [
+        "phases": [
             {
-                "node_id": "n1",
-                "node_type": "RESOURCE_READ",
-                "config": {
-                    "enable_ai_summary": True,
-                    "enable_ai_key_points": True,
-                    "enable_ai_quick_nav": True,
-                },
+                "phase_id": "p1",
+                "phase_name": "Phase 1",
+                "sort_num": 1,
+                "nodes": [
+                    {
+                        "node_id": "n1",
+                        "node_type": "START",
+                        "config": {"enable_ai_welcome": True},
+                        "ai_spec": _make_ai_spec("TEXT", 5, ["enable_ai_welcome"]),
+                    },
+                    {
+                        "node_id": "n2",
+                        "node_type": "EXAM",
+                        "config": {"source_mode": "ai"},
+                        "ai_spec": _make_ai_spec("EXAM", 1, ["enable_ai_grading"]),
+                    },
+                    {
+                        "node_id": "n3",
+                        "node_type": "END",
+                        "config": {},
+                    },
+                ],
+                "edges": [],
             },
         ],
-        "edges": [],
     }
-    tasks = detect_ai_nodes(canvas)
-    assert len(tasks) == 1
-    assert tasks[0].node_id == "n1"
-    assert tasks[0].agent_type == AgentType.TEXT
-    print("PASSED: Multiple AI flags produce one task per node")
+    tasks = detect_ai_nodes_phased(canvas)
+    assert len(tasks) == 2
+    # Sorted by priority: n2 (1) before n1 (5)
+    assert tasks[0].node_id == "n2"
+    assert tasks[0].priority == 1
+    assert tasks[0].phase_id == "p1"
+    assert tasks[1].node_id == "n1"
+    assert tasks[1].priority == 5
+    print("PASSED: detect_ai_nodes_phased basic")
 
 
 def test_analyze_orchestration():
-    """Task 5.6: analyze_orchestration returns ExecutionPlan."""
+    """analyze_orchestration returns ExecutionPlan."""
     supervisor = SupervisorAgent()
     canvas = {
         "orchestration_id": "orch-100",
-        "nodes": [
-            {"node_id": "n1", "node_type": "START", "config": {"enable_ai_welcome": True}},
-            {"node_id": "n2", "node_type": "PLAN_UPLOAD", "config": {"enable_ai_pre_evaluation": True}},
-            {"node_id": "n3", "node_type": "END", "config": {}},
+        "phases": [
+            {
+                "phase_id": "p1",
+                "phase_name": "Phase 1",
+                "sort_num": 1,
+                "nodes": [
+                    {
+                        "node_id": "n1",
+                        "node_type": "START",
+                        "config": {"enable_ai_welcome": True},
+                        "ai_spec": _make_ai_spec("TEXT", 5, ["enable_ai_welcome"]),
+                    },
+                    {
+                        "node_id": "n2",
+                        "node_type": "END",
+                        "config": {},
+                    },
+                ],
+                "edges": [],
+            },
         ],
-        "edges": [],
     }
     plan = supervisor.analyze_orchestration(canvas)
     assert plan.orchestration_id == "orch-100"
-    assert plan.total_tasks == 2
-    assert len(plan.parallel_jobs) == 2
+    assert plan.total_tasks == 1
+    assert len(plan.parallel_jobs) == 1
     assert plan.parallel_jobs[0].task_id == "orch-100_n1"
-    assert plan.parallel_jobs[1].task_id == "orch-100_n2"
     print("PASSED: analyze_orchestration returns correct ExecutionPlan")
 
 
-def test_unknown_node_type_skipped():
-    """Task 5.4: Unknown node_type with AI flags is skipped."""
+def test_deduplication():
+    """Duplicate node_ids produce only one task."""
     canvas = {
-        "orchestration_id": "test-005",
-        "nodes": [
-            {"node_id": "n1", "node_type": "UNKNOWN_TYPE", "config": {"enable_ai_something": True}},
+        "orchestration_id": "test-dedup",
+        "phases": [
+            {
+                "phase_id": "p1",
+                "phase_name": "Phase 1",
+                "sort_num": 1,
+                "nodes": [
+                    {
+                        "node_id": "n1",
+                        "node_type": "START",
+                        "config": {"enable_ai_welcome": True},
+                        "ai_spec": _make_ai_spec("TEXT", 5, ["enable_ai_welcome"]),
+                    },
+                ],
+                "edges": [],
+            },
+            {
+                "phase_id": "p2",
+                "phase_name": "Phase 2",
+                "sort_num": 2,
+                "nodes": [
+                    {
+                        "node_id": "n1",
+                        "node_type": "START",
+                        "config": {"enable_ai_welcome": True},
+                        "ai_spec": _make_ai_spec("TEXT", 5, ["enable_ai_welcome"]),
+                    },
+                ],
+                "edges": [],
+            },
         ],
-        "edges": [],
     }
-    tasks = detect_ai_nodes(canvas)
-    assert len(tasks) == 0
-    print("PASSED: Unknown node_type with AI flags is skipped")
+    tasks = detect_ai_nodes_phased(canvas)
+    assert len(tasks) == 1
+    print("PASSED: deduplication across phases")
 
 
 if __name__ == "__main__":
-    test_ai_flag_detection()
-    test_nodes_without_ai_flags_skipped()
-    test_ai_nodes_detected_and_routed()
-    test_no_duplicate_tasks_per_node_id()
-    test_multiple_flags_one_task()
+    test_should_process_node_valid()
+    test_should_process_node_null_spec()
+    test_should_process_node_invalid_agent()
+    test_should_process_node_source_mode_ai()
+    test_should_process_node_all_flags_disabled()
+    test_teacher_override_skips_flag()
+    test_detect_ai_nodes_phased_basic()
     test_analyze_orchestration()
-    test_unknown_node_type_skipped()
+    test_deduplication()
     print("\nALL TESTS PASSED")

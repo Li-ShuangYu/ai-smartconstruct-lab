@@ -188,40 +188,40 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, watch } from 'vue'
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useTeacherPlanUploadStore } from '@/stores/modules/teacherPlanUpload.store'
+import type { StudentSubmissionRecord, SubmissionStatus } from '@/services/types/teacherPlanUpload.types'
 
-const studentList = ref([
-  { id: 1, name: '陈同学', status: 'submitted', fileName: '陈同学-Python数组学习方案.pdf', uploadTime: '10:42:15' },
-  { id: 2, name: '林同学', status: 'submitted', fileName: 'Python数组知识点整理_林.docx', uploadTime: '10:35:10' },
-  { id: 3, name: '张同学', status: 'pending', fileName: '', uploadTime: '' },
-  { id: 4, name: '王同学', status: 'rejected', fileName: '', uploadTime: '' },
-  { id: 5, name: '李同学', status: 'submitted', fileName: '李_数组学习总结v2.pdf', uploadTime: '10:50:01' },
-  { id: 6, name: '赵同学', status: 'pending', fileName: '', uploadTime: '' },
-  { id: 7, name: '周同学', status: 'submitted', fileName: '周_列表操作详解.docx', uploadTime: '10:11:44' },
-  { id: 8, name: '吴同学', status: 'submitted', fileName: 'Python数组方案v3.pdf', uploadTime: '10:55:00' },
-  { id: 9, name: '郑同学', status: 'pending', fileName: '', uploadTime: '' },
-  { id: 10, name: '孙同学', status: 'rejected', fileName: '', uploadTime: '' },
-])
+interface TeacherPlanUploadConfig {
+  [key: string]: unknown
+}
 
-const submittedCount = computed(() => studentList.value.filter(s => s.status === 'submitted').length)
-const pendingCount = computed(() => studentList.value.filter(s => s.status === 'pending').length)
-const rejectedCount = computed(() => studentList.value.filter(s => s.status === 'rejected').length)
+const props = defineProps<{
+  nodeInstanceId: number
+  nodeConfig: TeacherPlanUploadConfig
+}>()
+
+const store = useTeacherPlanUploadStore()
+
+const submittedCount = computed<number>(() => store.submittedCount)
+const pendingCount = computed<number>(() => store.pendingCount)
+const rejectedCount = computed<number>(() => store.rejectedCount)
 
 // ===== 搜索与分页逻辑 =====
-const searchQuery = ref('')
-const currentPage = ref(1)
-const pageSize = ref(8) // 两排
+const searchQuery = ref<string>('')
+const currentPage = ref<number>(1)
+const pageSize = ref<number>(8)
 
-const filteredStudents = computed(() => {
-  if (!searchQuery.value.trim()) return studentList.value
+const filteredStudents = computed<StudentSubmissionRecord[]>(() => {
+  if (!searchQuery.value.trim()) return store.studentList
   const lowerSearch = searchQuery.value.trim().toLowerCase()
-  return studentList.value.filter(s => s.name.toLowerCase().includes(lowerSearch))
+  return store.studentList.filter(s => s.name.toLowerCase().includes(lowerSearch))
 })
 
-const totalPages = computed(() => Math.ceil(filteredStudents.value.length / pageSize.value))
+const totalPages = computed<number>(() => Math.ceil(filteredStudents.value.length / pageSize.value))
 
-const paginatedStudents = computed(() => {
+const paginatedStudents = computed<StudentSubmissionRecord[]>(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
   return filteredStudents.value.slice(start, end)
@@ -229,60 +229,85 @@ const paginatedStudents = computed(() => {
 
 watch(searchQuery, () => { currentPage.value = 1 })
 
-const prevPage = () => { if (currentPage.value > 1) currentPage.value-- }
-const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++ }
+function prevPage() { if (currentPage.value > 1) currentPage.value-- }
+function nextPage() { if (currentPage.value < totalPages.value) currentPage.value++ }
 // =========================
 
-const getStatusText = (status) => {
-  const map = { 'submitted': '已提交', 'pending': '待上传', 'rejected': '被驳回' }
+function getStatusText(status: SubmissionStatus): string {
+  const map: Record<SubmissionStatus, string> = { 'submitted': '已提交', 'pending': '待上传', 'rejected': '被驳回' }
   return map[status]
 }
 
-// ===== 浮窗相关逻辑 (新增) =====
-const isPreviewModalOpen = ref(false)
-const currentPreviewStudent = ref(null)
-const teacherFeedback = ref('')
+// ===== 浮窗相关逻辑 =====
+const isPreviewModalOpen = ref<boolean>(false)
+const currentPreviewStudent = ref<StudentSubmissionRecord | null>(null)
+const teacherFeedback = ref<string>('')
 
-const previewPlan = (student) => {
+async function previewPlan(student: StudentSubmissionRecord) {
   currentPreviewStudent.value = student
-  teacherFeedback.value = '' // 打开时清空输入框
+  teacherFeedback.value = ''
   isPreviewModalOpen.value = true
+  // Fetch real preview URL from backend
+  await store.fetchPreviewUrl(student.id)
 }
 
-const closePreviewModal = () => {
+function closePreviewModal() {
   isPreviewModalOpen.value = false
   setTimeout(() => {
     currentPreviewStudent.value = null
-  }, 300) // 等待可能存在的过渡动画
+  }, 300)
 }
 
-const submitFeedback = () => {
+async function submitFeedback() {
   if (!teacherFeedback.value.trim()) {
     alert('提示：批阅意见不可为空，请补充反馈内容。')
     return
   }
-  // 此处可接入后端API提交批注
-  alert(`已成功提交对 ${currentPreviewStudent.value.name} 同学的批阅意见！\n内容预览: ${teacherFeedback.value}`)
-  closePreviewModal()
+  if (!currentPreviewStudent.value) return
+
+  const success = await store.submitFeedback(currentPreviewStudent.value.id, teacherFeedback.value)
+  if (success) {
+    alert(`已成功提交对 ${currentPreviewStudent.value.name} 同学的批阅意见！`)
+    closePreviewModal()
+  } else {
+    alert(store.error || '提交批阅失败，请重试')
+  }
 }
 // =========================
 
-const rejectPlan = (student) => {
+async function rejectPlan(student: StudentSubmissionRecord) {
   const reason = prompt(`请输入打回 ${student.name} 同学方案的理由：`, '方案内容不完整或需要补充数组核心知识点')
   if (reason) {
-    student.status = 'rejected'
-    student.fileName = '' 
+    const success = await store.rejectPlan(student.id, reason)
+    if (!success) {
+      alert(store.error || '驳回操作失败，请重试')
+    }
   }
 }
 
-const batchDownload = () => {
-  const submittedStudents = studentList.value.filter(s => s.status === 'submitted')
-  if (submittedStudents.length === 0) {
+async function batchDownload() {
+  if (store.submittedCount === 0) {
     alert('暂无已提交的方案文件可下载')
     return
   }
-  alert(`正在打包下载 ${submittedStudents.length} 位同学的方案文件...\n\n${submittedStudents.map(s => s.name + ': ' + s.fileName).join('\n')}`)
+  const downloadUrl = await store.downloadAll()
+  if (downloadUrl) {
+    // Trigger browser download
+    window.open(downloadUrl, '_blank')
+  } else {
+    alert(store.error || '批量下载失败，请重试')
+  }
 }
+
+/** Load student submissions on mount */
+onMounted(() => {
+  store.loadSubmissions(props.nodeInstanceId)
+})
+
+/** Clean up store on unmount */
+onUnmounted(() => {
+  store.reset()
+})
 </script>
 
 <style scoped>

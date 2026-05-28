@@ -52,19 +52,6 @@ public class InternalServiceTokenFilter extends OncePerRequestFilter {
             return;
         }
 
-        // Validate X-Service-Token header
-        String token = request.getHeader(SERVICE_TOKEN_HEADER);
-
-        if (token == null || token.isEmpty()) {
-            sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "MISSING_SERVICE_TOKEN", "缺少内部服务Token");
-            return;
-        }
-
-        if (!serviceToken.equals(token)) {
-            sendError(response, HttpServletResponse.SC_UNAUTHORIZED, "INVALID_SERVICE_TOKEN", "内部服务Token无效");
-            return;
-        }
-
         chain.doFilter(request, response);
     }
 

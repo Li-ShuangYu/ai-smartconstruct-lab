@@ -40,6 +40,10 @@ public class WfTrainingTemplate {
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Object rawCanvasJson;
     
+    /** 阶段定义JSON — 需要先执行 ALTER TABLE wf_training_template ADD COLUMN phases_json JSON 后移除 exist=false */
+    @TableField(value = "phases_json", typeHandler = JacksonTypeHandler.class)
+    private Object phasesJson;
+    
     /** 标准执行载荷JSON - AI处理后生成的标准格式数据 */
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Object standardPayloadJson;

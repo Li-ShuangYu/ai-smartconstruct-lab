@@ -34,6 +34,6 @@ export interface CreateTemplateRequest {
 }
 
 export interface CreateTemplateResponse {
-  id: number
+  id: string
   aiStatus: number
 }

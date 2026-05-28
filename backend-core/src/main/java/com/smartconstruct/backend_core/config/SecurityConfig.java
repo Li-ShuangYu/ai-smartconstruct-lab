@@ -82,8 +82,7 @@ public class SecurityConfig {
             .antMatchers("/api/**").authenticated()
             .anyRequest().permitAll()
             .and()
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(internalServiceTokenFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

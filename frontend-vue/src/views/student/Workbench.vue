@@ -29,7 +29,7 @@
             <h3 class="card-title">{{ item.taskName }}</h3>
             <footer class="card-actions">
               <span class="deadline">⏱️ {{ formatTime(item.startTime) }}</span>
-              <button class="mini-btn" @click="$router.push(item.status === 0 ? `/student/training-preview?taskId=${item.id}` : `/student/training-execute?taskId=${item.id}`)">
+              <button class="mini-btn" @click="enterTraining(item)">
                 {{ item.status === 1 ? '继续' : (item.status === 0 ? '预览' : '查看') }}
               </button>
             </footer>
@@ -55,12 +55,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { NPagination, NSpin } from 'naive-ui'
 import { getStudentTrainingTasks } from '@/services/modules/student-dashboard.service'
 import { getProfile } from '@/services/modules/student-dashboard.service'
 import type { StudentTrainingTask, StudentProfile } from '@/services/types/dashboard.types'
 
 const loading = ref(false)
+const router = useRouter()
 const profile = ref<StudentProfile>({ userId: 0, username: '' })
 const tasks = ref<StudentTrainingTask[]>([])
 const activeTab = ref('all')
@@ -120,6 +122,16 @@ function handleSizeChange(size: number) {
   pageSize.value = size
   page.value = 1
   loadTasks()
+}
+
+function enterTraining(item: StudentTrainingTask) {
+  if (item.status === 0) {
+    // 未开始 → 预览（使用新的阶段化入口）
+    router.push(`/training/student-training/start-portal?taskId=${item.id}`)
+  } else {
+    // 进行中/已完成 → 执行页面
+    router.push(`/training/student-training/start-portal?taskId=${item.id}`)
+  }
 }
 
 onMounted(async () => {

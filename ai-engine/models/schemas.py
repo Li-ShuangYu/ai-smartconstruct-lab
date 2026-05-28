@@ -39,6 +39,8 @@ class AgentTask(BaseModel):
     node_type: str = Field(description="节点类型")
     config: dict = Field(description="节点配置")
     context: Optional[dict] = Field(default=None, description="附加上下文信息")
+    phase_id: Optional[str] = Field(default=None, description="所属阶段ID")
+    priority: int = Field(default=5, description="处理优先级(1-10, 1为最高)")
 
 
 class ExecutionPlan(BaseModel):
@@ -47,3 +49,13 @@ class ExecutionPlan(BaseModel):
     orchestration_id: str = Field(description="编排唯一标识")
     parallel_jobs: List[AgentTask] = Field(description="可并行执行的任务列表")
     total_tasks: int = Field(description="任务总数")
+
+
+class RetryRequest(BaseModel):
+    """Request model for selectively retrying failed nodes."""
+
+    template_id: int = Field(description="模板ID", gt=0)
+    node_ids: List[str] = Field(description="需要重试的失败节点ID列表", min_length=1)
+    orchestration_id: str = Field(description="编排唯一标识")
+    canvas_json: dict = Field(description="原始画布JSON（含phases结构）")
+    callback_url: str = Field(description="处理完成后的回调地址")

@@ -110,6 +110,36 @@ const trainingRoutes = [
         component: () => import('@/views/training/studentTraining/TeacherComment.vue'),
         meta: { title: '教师点评', role: 'student' }
       },
+      {
+        path: 'student-training/grouping',
+        name: 'GroupingPage',
+        component: () => import('@/views/training/studentTraining/GroupingPage.vue'),
+        meta: { title: '学生分组', role: 'student' }
+      },
+      {
+        path: 'student-training/learning-survey',
+        name: 'LearningSurvey',
+        component: () => import('@/views/training/studentTraining/LearningSurvey.vue'),
+        meta: { title: '学情调查', role: 'student' }
+      },
+      {
+        path: 'student-training/exam',
+        name: 'ExamPage',
+        component: () => import('@/views/training/studentTraining/ExamPage.vue'),
+        meta: { title: '考核考试', role: 'student' }
+      },
+      {
+        path: 'student-training/knowledge-eval',
+        name: 'KnowledgeEval',
+        component: () => import('@/views/training/studentTraining/KnowledgeEval.vue'),
+        meta: { title: '知识点评价', role: 'student' }
+      },
+      {
+        path: 'student-training/inter-group-review',
+        name: 'InterGroupReview',
+        component: () => import('@/views/training/studentTraining/InterGroupReview.vue'),
+        meta: { title: '组间互评', role: 'student' }
+      },
 
       // ===== 教师端实训路由（路由名称与组件文件名一一对应）=====
       {
@@ -189,6 +219,36 @@ const trainingRoutes = [
         name: 'TeacherTeacherComment',
         component: () => import('@/views/training/teacherTraining/TeacherTeacherComment.vue'),
         meta: { title: '教师点评监控', role: 'teacher' }
+      },
+      {
+        path: 'teacher-training/grouping',
+        name: 'TeacherGrouping',
+        component: () => import('@/views/training/teacherTraining/TeacherGrouping.vue'),
+        meta: { title: '分组监控', role: 'teacher' }
+      },
+      {
+        path: 'teacher-training/learning-survey',
+        name: 'TeacherLearningSurvey',
+        component: () => import('@/views/training/teacherTraining/TeacherLearningSurvey.vue'),
+        meta: { title: '学情调查监控', role: 'teacher' }
+      },
+      {
+        path: 'teacher-training/exam',
+        name: 'TeacherExam',
+        component: () => import('@/views/training/teacherTraining/TeacherExam.vue'),
+        meta: { title: '考试监控', role: 'teacher' }
+      },
+      {
+        path: 'teacher-training/knowledge-eval',
+        name: 'TeacherKnowledgeEval',
+        component: () => import('@/views/training/teacherTraining/TeacherKnowledgeEval.vue'),
+        meta: { title: '知识点评价监控', role: 'teacher' }
+      },
+      {
+        path: 'teacher-training/inter-group-review',
+        name: 'TeacherInterGroupReview',
+        component: () => import('@/views/training/teacherTraining/TeacherInterGroupReview.vue'),
+        meta: { title: '组间互评监控', role: 'teacher' }
       },
     ]
   }
