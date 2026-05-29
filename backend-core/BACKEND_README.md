@@ -485,7 +485,47 @@ backend-core/
 
 ---
 
-### 6. 系统运维模块
+### 6. AI引擎通信模块 (AI Engine Client)
+
+**核心类**:
+- `AiEngineClientImpl` - AI引擎客户端实现
+- `AiTimeoutDetectionTask` - AI处理超时检测定时任务
+
+**AiEngineClientImpl 核心方法**:
+| 方法名 | 功能说明 |
+|--------|----------|
+| `triggerAiPipeline(Long templateId)` | 触发AI处理流程，调用AI引擎 `/api/orchestration/process` 接口 |
+| `retryFailedNodes(Long templateId)` | 重试失败节点，调用AI引擎 `/api/orchestration/retry` 接口 |
+| `queryJobStatus(String jobId)` | 查询AI任务状态，调用AI引擎 `/api/orchestration/status/{job_id}` 接口 |
+
+**AiTimeoutDetectionTask 功能**:
+- 定时（每5秒）检查AI处理中（aiStatus=1）且超时的模板
+- 使用存储的 `aiJobId` 查询AI引擎任务状态
+- 根据状态更新模板 `aiStatus` 字段
+
+**AI引擎通信流程**:
+```
+1. 教师创建实训模板
+   ↓
+2. TeacherTemplateController.create() 保存模板 (aiStatus=1)
+   ↓
+3. AiEngineClientImpl.triggerAiPipeline() 调用AI引擎
+   ↓
+4. AI引擎返回 job_id，存储到模板的 aiJobId 字段
+   ↓
+5. AI引擎异步处理完成后回调 POST /api/internal/ai-callback
+   ↓
+6. 后端更新模板 aiStatus=2（处理完成）
+```
+
+**服务间认证**:
+- 后端与AI引擎之间使用 `X-Service-Token` 头进行认证
+- 配置文件：`application.properties` 中的 `ai.engine.service-token`
+- AI引擎配置：`.env` 中的 `SERVICE_TOKEN`
+
+---
+
+### 7. 系统运维模块
 
 **核心类**:
 - `OperationLogAspect` - 操作日志切面
@@ -664,7 +704,8 @@ backend-core/
 | templateName | String | 模板名称 |
 | rawCanvasJson | Object | 原始画布JSON（前端编排数据） |
 | standardPayloadJson | Object | 标准执行载荷JSON（AI处理后） |
-| aiStatus | Integer | AI处理状态：1=处理中，2=完成 |
+| aiStatus | Integer | AI处理状态：1=处理中，2=完成，3=失败 |
+| aiJobId | String | AI引擎任务ID（UUID格式，用于状态查询） |
 | errorReason | String | 错误原因 |
 | createdAt | LocalDateTime | 创建时间 |
 | updatedAt | LocalDateTime | 更新时间 |
