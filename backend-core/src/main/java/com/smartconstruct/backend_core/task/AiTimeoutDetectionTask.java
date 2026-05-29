@@ -58,7 +58,7 @@ public class AiTimeoutDetectionTask {
     /**
      * 每60秒执行一次，检测超时的AI处理任务。
      *
-     * 对于每个超时模板，先尝试通过AI引擎查询状态（使用 tmpl_{templateId} 作为jobId），
+     * 对于每个超时模板，先尝试通过AI引擎查询状态（优先使用模板存储的ai_job_id，兼容旧数据则使用 tmpl_{templateId} 作为jobId），
      * 根据查询结果更新模板状态。若AI引擎不可达则直接标记为超时失败。
      */
     @Scheduled(fixedRate = 60000)
@@ -103,7 +103,7 @@ public class AiTimeoutDetectionTask {
      */
     private void processStaleTemplate(WfTrainingTemplate template) {
         Long templateId = template.getId();
-        String jobId = "tmpl_" + templateId;
+        String jobId = template.getAiJobId() != null ? template.getAiJobId() : "tmpl_" + templateId;
 
         log.warn("Template [id={}] has been in AI processing state for over {} minutes, querying AI engine status...",
                 templateId, TIMEOUT_MINUTES);

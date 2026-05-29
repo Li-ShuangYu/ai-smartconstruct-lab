@@ -153,7 +153,14 @@ public class AiEngineClientImpl implements IAiEngineClient {
                     .block();
 
             if (response != null && response.containsKey("job_id")) {
-                log.info("AI engine accepted template {} pipeline, jobId={}", templateId, response.get("job_id"));
+                String jobId = String.valueOf(response.get("job_id"));
+                log.info("AI engine accepted template {} pipeline, jobId={}", templateId, jobId);
+                WfTrainingTemplate template = trainingTemplateMapper.selectById(templateId);
+                if (template != null) {
+                    template.setAiJobId(jobId);
+                    template.setUpdatedAt(LocalDateTime.now());
+                    trainingTemplateMapper.updateById(template);
+                }
             } else {
                 String errorMsg = "AI引擎返回无效响应，缺少job_id";
                 log.error("Template {} - {}", templateId, errorMsg);
@@ -226,12 +233,14 @@ public class AiEngineClientImpl implements IAiEngineClient {
             WfTrainingTemplate template = trainingTemplateMapper.selectById(templateId);
             if (template == null) {
                 log.error("Template {} not found when retrying failed nodes", templateId);
+                markTemplateAsFailed(templateId, "模板已被删除");
                 return;
             }
 
             if (template.getRawCanvasJson() == null) {
                 log.error("Template {} has no raw_canvas_json", templateId);
                 markFailedNodesAsError(failedNodes, "模板画布数据为空");
+                markTemplateAsFailed(templateId, "模板画布数据为空，无法重试");
                 return;
             }
 
@@ -243,6 +252,7 @@ public class AiEngineClientImpl implements IAiEngineClient {
             if (partialCanvas == null) {
                 log.error("Template {} - failed to build partial canvas for retry", templateId);
                 markFailedNodesAsError(failedNodes, "构建重试画布失败");
+                markTemplateAsFailed(templateId, "构建重试画布失败");
                 return;
             }
 
@@ -265,11 +275,11 @@ public class AiEngineClientImpl implements IAiEngineClient {
             // 6. 构建请求体并发送到AI引擎重试端点
             String callbackUrl = buildCallbackUrl();
             Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("templateId", templateId);
-            requestBody.put("orchestrationId", "tmpl_" + templateId + "_retry");
-            requestBody.put("canvasJson", partialCanvas);
-            requestBody.put("callbackUrl", callbackUrl);
-            requestBody.put("retryNodeIds", new ArrayList<>(failedNodeIds));
+            requestBody.put("template_id", templateId);
+            requestBody.put("orchestration_id", "tmpl_" + templateId + "_retry");
+            requestBody.put("canvas_json", partialCanvas);
+            requestBody.put("callback_url", callbackUrl);
+            requestBody.put("node_ids", new ArrayList<>(failedNodeIds));
 
             log.info("Sending retry request to AI engine for template {}, nodes={}, callbackUrl={}",
                     templateId, failedNodeIds, callbackUrl);
@@ -282,10 +292,14 @@ public class AiEngineClientImpl implements IAiEngineClient {
                     .bodyToMono(Map.class)
                     .block();
 
-            if (response != null && response.containsKey("jobId")) {
-                log.info("AI engine accepted retry for template {}, jobId={}", templateId, response.get("jobId"));
+            if (response != null && response.containsKey("job_id")) {
+                String jobId = String.valueOf(response.get("job_id"));
+                log.info("AI engine accepted retry for template {}, jobId={}", templateId, jobId);
+                template.setAiJobId(jobId);
+                template.setUpdatedAt(LocalDateTime.now());
+                trainingTemplateMapper.updateById(template);
             } else {
-                String errorMsg = "AI引擎重试请求返回无效响应，缺少jobId";
+                String errorMsg = "AI引擎重试请求返回无效响应，缺少job_id";
                 log.error("Template {} - {}", templateId, errorMsg);
                 markFailedNodesAsError(failedNodes, errorMsg);
             }
@@ -319,6 +333,10 @@ public class AiEngineClientImpl implements IAiEngineClient {
             } catch (Exception ex) {
                 log.error("Template {} - failed to revert node status after retry error: {}", templateId, ex.getMessage(), ex);
             }
+
+            // 关键修复：同时将模板的 ai_status 恢复为 3（失败），
+            // 否则模板会卡在 ai_status=1 状态，直到超时任务兜底标记
+            markTemplateAsFailed(templateId, errorMsg);
         }
     }
 

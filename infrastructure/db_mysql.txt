@@ -565,6 +565,10 @@ CREATE TABLE `biz_learning_survey_response` (
 ALTER TABLE `wf_training_template`
   ADD COLUMN `phases_json` JSON DEFAULT NULL COMMENT '阶段定义JSON' AFTER `raw_canvas_json`;
 
+-- ALTER: wf_training_template 新增 ai_job_id
+ALTER TABLE `wf_training_template`
+  ADD COLUMN `ai_job_id` VARCHAR(64) DEFAULT NULL COMMENT 'AI引擎返回的job_id（UUID），用于超时检测查询' AFTER `ai_status`;
+
 -- ALTER: wf_node_def 新增 ai_spec_json, default_config_json
 ALTER TABLE `wf_node_def`
   ADD COLUMN `ai_spec_json` JSON DEFAULT NULL COMMENT '节点AI规格声明' AFTER `is_active`,

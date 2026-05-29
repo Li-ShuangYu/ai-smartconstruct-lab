@@ -53,7 +53,10 @@ public class WfTrainingTemplate {
 
     /** AI处理状态：1=处理中，2=完成 */
     private Integer aiStatus;
-    
+
+    /** AI引擎返回的job_id（UUID），用于超时检测时查询 */
+    private String aiJobId;
+
     /** 错误原因（AI处理失败时记录） */
     private String errorReason;
     
