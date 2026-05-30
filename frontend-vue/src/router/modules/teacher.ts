@@ -85,6 +85,18 @@ const teacherRoutes = [
         component: () => import('@/views/teacher/TrainingMonitor.vue'),
         meta: { title: '实训监控', hideSidebar: true }
       },
+      {
+        path: 'theory-class-view/:templateId/:nodeId',
+        name: 'TheoryClassView',
+        component: () => import('@/views/teacher/TheoryClassView.vue'),
+        meta: { title: '理论课堂', hideSidebar: true }
+      },
+      {
+        path: 'coding-lab/:templateId/:nodeId',
+        name: 'CodingLab',
+        component: () => import('@/views/teacher/CodingLab.vue'),
+        meta: { title: '编码实训', hideSidebar: true }
+      },
     ]
   }
 ]

@@ -3,6 +3,7 @@ package com.smartconstruct.backend_core.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.smartconstruct.backend_core.dto.PhaseUnlockStatus;
 import com.smartconstruct.backend_core.entity.BizTrainingParticipation;
 import com.smartconstruct.backend_core.entity.BizTrainingTask;
 import com.smartconstruct.backend_core.entity.WfNodeInstance;
@@ -322,6 +323,202 @@ public class PhaseExecutionServiceImpl implements IPhaseExecutionService {
             activityState.setUpdatedAt(now);
             studentActivityStateMapper.updateById(activityState);
         }
+
+        // 9. Check and unlock next phase after node completion
+        WfNodeInstance nodeInstance = nodeInstanceMapper.selectById(nodeInstanceId);
+        if (nodeInstance != null && nodeInstance.getPhaseId() != null) {
+            checkAndUnlockNextPhase(participationId, nodeInstance.getPhaseId());
+        }
+    }
+
+    @Override
+    public void checkAndUnlockNextPhase(Long participationId, String currentPhaseId) {
+        // 1. Get participation to find taskId and studentId
+        BizTrainingParticipation participation = participationMapper.selectById(participationId);
+        if (participation == null) {
+            log.warn("checkAndUnlockNextPhase: 参与记录不存在, participationId={}", participationId);
+            return;
+        }
+
+        Long taskId = participation.getTaskId();
+        Long studentId = participation.getStudentId();
+
+        // 2. Check if current phase is complete
+        boolean currentPhaseComplete = isPhaseComplete(taskId, currentPhaseId, studentId);
+        if (!currentPhaseComplete) {
+            // Current phase not yet complete, no unlock needed
+            return;
+        }
+
+        // 3. Get sorted phases from template
+        BizTrainingTask task = trainingTaskMapper.selectById(taskId);
+        if (task == null) {
+            log.warn("checkAndUnlockNextPhase: 实训任务不存在, taskId={}", taskId);
+            return;
+        }
+
+        WfTrainingTemplate template = trainingTemplateMapper.selectById(task.getTemplateId());
+        if (template == null) {
+            log.warn("checkAndUnlockNextPhase: 实训模板不存在, templateId={}", task.getTemplateId());
+            return;
+        }
+
+        List<JsonNode> sortedPhases = parsePhasesJson(template.getPhasesJson());
+        if (sortedPhases.isEmpty()) {
+            return;
+        }
+
+        // 4. Find the current phase index and get the next phase
+        int currentIndex = -1;
+        for (int i = 0; i < sortedPhases.size(); i++) {
+            JsonNode phase = sortedPhases.get(i);
+            String phaseId = phase.has("phase_id") ? phase.get("phase_id").asText() : null;
+            if (currentPhaseId.equals(phaseId)) {
+                currentIndex = i;
+                break;
+            }
+        }
+
+        if (currentIndex < 0 || currentIndex >= sortedPhases.size() - 1) {
+            // Current phase not found or is the last phase — nothing to unlock
+            log.info("checkAndUnlockNextPhase: 当前阶段为最后阶段或未找到, currentPhaseId={}", currentPhaseId);
+            return;
+        }
+
+        // 5. Process subsequent phases: unlock next, and auto-complete phases with no required nodes
+        for (int i = currentIndex + 1; i < sortedPhases.size(); i++) {
+            JsonNode nextPhase = sortedPhases.get(i);
+            String nextPhaseId = nextPhase.has("phase_id") ? nextPhase.get("phase_id").asText() : null;
+            if (nextPhaseId == null || nextPhaseId.isEmpty()) {
+                continue;
+            }
+
+            // The next phase is now unlocked (this is computed dynamically via getPhaseUnlockStatuses,
+            // but we log the unlock event for traceability)
+            log.info("checkAndUnlockNextPhase: 解锁阶段, participationId={}, phaseId={}", participationId, nextPhaseId);
+
+            // Check if this next phase has no required nodes — if so, it auto-completes
+            // and we continue to unlock the phase after it
+            boolean nextPhaseHasNoRequiredNodes = hasNoRequiredNodes(taskId, nextPhaseId);
+            if (nextPhaseHasNoRequiredNodes) {
+                log.info("checkAndUnlockNextPhase: 阶段无必修节点，自动完成, phaseId={}", nextPhaseId);
+                // Continue to unlock the phase after this one
+                continue;
+            } else {
+                // Next phase has required nodes — stop here, it needs student action
+                break;
+            }
+        }
+    }
+
+    @Override
+    public List<PhaseUnlockStatus> getPhaseUnlockStatuses(Long participationId) {
+        List<PhaseUnlockStatus> result = new ArrayList<>();
+
+        // 1. Get participation to find taskId and studentId
+        BizTrainingParticipation participation = participationMapper.selectById(participationId);
+        if (participation == null) {
+            log.warn("getPhaseUnlockStatuses: 参与记录不存在, participationId={}", participationId);
+            return result;
+        }
+
+        Long taskId = participation.getTaskId();
+        Long studentId = participation.getStudentId();
+
+        // 2. Get sorted phases from template
+        BizTrainingTask task = trainingTaskMapper.selectById(taskId);
+        if (task == null) {
+            log.warn("getPhaseUnlockStatuses: 实训任务不存在, taskId={}", taskId);
+            return result;
+        }
+
+        WfTrainingTemplate template = trainingTemplateMapper.selectById(task.getTemplateId());
+        if (template == null) {
+            log.warn("getPhaseUnlockStatuses: 实训模板不存在, templateId={}", task.getTemplateId());
+            return result;
+        }
+
+        List<JsonNode> sortedPhases = parsePhasesJson(template.getPhasesJson());
+        if (sortedPhases.isEmpty()) {
+            return result;
+        }
+
+        // 3. Compute unlock and completion status for each phase
+        // Rules:
+        // - First phase (index 0) is always unlocked
+        // - A phase is complete when all is_required=true nodes have status=2
+        // - A phase with no required nodes is auto-complete when all preceding phases are complete
+        // - A phase is unlocked when all preceding phases are complete
+        // - If all phases are complete, all are unlocked (Requirement 5.6)
+
+        boolean allPrecedingComplete = true;
+
+        for (int i = 0; i < sortedPhases.size(); i++) {
+            JsonNode phase = sortedPhases.get(i);
+            String phaseId = phase.has("phase_id") ? phase.get("phase_id").asText() : null;
+            String phaseName = phase.has("phase_name") ? phase.get("phase_name").asText() : "";
+            int sortNum = phase.has("sort_num") ? phase.get("sort_num").asInt(i + 1) : i + 1;
+
+            if (phaseId == null || phaseId.isEmpty()) {
+                continue;
+            }
+
+            PhaseUnlockStatus status = new PhaseUnlockStatus();
+            status.setPhaseId(phaseId);
+            status.setPhaseName(phaseName);
+            status.setSortNum(sortNum);
+
+            // Determine unlock status
+            boolean isUnlocked;
+            if (i == 0) {
+                // First phase is always unlocked
+                isUnlocked = true;
+            } else {
+                // Unlocked if all preceding phases are complete
+                isUnlocked = allPrecedingComplete;
+            }
+            status.setIsUnlocked(isUnlocked);
+
+            // Determine completion status
+            boolean isComplete;
+            boolean hasNoRequired = hasNoRequiredNodes(taskId, phaseId);
+            if (hasNoRequired) {
+                // Phase with no required nodes: auto-complete when all preceding phases are complete
+                isComplete = allPrecedingComplete;
+            } else {
+                // Phase with required nodes: check if all required nodes are completed
+                isComplete = isPhaseComplete(taskId, phaseId, studentId);
+            }
+            status.setIsComplete(isComplete);
+
+            result.add(status);
+
+            // Update allPrecedingComplete for next iteration
+            allPrecedingComplete = allPrecedingComplete && isComplete;
+        }
+
+        return result;
+    }
+
+    /**
+     * 检查指定阶段是否没有任何 is_required=true 的节点。
+     *
+     * @param taskId  实训任务ID
+     * @param phaseId 阶段ID
+     * @return true 表示该阶段没有必修节点
+     */
+    private boolean hasNoRequiredNodes(Long taskId, String phaseId) {
+        LambdaQueryWrapper<WfNodeInstance> nodeQuery = new LambdaQueryWrapper<>();
+        nodeQuery.eq(WfNodeInstance::getTaskId, taskId)
+                .eq(WfNodeInstance::getPhaseId, phaseId);
+        List<WfNodeInstance> allNodes = nodeInstanceMapper.selectList(nodeQuery);
+
+        if (allNodes.isEmpty()) {
+            return true;
+        }
+
+        List<WfNodeInstance> requiredNodes = filterRequiredNodes(allNodes);
+        return requiredNodes.isEmpty();
     }
 
     /**

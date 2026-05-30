@@ -216,9 +216,7 @@
           </template>
 
           <template v-else-if="activeNode.type === 'theory_class'">
-            <div class="config-field"><label>理论主题</label><input v-model.lazy="activeNode.config.topic" class="config-input" placeholder="不填则由AI生成" /></div>
-            <div class="config-field"><label>覆盖知识点列表</label><textarea v-model.lazy="activeNode.config.knowledge_points" class="config-textarea" placeholder="不填则由AI生成"></textarea></div>
-            <div class="config-field"><label>最大学习卡片数量</label><input type="number" v-model.lazy="activeNode.config.max_cards" class="config-input" placeholder="不填则由AI生成" /></div>
+            <div class="config-field"><label><span class="required">*</span>理论主题</label><input v-model.lazy="activeNode.config.topic" class="config-input" placeholder="输入你想学习的理论主题，如：SM4对称加密算法" /></div>
           </template>
 
           <template v-else-if="activeNode.type === 'task_distribute'">
@@ -297,7 +295,7 @@
           </template>
 
           <template v-else-if="activeNode.type === 'coding_class'">
-            <div class="config-field"><label>初始代码模板</label><textarea v-model.lazy="activeNode.config.template" class="config-textarea font-mono" placeholder="可为空"></textarea></div>
+            <div class="config-field"><label><span class="required">*</span>实训主题</label><input v-model.lazy="activeNode.config.topic" class="config-input" placeholder="输入编码实训主题，如：Python实现SM4对称加密算法" /></div>
           </template>
 
           <template v-else-if="activeNode.type === 'student_peer_review'">
@@ -654,8 +652,7 @@ const createNodeDefaultData = (type: string, name: string) => {
     baseNode.config = { knowledge_points: '', pass_criteria: '', max_rounds: '' }
     baseNode.ai_config = { ...baseNode.ai_config, ai_adaptive: true, ai_core_concept: true }
   } else if (type === 'theory_class') {
-    baseNode.config = { topic: '', knowledge_points: '', max_cards: '' }
-    baseNode.ai_config = { ...baseNode.ai_config, ai_mistake_book: true }
+    baseNode.config = { topic: '' }
   } else if (type === 'task_distribute') {
     baseNode.config = { title: '', requirement: '', deadline: '', files: [] }
     baseNode.ai_config = { ...baseNode.ai_config, ai_task_breakdown: true }
@@ -671,7 +668,7 @@ const createNodeDefaultData = (type: string, name: string) => {
       select_mode: 'random', random_count: 10
     }
   } else if (type === 'coding_class') {
-    baseNode.config = { template: '' }
+    baseNode.config = { topic: '' }
     baseNode.ai_config = { ...baseNode.ai_config, ai_assist: true, ai_mode: 'guide', ai_review: true }
   } else if (type === 'student_peer_review') {
     baseNode.config = { target_node: '', count: 3, dimensions: [{ name: '', score_range: '1-10分' }], weight: 30 }
@@ -814,7 +811,9 @@ const onDropCanvas = () => {
     if (fromIndex !== targetIndex && fromIndex !== targetIndex - 1) {
       const [moved] = orchestrationList.value.splice(fromIndex, 1)
       const adjTarget = fromIndex < targetIndex ? targetIndex - 1 : targetIndex
-      orchestrationList.value.splice(adjTarget, 0, moved)
+      if (moved) {
+        orchestrationList.value.splice(adjTarget, 0, moved)
+      }
     }
   }
   resetDrag()
@@ -886,8 +885,10 @@ const selectNode = (node: any) => {
   isAIExpanded.value = false 
 }
 const deleteNode = (index: number) => {
-  if (['start', 'end'].includes(orchestrationList.value[index].type)) return
-  if (selectedNodeId.value === orchestrationList.value[index].id) selectedNodeId.value = null
+  const node = orchestrationList.value[index]
+  if (!node) return
+  if (['start', 'end'].includes(node.type)) return
+  if (selectedNodeId.value === node.id) selectedNodeId.value = null
   orchestrationList.value.splice(index, 1)
 }
 const moveNodeUp = (idx: number) => { onDragStartNode(null as any, idx, null); dropIndicatorIndex.value = idx - 2; onDropCanvas() }
@@ -1040,15 +1041,11 @@ const buildNodeConfig = (node: any) => {
       break
 
     case 'theory_class':
-      cfg.topic = config.topic || ''
-      cfg.knowledge_points = config.knowledge_points || ''
-      cfg.card_count = config.max_cards || ''
-      cfg.enable_ai_error_book = ai_config.ai_mistake_book ?? true
       cfg.allow_ai_qa = ai_config.ai_qa ?? true
       break
 
     case 'coding_class':
-      cfg.init_code = config.template || ''
+      cfg.topic = config.topic || ''
       cfg.allow_ai_help = ai_config.ai_assist ?? true
       cfg.ai_help_mode = ai_config.ai_mode || 'guide'
       cfg.enable_code_review = ai_config.ai_review ?? true
@@ -1085,6 +1082,18 @@ const validateRequired = (): string[] => {
         case 'mindmap_draw':
           if (config.ai_generated && !config.topic?.trim()) {
             errors.push(`[${phase.phase_name}]"${name}"：AI生成模式下导图主题为必填项`)
+          }
+          break
+
+        case 'theory_class':
+          if (!config.topic?.trim()) {
+            errors.push(`[${phase.phase_name}]"${name}"：理论主题为必填项`)
+          }
+          break
+
+        case 'coding_class':
+          if (!config.topic?.trim()) {
+            errors.push(`[${phase.phase_name}]"${name}"：编码实训主题为必填项`)
           }
           break
       }

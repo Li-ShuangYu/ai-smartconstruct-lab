@@ -14,6 +14,7 @@ import com.smartconstruct.backend_core.mapper.WfNodeAiStatusMapper;
 import com.smartconstruct.backend_core.mapper.WfNodeDefMapper;
 import com.smartconstruct.backend_core.mapper.WfTrainingTemplateMapper;
 import com.smartconstruct.backend_core.service.IAiEngineClient;
+import com.smartconstruct.backend_core.service.IAiProcessingLogService;
 import io.netty.channel.ChannelOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,6 +88,9 @@ public class AiEngineClientImpl implements IAiEngineClient {
     private WfNodeAiStatusMapper nodeAiStatusMapper;
 
     @Autowired
+    private IAiProcessingLogService aiLogService;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private WebClient webClient;
@@ -131,7 +135,10 @@ public class AiEngineClientImpl implements IAiEngineClient {
             ObjectNode canvas = (ObjectNode) objectMapper.readTree(canvasJson);
 
             // 2. 为每个节点注入ai_spec
-            enrichWithAiSpecs(canvas);
+            int[] enrichmentCounts = enrichWithAiSpecs(canvas);
+            aiLogService.log(templateId, "ENRICHMENT_SUMMARY", "节点AI规格注入", "success",
+                    enrichmentCounts[0] + "个节点已注入ai_spec，"
+                    + enrichmentCounts[1] + "个节点跳过（无需AI处理）");
 
             // 3. 构建请求体（注意字段名使用下划线格式，与AI引擎期望一致）
             String callbackUrl = buildCallbackUrl();
@@ -155,6 +162,9 @@ public class AiEngineClientImpl implements IAiEngineClient {
             if (response != null && response.containsKey("job_id")) {
                 String jobId = String.valueOf(response.get("job_id"));
                 log.info("AI engine accepted template {} pipeline, jobId={}", templateId, jobId);
+                aiLogService.logDetail(templateId, null, null, jobId,
+                        "JOB_ACCEPTED", "AI引擎已接受任务", "success",
+                        "job_id: " + jobId, null);
                 WfTrainingTemplate template = trainingTemplateMapper.selectById(templateId);
                 if (template != null) {
                     template.setAiJobId(jobId);
@@ -164,6 +174,7 @@ public class AiEngineClientImpl implements IAiEngineClient {
             } else {
                 String errorMsg = "AI引擎返回无效响应，缺少job_id";
                 log.error("Template {} - {}", templateId, errorMsg);
+                aiLogService.log(templateId, "JOB_REJECTED", "AI引擎拒绝任务", "failed", errorMsg);
                 markTemplateAsFailed(templateId, errorMsg);
             }
 
@@ -184,6 +195,9 @@ public class AiEngineClientImpl implements IAiEngineClient {
             }
 
             log.error("Template {} - AI pipeline trigger failed: {}", templateId, errorMsg, e);
+            aiLogService.logDetail(templateId, null, null, null,
+                    "CONNECTION_FAILED", "AI引擎连接失败", "failed",
+                    errorMsg, java.util.Collections.singletonMap("errorType", cause.getClass().getSimpleName()));
             markTemplateAsFailed(templateId, errorMsg);
         }
     }
@@ -257,7 +271,10 @@ public class AiEngineClientImpl implements IAiEngineClient {
             }
 
             // 4. 为部分canvas注入ai_spec
-            enrichWithAiSpecs(partialCanvas);
+            int[] retryCounts = enrichWithAiSpecs(partialCanvas);
+            aiLogService.log(templateId, "ENRICHMENT_SUMMARY", "节点AI规格注入", "success",
+                    retryCounts[0] + "个节点已注入ai_spec（重试），"
+                    + retryCounts[1] + "个节点跳过");
 
             // 5. 更新失败节点状态为处理中(1)，递增retry_count，更新last_processed_at
             LocalDateTime now = LocalDateTime.now();
@@ -295,12 +312,16 @@ public class AiEngineClientImpl implements IAiEngineClient {
             if (response != null && response.containsKey("job_id")) {
                 String jobId = String.valueOf(response.get("job_id"));
                 log.info("AI engine accepted retry for template {}, jobId={}", templateId, jobId);
+                aiLogService.logDetail(templateId, null, null, jobId,
+                        "JOB_ACCEPTED", "AI引擎已接受重试任务", "success",
+                        "job_id: " + jobId, null);
                 template.setAiJobId(jobId);
                 template.setUpdatedAt(LocalDateTime.now());
                 trainingTemplateMapper.updateById(template);
             } else {
                 String errorMsg = "AI引擎重试请求返回无效响应，缺少job_id";
                 log.error("Template {} - {}", templateId, errorMsg);
+                aiLogService.log(templateId, "JOB_REJECTED", "AI引擎拒绝重试任务", "failed", errorMsg);
                 markFailedNodesAsError(failedNodes, errorMsg);
             }
 
@@ -321,6 +342,9 @@ public class AiEngineClientImpl implements IAiEngineClient {
             }
 
             log.error("Template {} - retry failed nodes error: {}", templateId, errorMsg, e);
+            aiLogService.logDetail(templateId, null, null, null,
+                    "CONNECTION_FAILED", "AI引擎重试连接失败", "failed",
+                    errorMsg, java.util.Collections.singletonMap("errorType", cause.getClass().getSimpleName()));
 
             // 将节点重新标记为失败
             try {
@@ -446,13 +470,13 @@ public class AiEngineClientImpl implements IAiEngineClient {
      * 前提条件：wf_node_def 表中所有节点类型（包括12种非AI密集型节点）
      * 均需有对应的 ai_spec_json 记录，否则该节点将被跳过（仅记录日志）。
      *
-     * @param canvas 画布JSON ObjectNode（会被原地修改）
+     * @return int[0]=enrichedCount, int[1]=skippedCount
      */
-    private void enrichWithAiSpecs(ObjectNode canvas) {
+    private int[] enrichWithAiSpecs(ObjectNode canvas) {
         JsonNode phasesNode = canvas.get("phases");
         if (phasesNode == null || !phasesNode.isArray()) {
             log.warn("Canvas has no 'phases' array, skipping ai_spec enrichment");
-            return;
+            return new int[]{0, 0};
         }
 
         ArrayNode phases = (ArrayNode) phasesNode;
@@ -520,6 +544,7 @@ public class AiEngineClientImpl implements IAiEngineClient {
         }
 
         log.info("AI spec enrichment complete: {} nodes enriched, {} nodes skipped", enrichedCount, skippedCount);
+        return new int[]{enrichedCount, skippedCount};
     }
 
     /**

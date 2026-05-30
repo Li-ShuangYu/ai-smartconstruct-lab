@@ -12,6 +12,7 @@ import com.smartconstruct.backend_core.entity.WfTrainingTemplate;
 import com.smartconstruct.backend_core.mapper.WfNodeAiStatusMapper;
 import com.smartconstruct.backend_core.mapper.WfTrainingTemplateMapper;
 import com.smartconstruct.backend_core.service.IAiEngineClient;
+import com.smartconstruct.backend_core.service.IAiProcessingLogService;
 import com.smartconstruct.backend_core.service.IKnowledgePointService;
 import com.smartconstruct.backend_core.service.INodeValidationService;
 import com.smartconstruct.backend_core.service.IQuestionBankService;
@@ -148,7 +149,8 @@ class BugConditionExplorationTest {
         AiCallbackController controller = new AiCallbackController(
                 templateMapper, nodeAiStatusMapper,
                 questionBankService, questionService,
-                knowledgePointService, webSocketHandler
+                knowledgePointService, webSocketHandler,
+                Mockito.mock(IAiProcessingLogService.class)
         );
 
         // Act: simulate AI callback with node-level content
@@ -208,7 +210,8 @@ class BugConditionExplorationTest {
 
         TeacherTemplateController controller = new TeacherTemplateController(
                 templateService, trainingTaskService,
-                nodeValidationService, aiEngineClient, nodeAiStatusMapper
+                nodeValidationService, aiEngineClient, nodeAiStatusMapper,
+                Mockito.mock(IAiProcessingLogService.class)
         );
 
         // Act: call preview
@@ -279,7 +282,8 @@ class BugConditionExplorationTest {
 
         TeacherTemplateController controller = new TeacherTemplateController(
                 templateService, trainingTaskService,
-                nodeValidationService, aiEngineClient, nodeAiStatusMapper
+                nodeValidationService, aiEngineClient, nodeAiStatusMapper,
+                Mockito.mock(IAiProcessingLogService.class)
         );
 
         // Act: call preview

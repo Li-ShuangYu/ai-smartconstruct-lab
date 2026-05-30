@@ -9,6 +9,7 @@ import com.smartconstruct.backend_core.entity.WfTrainingTemplate;
 import com.smartconstruct.backend_core.mapper.WfNodeAiStatusMapper;
 import com.smartconstruct.backend_core.mapper.WfTrainingTemplateMapper;
 import com.smartconstruct.backend_core.service.IAiEngineClient;
+import com.smartconstruct.backend_core.service.IAiProcessingLogService;
 import com.smartconstruct.backend_core.service.ITrainingTemplateService;
 import com.smartconstruct.backend_core.service.IKnowledgePointService;
 import com.smartconstruct.backend_core.service.IQuestionBankService;
@@ -67,6 +68,9 @@ class TemplatePublishFlowTest {
     @Mock
     private TrainingWebSocketHandler webSocketHandler;
 
+    @Mock
+    private IAiProcessingLogService aiLogService;
+
     private AiCallbackController callbackController;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -76,8 +80,9 @@ class TemplatePublishFlowTest {
     @BeforeEach
     void setUp() {
         callbackController = new AiCallbackController(
-                templateMapper, nodeAiStatusMapper, questionBankService, 
-                questionService, knowledgePointService, webSocketHandler
+                templateMapper, nodeAiStatusMapper, questionBankService,
+                questionService, knowledgePointService, webSocketHandler,
+                aiLogService
         );
 
         template = new WfTrainingTemplate();

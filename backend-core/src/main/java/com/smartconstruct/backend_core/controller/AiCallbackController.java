@@ -10,6 +10,7 @@ import com.smartconstruct.backend_core.entity.WfNodeAiStatus;
 import com.smartconstruct.backend_core.entity.WfTrainingTemplate;
 import com.smartconstruct.backend_core.mapper.WfNodeAiStatusMapper;
 import com.smartconstruct.backend_core.mapper.WfTrainingTemplateMapper;
+import com.smartconstruct.backend_core.service.IAiProcessingLogService;
 import com.smartconstruct.backend_core.service.IKnowledgePointService;
 import com.smartconstruct.backend_core.service.IQuestionBankService;
 import com.smartconstruct.backend_core.service.IQuestionService;
@@ -48,6 +49,7 @@ public class AiCallbackController {
     private final IQuestionService questionService;
     private final IKnowledgePointService knowledgePointService;
     private final TrainingWebSocketHandler webSocketHandler;
+    private final IAiProcessingLogService aiLogService;
 
     /**
      * 构造函数注入，支持测试场景
@@ -57,13 +59,15 @@ public class AiCallbackController {
                                 IQuestionBankService questionBankService,
                                 IQuestionService questionService,
                                 IKnowledgePointService knowledgePointService,
-                                TrainingWebSocketHandler webSocketHandler) {
+                                TrainingWebSocketHandler webSocketHandler,
+                                IAiProcessingLogService aiLogService) {
         this.templateMapper = templateMapper;
         this.nodeAiStatusMapper = nodeAiStatusMapper;
         this.questionBankService = questionBankService;
         this.questionService = questionService;
         this.knowledgePointService = knowledgePointService;
         this.webSocketHandler = webSocketHandler;
+        this.aiLogService = aiLogService;
     }
 
     /**
@@ -214,12 +218,27 @@ public class AiCallbackController {
             template.setErrorReason(null);
             template.setUpdatedAt(java.time.LocalDateTime.now());
             log.info("AI pipeline succeeded for templateId={}, updating ai_status=2", payload.getTemplateId());
+
+            // Count nodes in standard_payload_json for the log message
+            String detailMsg = "AI处理完成";
+            if (payload.getGeneratedAssets() != null) {
+                int qCount = payload.getGeneratedAssets().getQuestions() != null
+                        ? payload.getGeneratedAssets().getQuestions().size() : 0;
+                int kpCount = payload.getGeneratedAssets().getKnowledgePoints() != null
+                        ? payload.getGeneratedAssets().getKnowledgePoints().size() : 0;
+                detailMsg += "，生成" + qCount + "道题目、" + kpCount + "个知识点";
+            }
+            aiLogService.logDetail(payload.getTemplateId(), null, null, payload.getJobId(),
+                    "PIPELINE_COMPLETED", "AI处理完成", "success", detailMsg, null);
         } else if (payload.getStatus() == 3) {
             // Failure: update ai_status and error_reason
             template.setAiStatus(3);
             template.setErrorReason(payload.getErrorReason());
             template.setUpdatedAt(java.time.LocalDateTime.now());
             log.warn("AI pipeline failed for templateId={}, errorReason={}", payload.getTemplateId(), payload.getErrorReason());
+            aiLogService.logDetail(payload.getTemplateId(), null, null, payload.getJobId(),
+                    "PIPELINE_FAILED", "AI处理失败", "failed",
+                    payload.getErrorReason(), null);
         } else {
             log.warn("AI pipeline callback rejected: invalid status={}", payload.getStatus());
             return ApiResult.error(400, "无效的状态值，status必须为2(成功)或3(失败)");
@@ -269,6 +288,21 @@ public class AiCallbackController {
         // Validate required fields
         if (payload.getTemplateId() == null || payload.getNodeId() == null || payload.getAiStatus() == null) {
             return ApiResult.error(400, "template_id, node_id, ai_status不能为空");
+        }
+
+        // Log node processing event
+        if (payload.getAiStatus() == 2) {
+            aiLogService.logDetail(payload.getTemplateId(), payload.getNodeId(), payload.getNodeType(), null,
+                    "NODE_COMPLETED", "节点AI处理完成", "success",
+                    "节点 " + payload.getNodeId() + " 处理完成", null);
+        } else if (payload.getAiStatus() == 3) {
+            aiLogService.logDetail(payload.getTemplateId(), payload.getNodeId(), payload.getNodeType(), null,
+                    "NODE_FAILED", "节点AI处理失败", "failed",
+                    "节点 " + payload.getNodeId() + " 处理失败: " + (payload.getErrorReason() != null ? payload.getErrorReason() : ""), null);
+        } else if (payload.getAiStatus() == 1) {
+            aiLogService.logDetail(payload.getTemplateId(), payload.getNodeId(), payload.getNodeType(), null,
+                    "NODE_PROCESSING", "节点开始AI处理", "processing",
+                    "节点 " + payload.getNodeId() + " 开始处理", null);
         }
 
         // Step 3: Upsert wf_node_ai_status record with graceful degradation

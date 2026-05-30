@@ -2,6 +2,7 @@
  * 学生实训流程状态管理 Store
  *
  * 管理学生端实训运行时的全局状态，包括任务总览、阶段进度、当前节点等。
+ * 实现实训流转的完整状态管理：加载总览、开始实训、进入/完成节点、导航到下一节点。
  *
  * @module stores/modules/studentFlow
  */
@@ -9,28 +10,33 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
   PhaseProgress,
-  StudentCurrentPosition,
   StudentNodeProgress,
   StudentTaskOverview,
-  NodeProgressStatus
+  NodeProgressStatus,
+  NodeInstanceProgress
 } from '@/services/types/studentTraining'
 import {
   getTaskOverview,
-  getCurrentPosition,
+  startTraining as startTrainingApi,
   enterNode as enterNodeApi,
   completeNode as completeNodeApi,
   submitNode as submitNodeApi
 } from '@/services/modules/studentTraining.service'
 
 export const useStudentFlowStore = defineStore('studentFlow', () => {
+  // ─── State ────────────────────────────────────────────────────────────────────
+
   /** 当前实训任务 ID */
   const taskId = ref<number | null>(null)
 
   /** 实训任务总览数据 */
   const taskOverview = ref<StudentTaskOverview | null>(null)
 
-  /** 当前位置 */
-  const currentPosition = ref<StudentCurrentPosition | null>(null)
+  /** 当前所在阶段 ID */
+  const currentPhaseId = ref<string | null>(null)
+
+  /** 当前所在节点实例 ID */
+  const currentNodeId = ref<number | null>(null)
 
   /** 当前节点进度 */
   const currentNodeProgress = ref<StudentNodeProgress | null>(null)
@@ -41,14 +47,16 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
   /** 错误信息 */
   const error = ref<string | null>(null)
 
+  // ─── Getters / Computed ───────────────────────────────────────────────────────
+
   /** 所有阶段进度 */
   const phases = computed<PhaseProgress[]>(() =>
     taskOverview.value?.phases ?? []
   )
 
-  /** 当前解锁的阶段 */
-  const currentPhase = computed<PhaseProgress | undefined>(() =>
-    phases.value.find(p => p.phase_id === currentPosition.value?.phase_id)
+  /** 当前阶段进度 */
+  const currentPhaseProgress = computed<PhaseProgress | undefined>(() =>
+    phases.value.find(p => p.phase_id === currentPhaseId.value)
   )
 
   /** 实训是否已过期 */
@@ -56,13 +64,65 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     taskOverview.value?.is_expired ?? false
   )
 
-  /** 整体完成进度百分比 */
+  /**
+   * 整体完成进度百分比
+   * 计算公式：round(已完成节点数 / 总节点数 × 100)，范围 0-100 整数
+   */
   const overallProgress = computed<number>(() => {
     const allNodes = phases.value.flatMap(p => p.nodes)
     if (allNodes.length === 0) return 0
     const completed = allNodes.filter(n => n.status === 2).length
     return Math.round((completed / allNodes.length) * 100)
   })
+
+  /**
+   * 各阶段完成百分比映射
+   * Key: phase_id, Value: 0-100 整数
+   * 计算公式：round(阶段内已完成节点数 / 阶段内总节点数 × 100)
+   */
+  const phaseCompletionPercentage = computed<Record<string, number>>(() => {
+    const result: Record<string, number> = {}
+    for (const phase of phases.value) {
+      if (phase.total_nodes === 0) {
+        result[phase.phase_id] = 0
+      } else {
+        result[phase.phase_id] = Math.round(
+          (phase.completed_nodes / phase.total_nodes) * 100
+        )
+      }
+    }
+    return result
+  })
+
+  /**
+   * 判断指定阶段是否已解锁
+   * @param phaseId 阶段 ID
+   * @returns 是否解锁
+   */
+  const isPhaseUnlocked = computed<(phaseId: string) => boolean>(() => {
+    return (phaseId: string): boolean => {
+      // 如果所有阶段都已完成，则全部解锁
+      const allComplete = phases.value.every(p => p.is_complete)
+      if (allComplete) return true
+
+      const phase = phases.value.find(p => p.phase_id === phaseId)
+      return phase?.is_unlocked ?? false
+    }
+  })
+
+  /**
+   * 当前节点的配置信息（从 taskOverview 中查找）
+   */
+  const currentNodeConfig = computed<NodeInstanceProgress | undefined>(() => {
+    if (!currentNodeId.value) return undefined
+    for (const phase of phases.value) {
+      const node = phase.nodes.find(n => n.node_instance_id === currentNodeId.value)
+      if (node) return node
+    }
+    return undefined
+  })
+
+  // ─── Actions ──────────────────────────────────────────────────────────────────
 
   /** 加载实训任务总览 */
   async function loadTaskOverview(id: number) {
@@ -72,6 +132,8 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     try {
       const result = await getTaskOverview(id)
       taskOverview.value = result.data
+      // 恢复位置逻辑
+      _restorePosition()
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : '加载实训任务失败'
     } finally {
@@ -79,14 +141,35 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     }
   }
 
-  /** 刷新当前位置 */
-  async function refreshCurrentPosition() {
+  /**
+   * 开始实训（Participation status 0→1）
+   * 如果已经是进行中状态，则直接恢复到上次中断位置
+   */
+  async function startTraining() {
     if (!taskId.value) return
+    const participation = taskOverview.value?.participation
+    // 已进行中：直接恢复位置，不重复创建 Activity_State
+    if (participation?.status === 1) {
+      _restorePosition()
+      return
+    }
+    // 已提交：不允许重新开始
+    if (participation?.status === 2) {
+      error.value = '实训已完成'
+      return
+    }
+
+    loading.value = true
+    error.value = null
     try {
-      const result = await getCurrentPosition(taskId.value)
-      currentPosition.value = result.data
+      const result = await startTrainingApi(taskId.value)
+      taskOverview.value = result.data
+      // 开始后恢复位置（定位到第一个未完成节点）
+      _restorePosition()
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : '获取当前位置失败'
+      error.value = e instanceof Error ? e.message : '开始实训失败'
+    } finally {
+      loading.value = false
     }
   }
 
@@ -97,12 +180,9 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     try {
       const result = await enterNodeApi(nodeInstanceId)
       currentNodeProgress.value = result.data.progress
-      currentPosition.value = {
-        phase_id: currentPosition.value?.phase_id ?? null,
-        node_instance_id: nodeInstanceId,
-        node_type: null,
-        node_name: null
-      }
+      currentNodeId.value = nodeInstanceId
+      // 更新 currentPhaseId
+      _updateCurrentPhaseFromNode(nodeInstanceId)
       return result.data
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : '进入节点失败'
@@ -117,19 +197,60 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     loading.value = true
     error.value = null
     try {
-      await completeNodeApi(nodeInstanceId)
+      const result = await completeNodeApi(nodeInstanceId)
       // 更新本地节点状态
-      updateLocalNodeStatus(nodeInstanceId, 2)
+      _updateLocalNodeStatus(nodeInstanceId, 2)
       currentNodeProgress.value = null
+      currentNodeId.value = null
       // 刷新总览以获取最新阶段解锁状态
       if (taskId.value) {
         await loadTaskOverview(taskId.value)
       }
+      return result.data
     } catch (e: unknown) {
       error.value = e instanceof Error ? e.message : '完成节点失败'
+      return null
     } finally {
       loading.value = false
     }
+  }
+
+  /**
+   * 导航到下一个未完成节点
+   * 在当前阶段内按 sort_num 升序查找下一个 status !== 2 的节点
+   * 如果当前阶段所有节点已完成，返回 null 表示阶段完成
+   */
+  function navigateToNextNode(): number | null {
+    if (!currentPhaseId.value) return null
+
+    const phase = phases.value.find(p => p.phase_id === currentPhaseId.value)
+    if (!phase) return null
+
+    // 按 sort_num 升序排列，找到第一个未完成的节点
+    const sortedNodes = [...phase.nodes].sort((a, b) => a.sort_num - b.sort_num)
+    const nextNode = sortedNodes.find(n => n.status !== 2)
+
+    if (nextNode) {
+      currentNodeId.value = nextNode.node_instance_id
+      return nextNode.node_instance_id
+    }
+
+    // 当前阶段所有节点已完成，尝试进入下一个解锁的未完成阶段
+    const sortedPhases = [...phases.value].sort((a, b) => a.sort_num - b.sort_num)
+    const nextPhase = sortedPhases.find(p => p.is_unlocked && !p.is_complete)
+
+    if (nextPhase) {
+      currentPhaseId.value = nextPhase.phase_id
+      const nextPhaseNodes = [...nextPhase.nodes].sort((a, b) => a.sort_num - b.sort_num)
+      const firstIncomplete = nextPhaseNodes.find(n => n.status !== 2)
+      if (firstIncomplete) {
+        currentNodeId.value = firstIncomplete.node_instance_id
+        return firstIncomplete.node_instance_id
+      }
+    }
+
+    // 所有节点已完成
+    return null
   }
 
   /** 提交节点数据 */
@@ -139,7 +260,7 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     try {
       const result = await submitNodeApi(nodeInstanceId, { submission_data: submissionData })
       if (Number(result.data.status) === 2) {
-        updateLocalNodeStatus(nodeInstanceId, 2)
+        _updateLocalNodeStatus(nodeInstanceId, 2)
       }
       return result.data
     } catch (e: unknown) {
@@ -161,8 +282,86 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     return false
   }
 
+  /** 重置 store 状态 */
+  function reset() {
+    taskId.value = null
+    taskOverview.value = null
+    currentPhaseId.value = null
+    currentNodeId.value = null
+    currentNodeProgress.value = null
+    loading.value = false
+    error.value = null
+  }
+
+  // ─── Private Helpers ──────────────────────────────────────────────────────────
+
+  /**
+   * 恢复位置逻辑
+   * 1. 如果 Student_Activity_State 有 current_node_instance_id：导航到该节点
+   * 2. 如果为 null 或无状态：找到当前解锁阶段的第一个未完成节点
+   */
+  function _restorePosition() {
+    if (!taskOverview.value) return
+
+    const overview = taskOverview.value
+
+    // 优先使用 Activity_State 中的 current_node_instance_id
+    if (overview.current_node_instance_id) {
+      currentNodeId.value = overview.current_node_instance_id
+      // 根据节点找到所属阶段
+      _updateCurrentPhaseFromNode(overview.current_node_instance_id)
+      return
+    }
+
+    // 使用 current_phase_id（如果后端返回了）
+    if (overview.current_phase_id) {
+      currentPhaseId.value = overview.current_phase_id
+    }
+
+    // 回退：找到第一个解锁且未完成阶段的第一个未完成节点
+    _locateFirstIncompleteNode()
+  }
+
+  /**
+   * 定位第一个未完成节点
+   * 在所有解锁且未完成的阶段中，按 sort_num 升序找到第一个 status !== 2 的节点
+   */
+  function _locateFirstIncompleteNode() {
+    const sortedPhases = [...phases.value].sort((a, b) => a.sort_num - b.sort_num)
+    const targetPhase = sortedPhases.find(p => p.is_unlocked && !p.is_complete)
+
+    if (targetPhase) {
+      currentPhaseId.value = targetPhase.phase_id
+      const sortedNodes = [...targetPhase.nodes].sort((a, b) => a.sort_num - b.sort_num)
+      const firstIncomplete = sortedNodes.find(n => n.status !== 2)
+      if (firstIncomplete) {
+        currentNodeId.value = firstIncomplete.node_instance_id
+      }
+    } else {
+      // 所有阶段已完成，定位到最后一个阶段
+      const lastPhase = sortedPhases[sortedPhases.length - 1]
+      if (lastPhase) {
+        currentPhaseId.value = lastPhase.phase_id
+      }
+      currentNodeId.value = null
+    }
+  }
+
+  /**
+   * 根据节点实例 ID 更新 currentPhaseId
+   */
+  function _updateCurrentPhaseFromNode(nodeInstanceId: number) {
+    for (const phase of phases.value) {
+      const node = phase.nodes.find(n => n.node_instance_id === nodeInstanceId)
+      if (node) {
+        currentPhaseId.value = phase.phase_id
+        return
+      }
+    }
+  }
+
   /** 更新本地节点状态 */
-  function updateLocalNodeStatus(nodeInstanceId: number, status: NodeProgressStatus) {
+  function _updateLocalNodeStatus(nodeInstanceId: number, status: NodeProgressStatus) {
     if (!taskOverview.value) return
     for (const phase of taskOverview.value.phases) {
       const node = phase.nodes.find(n => n.node_instance_id === nodeInstanceId)
@@ -179,34 +378,29 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     }
   }
 
-  /** 重置 store 状态 */
-  function reset() {
-    taskId.value = null
-    taskOverview.value = null
-    currentPosition.value = null
-    currentNodeProgress.value = null
-    loading.value = false
-    error.value = null
-  }
-
   return {
     // State
     taskId,
     taskOverview,
-    currentPosition,
+    currentPhaseId,
+    currentNodeId,
     currentNodeProgress,
     loading,
     error,
-    // Computed
+    // Getters
     phases,
-    currentPhase,
+    currentPhaseProgress,
     isExpired,
     overallProgress,
+    phaseCompletionPercentage,
+    isPhaseUnlocked,
+    currentNodeConfig,
     // Actions
     loadTaskOverview,
-    refreshCurrentPosition,
+    startTraining,
     enterNode,
     completeNode,
+    navigateToNextNode,
     submitNode,
     isNodeAccessible,
     reset

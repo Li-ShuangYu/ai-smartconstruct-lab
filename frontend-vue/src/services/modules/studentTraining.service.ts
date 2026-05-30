@@ -8,8 +8,9 @@
 import http from '@/services/api'
 import type { ApiResult } from '@/services/types/auth.types'
 import type {
+  CompleteNodeResponse,
+  CurrentPosition,
   EnterNodeResponse,
-  StudentCurrentPosition,
   StudentTaskOverview,
   SubmitNodeRequest,
   SubmitNodeResponse
@@ -21,7 +22,11 @@ export const getTaskOverview = (taskId: number) =>
 
 /** 获取学生当前位置（当前阶段和节点） */
 export const getCurrentPosition = (taskId: number) =>
-  http.get<ApiResult<StudentCurrentPosition>>(`/api/student/tasks/${taskId}/current-position`).then(r => r.data)
+  http.get<ApiResult<CurrentPosition>>(`/api/student/tasks/${taskId}/current-position`).then(r => r.data)
+
+/** 开始实训（Participation status 0→1） */
+export const startTraining = (taskId: number) =>
+  http.post<ApiResult<StudentTaskOverview>>(`/api/student/tasks/${taskId}/start`).then(r => r.data)
 
 /** 进入节点（创建或恢复进度记录） */
 export const enterNode = (nodeInstanceId: number) =>
@@ -29,7 +34,7 @@ export const enterNode = (nodeInstanceId: number) =>
 
 /** 完成节点 */
 export const completeNode = (nodeInstanceId: number) =>
-  http.post<ApiResult<void>>(`/api/student/nodes/${nodeInstanceId}/complete`).then(r => r.data)
+  http.post<ApiResult<CompleteNodeResponse>>(`/api/student/nodes/${nodeInstanceId}/complete`).then(r => r.data)
 
 /** 提交节点数据 */
 export const submitNode = (nodeInstanceId: number, data: SubmitNodeRequest) =>

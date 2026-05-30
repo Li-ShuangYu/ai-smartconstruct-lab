@@ -9,12 +9,14 @@ import com.smartconstruct.backend_core.annotation.OperationLog;
 import com.smartconstruct.backend_core.dto.ApiResult;
 import com.smartconstruct.backend_core.dto.PageResult;
 import com.smartconstruct.backend_core.dto.ValidationResult;
+import com.smartconstruct.backend_core.entity.AiProcessingLog;
 import com.smartconstruct.backend_core.entity.BizTrainingTask;
 import com.smartconstruct.backend_core.entity.SysUser;
 import com.smartconstruct.backend_core.entity.WfNodeAiStatus;
 import com.smartconstruct.backend_core.entity.WfTrainingTemplate;
 import com.smartconstruct.backend_core.mapper.WfNodeAiStatusMapper;
 import com.smartconstruct.backend_core.service.IAiEngineClient;
+import com.smartconstruct.backend_core.service.IAiProcessingLogService;
 import com.smartconstruct.backend_core.service.INodeValidationService;
 import com.smartconstruct.backend_core.service.ITrainingTaskService;
 import com.smartconstruct.backend_core.service.ITrainingTemplateService;
@@ -42,18 +44,21 @@ public class TeacherTemplateController {
     private final INodeValidationService nodeValidationService;
     private final IAiEngineClient aiEngineClient;
     private final WfNodeAiStatusMapper nodeAiStatusMapper;
+    private final IAiProcessingLogService aiLogService;
     private final ObjectMapper objectMapper;
 
     public TeacherTemplateController(ITrainingTemplateService templateService,
                                      ITrainingTaskService trainingTaskService,
                                      INodeValidationService nodeValidationService,
                                      IAiEngineClient aiEngineClient,
-                                     WfNodeAiStatusMapper nodeAiStatusMapper) {
+                                     WfNodeAiStatusMapper nodeAiStatusMapper,
+                                     IAiProcessingLogService aiLogService) {
         this.templateService = templateService;
         this.trainingTaskService = trainingTaskService;
         this.nodeValidationService = nodeValidationService;
         this.aiEngineClient = aiEngineClient;
         this.nodeAiStatusMapper = nodeAiStatusMapper;
+        this.aiLogService = aiLogService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -207,6 +212,10 @@ public class TeacherTemplateController {
         template.setUpdatedAt(LocalDateTime.now());
         templateService.updateById(template);
 
+        // Log: TRIGGER_START
+        aiLogService.log(id, "TRIGGER_START", "触发AI处理", "processing",
+                "已提交画布数据到AI引擎");
+
         // Trigger AI pipeline asynchronously
         try {
             String canvasJsonString = objectMapper.writeValueAsString(canvasData);
@@ -218,6 +227,8 @@ public class TeacherTemplateController {
             template.setErrorReason("画布数据序列化失败: " + e.getMessage());
             template.setUpdatedAt(LocalDateTime.now());
             templateService.updateById(template);
+            aiLogService.log(id, "TRIGGER_START", "触发AI处理", "failed",
+                    "画布数据序列化失败: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResult.error(500, "画布数据序列化失败"));
         }
@@ -271,14 +282,13 @@ public class TeacherTemplateController {
 
         if (failedNodeIds.isEmpty()) {
             // No per-node failures tracked, fall back to full re-processing via the new pipeline.
-            // The new triggerAiPipeline path enriches with ai_spec and falls back to a synthetic
-            // standard_payload_json when the AI engine is unreachable, so preview can still show
-            // AI content in dev mode.
             log.info("Template [id={}] - no per-node failures found, re-triggering full pipeline", id);
             template.setAiStatus(1);
             template.setErrorReason(null);
             template.setUpdatedAt(LocalDateTime.now());
             templateService.updateById(template);
+            aiLogService.log(id, "RETRY_START", "重试AI处理", "processing",
+                    "无节点级失败记录，重新触发完整AI管线");
             try {
                 String canvasJsonString = objectMapper.writeValueAsString(template.getRawCanvasJson());
                 aiEngineClient.triggerAiPipeline(id, canvasJsonString);
@@ -288,6 +298,8 @@ public class TeacherTemplateController {
                 template.setErrorReason("画布数据序列化失败: " + e.getMessage());
                 template.setUpdatedAt(LocalDateTime.now());
                 templateService.updateById(template);
+                aiLogService.log(id, "RETRY_START", "重试AI处理", "failed",
+                        "画布数据序列化失败: " + e.getMessage());
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                         .body(ApiResult.error(500, "画布数据序列化失败"));
             }
@@ -298,6 +310,8 @@ public class TeacherTemplateController {
             template.setErrorReason(null);
             template.setUpdatedAt(LocalDateTime.now());
             templateService.updateById(template);
+            aiLogService.log(id, "RETRY_START", "重试AI处理", "processing",
+                    "重试" + failedNodeIds.size() + "个失败节点: " + String.join(", ", failedNodeIds));
             aiEngineClient.retryFailedNodes(id, failedNodeIds);
         }
 
@@ -510,6 +524,29 @@ public class TeacherTemplateController {
         }
 
         return ResponseEntity.ok(ApiResult.ok(previewData));
+    }
+
+    /**
+     * 获取模板的AI处理日志（按时间升序）
+     *
+     * @param id 模板ID
+     * @return AI处理日志列表，按时间升序排列
+     */
+    @GetMapping("/{id}/ai-logs")
+    public ResponseEntity<?> getAiLogs(@PathVariable Long id) {
+        WfTrainingTemplate template = templateService.getById(id);
+        if (template == null) {
+            return ResponseEntity.badRequest().body(ApiResult.error("模板不存在"));
+        }
+
+        List<AiProcessingLog> logs = aiLogService.getLogsByTemplateId(id);
+        return ResponseEntity.ok(ApiResult.ok(Java8Compat.mapOf(
+                "template_id", String.valueOf(id),
+                "template_name", template.getTemplateName(),
+                "ai_status", template.getAiStatus(),
+                "error_reason", template.getErrorReason(),
+                "logs", logs
+        )));
     }
 
     /**

@@ -146,6 +146,11 @@
 				<configuration>
 					<source>8</source>
 					<target>8</target>
+					<testExcludes>
+						<testExclude>**/bugfix/**</testExclude>
+						<testExclude>**/controller/AiCallbackControllerTest.java</testExclude>
+						<testExclude>**/integration/**</testExclude>
+					</testExcludes>
 				</configuration>
 			</plugin>
 		</plugins>

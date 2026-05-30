@@ -42,6 +42,25 @@ export const getNodeAiStatuses = (templateId: string) =>
 export const getTemplatePreview = (templateId: string) =>
   http.get<ApiResult<TemplatePreviewData>>(`/api/teacher/templates/${templateId}/preview`).then(r => r.data)
 
+/** 获取模板AI处理日志 */
+export const getTemplateAiLogs = (templateId: string) =>
+  http.get<ApiResult<{ template_id: string; template_name: string; ai_status: number; error_reason: string | null; logs: AiProcessingLogItem[] }>>(`/api/teacher/templates/${templateId}/ai-logs`).then(r => r.data)
+
+/** AI处理日志条目 */
+export interface AiProcessingLogItem {
+  id: number
+  templateId: number
+  nodeId: string | null
+  nodeType: string | null
+  jobId: string | null
+  eventType: string
+  eventLabel: string
+  eventStatus: string
+  message: string | null
+  detailJson: Record<string, unknown> | null
+  createdAt: string
+}
+
 /** 获取所有可用节点类型定义 */
 export const getNodeTypeDefs = () =>
   http.get<ApiResult<NodeTypeDef[]>>('/api/teacher/node-defs').then(r => r.data)

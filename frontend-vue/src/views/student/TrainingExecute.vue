@@ -1,244 +1,520 @@
 <template>
   <div class="execute-wrapper">
-    <n-spin :show="loading">
+    <!-- 加载状态 -->
+    <div v-if="store.loading && !currentComponent" class="loading-container">
+      <n-spin size="large" />
+      <p class="loading-text">加载中...</p>
+    </div>
+
+    <!-- 错误状态 -->
+    <div v-else-if="store.error && !currentComponent" class="error-container">
+      <div class="error-icon">⚠️</div>
+      <p class="error-message">{{ store.error }}</p>
+      <n-button type="primary" @click="handleRetry">重试</n-button>
+    </div>
+
+    <!-- 阶段完成提示 -->
+    <div v-else-if="phaseCompleted" class="phase-complete-container">
+      <div class="phase-complete-icon">🎉</div>
+      <h2 class="phase-complete-title">阶段完成！</h2>
+      <p class="phase-complete-message">
+        「{{ completedPhaseName }}」阶段的所有必修节点已完成
+      </p>
+      <n-button
+        v-if="showBackButton"
+        type="primary"
+        size="large"
+        @click="handleBackToPreview"
+      >
+        返回预览
+      </n-button>
+      <n-button
+        v-if="hasNextPhase"
+        type="info"
+        size="large"
+        @click="handleNextPhase"
+        style="margin-left: 12px;"
+      >
+        进入下一阶段
+      </n-button>
+    </div>
+
+    <!-- 实训已完成 -->
+    <div v-else-if="trainingComplete" class="complete-container">
+      <div class="complete-icon">✅</div>
+      <h2 class="complete-title">实训完成</h2>
+      <p class="complete-message">恭喜！你已完成本实训的所有必修节点</p>
+      <div class="complete-actions">
+        <n-button type="primary" @click="handleBackToPreview">查看总览</n-button>
+        <n-button @click="router.push('/student/workbench')">返回工作台</n-button>
+      </div>
+    </div>
+
+    <!-- 节点类型未注册错误 -->
+    <div v-else-if="nodeTypeError" class="error-container">
+      <div class="error-icon">❌</div>
+      <p class="error-message">
+        未注册的节点类型：「{{ nodeTypeError }}」，无法加载对应组件
+      </p>
+      <n-button type="primary" @click="handleBackToPreview">返回预览</n-button>
+    </div>
+
+    <!-- 正常执行：动态组件 -->
+    <template v-else-if="currentComponent">
       <header class="top-bar">
-        <span class="task-name">{{ info.taskName }}</span>
-        <span class="step-hint" v-if="info.status === 1 && orderedSeq.length">
-          {{ seqPos + 1 }} / {{ orderedSeq.length }}
-        </span>
+        <div class="top-bar-left">
+          <n-button text @click="handleBackToPreview" class="back-btn">
+            ← 返回
+          </n-button>
+          <span class="task-name">{{ store.taskOverview?.task_name }}</span>
+        </div>
+        <div class="top-bar-right">
+          <span class="phase-label">{{ currentPhaseName }}</span>
+          <span class="step-hint">
+            {{ currentNodeIndex + 1 }} / {{ currentPhaseNodeCount }}
+          </span>
+        </div>
       </header>
 
       <main class="center-area">
-        <!-- 未开始 -->
-        <template v-if="info.status === 0">
-          <div class="start-card">
-            <div class="icon-big">🚀</div>
-            <h1>{{ info.taskName }}</h1>
-            <p>实训任务已下发 — {{ orderedSeq.length }} 个节点待完成</p>
-            <n-button type="primary" size="large" :loading="acting" @click="handleStart">开始实训</n-button>
-          </div>
-        </template>
-
-        <!-- 进行中 → 动态组件 -->
-        <template v-else-if="info.status === 1 && curNode">
-          <component :is="currentComponent" :config="curNode" :task-id="taskId" @next="handleNext" />
-        </template>
-
-        <!-- 已完成 -->
-        <template v-else-if="info.status === 2">
-          <div class="complete-card">
-            <div class="check-icon">✅</div>
-            <h1>实训完成</h1>
-            <p>你已完成本实训的所有节点</p>
-            <n-button type="primary" @click="$router.push('/student/workbench')">返回工作台</n-button>
-          </div>
-        </template>
+        <n-spin :show="nodeLoading" class="node-spin">
+          <component
+            :is="currentComponent"
+            :node-instance-id="store.currentNodeId"
+            :node-config="nodeConfig"
+            @complete="handleNodeComplete"
+          />
+        </n-spin>
       </main>
-    </n-spin>
+    </template>
+
+    <!-- 空状态 -->
+    <div v-else class="empty-container">
+      <p class="empty-text">暂无可执行的节点</p>
+      <n-button type="primary" @click="handleBackToPreview">返回预览</n-button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 /**
  * 学生实训执行页面
- * 
- * 学生端执行实训任务的主页面，根据实训状态展示不同内容：
- * - 未开始（status=0）：显示开始卡片
- * - 进行中（status=1）：动态加载当前节点对应的组件
- * - 已完成（status=2）：显示完成卡片
- * 
- * 支持的节点类型：
- * - 分组节点（GroupingNode）
- * - 上传节点（UploadNode）
- * - 资源节点（ResourceNode）
- * - 作业节点（HomeworkNode）
- * - 通用节点（GenericNode）
- * 
+ *
+ * 集成 nodePageResolver 动态加载节点组件，实现：
+ * - 根据 taskId 加载实训总览
+ * - 进入当前节点（或第一个未完成节点）
+ * - 渲染解析后的组件并传递 nodeConfig props
+ * - 监听 complete 事件，完成节点后自动导航到下一节点
+ * - 阶段完成时显示提示和返回按钮（3秒内显示）
+ * - 加载状态指示和错误提示 + 重试按钮
+ *
+ * Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 6.5, 6.6
+ *
  * @component TrainingExecute.vue
  */
-import { ref, computed, onMounted, markRaw } from 'vue'
+import { ref, computed, onMounted, watch, type Component as VueComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { NButton, NSpin, useMessage } from 'naive-ui'
-import { getParticipation, startTraining, nextTraining } from '@/services/modules/student-dashboard.service'
-import type { ParticipationInfo } from '@/services/modules/student-dashboard.service'
-import { buildOrderedSequence, normalizeType, checkIsEndNode, getNextNodeId, findStartNodeId } from '@/utils/training-flow'
-import type { FlowNode, FlowEdge } from '@/utils/training-flow'
-import GroupingNode from './flow/GroupingNode.vue'
-import UploadNode from './flow/UploadNode.vue'
-import ResourceNode from './flow/ResourceNode.vue'
-import HomeworkNode from './flow/HomeworkNode.vue'
-import GenericNode from './flow/GenericNode.vue'
+import { useStudentFlowStore } from '@/stores/modules/studentFlow.store'
+import { resolveNodePage } from '@/views/training/nodePageResolver'
+import { getNodeContent } from '@/services/modules/studentTraining.service'
 
-// === 路由与消息 ===
-const route = useRoute(); const router = useRouter(); const message = useMessage()
+const route = useRoute()
+const router = useRouter()
+const message = useMessage()
+const store = useStudentFlowStore()
 
-// === 响应式状态 ===
+/** 节点加载状态 */
+const nodeLoading = ref(false)
 
-/** 加载状态 */
-const loading = ref(false); 
+/** 节点配置数据 */
+const nodeConfig = ref<Record<string, unknown>>({})
 
-/** 操作执行状态（开始/下一节点） */
-const acting = ref(false)
+/** 当前动态组件 */
+const currentComponent = ref<VueComponent | null>(null)
 
-/** 实训参与信息 */
-const info = ref<ParticipationInfo>({ participationId: 0, taskId: 0, status: 0, taskName: '' })
+/** 节点类型错误（未注册类型） */
+const nodeTypeError = ref<string | null>(null)
 
-/** 所有节点列表 */
-const allNodes = ref<FlowNode[]>([])
+/** 阶段完成标志 */
+const phaseCompleted = ref(false)
 
-/** 所有连接线列表 */
-const allEdges = ref<FlowEdge[]>([])
+/** 完成的阶段名称 */
+const completedPhaseName = ref('')
 
-/** 有序节点序列（DFS构建） */
-const orderedSeq = ref<FlowNode[]>([])
+/** 返回按钮显示标志（3秒内显示） */
+const showBackButton = ref(false)
 
-/** 当前节点ID */
-const currentNodeId = ref<string | null>(null)
+/** 实训整体完成标志 */
+const trainingComplete = ref(false)
 
-/** 实训任务ID（从路由参数获取） */
-const taskId = Number(route.query.taskId) || 0
+/** 从路由获取 taskId */
+const taskId = computed(() => Number(route.params.taskId) || 0)
 
-// === 计算属性 ===
+/** 当前阶段名称 */
+const currentPhaseName = computed(() =>
+  store.currentPhaseProgress?.phase_name ?? ''
+)
 
-/**
- * 当前节点对象
- * 
- * 通过 node_id 在所有节点中查找当前节点
- */
-const curNode = computed(() => {
-  if (!currentNodeId.value) return null
-  return allNodes.value.find(n => n.node_id === currentNodeId.value) || null
+/** 当前阶段节点总数 */
+const currentPhaseNodeCount = computed(() =>
+  store.currentPhaseProgress?.total_nodes ?? 0
+)
+
+/** 当前节点在阶段内的索引 */
+const currentNodeIndex = computed(() => {
+  if (!store.currentPhaseProgress || !store.currentNodeId) return 0
+  const sorted = [...store.currentPhaseProgress.nodes].sort((a, b) => a.sort_num - b.sort_num)
+  const idx = sorted.findIndex(n => n.node_instance_id === store.currentNodeId)
+  return idx >= 0 ? idx : 0
+})
+
+/** 是否有下一个解锁的未完成阶段 */
+const hasNextPhase = computed(() => {
+  const sorted = [...store.phases].sort((a, b) => a.sort_num - b.sort_num)
+  return sorted.some(p => p.is_unlocked && !p.is_complete)
 })
 
 /**
- * 当前在有序序列中的位置
- * 
- * 仅用于展示进度（如 3/10）
+ * 加载并渲染当前节点
  */
-const seqPos = computed(() => orderedSeq.value.findIndex(n => n.node_id === currentNodeId.value))
-
-/**
- * 根据节点类型映射对应的组件
- * 
- * 根据当前节点的 node_type 返回对应的 Vue 组件
- */
-const currentComponent = computed(() => {
-  if (!curNode.value) return null
-  const nt = normalizeType(curNode.value.node_type || '')
-  if (nt.includes('GROUPING')) return markRaw(GroupingNode)
-  if (nt.includes('UPLOAD') || nt.includes('PLAN') || nt.includes('REQ') || nt.includes('SOLUTION')) return markRaw(UploadNode)
-  if (nt.includes('HOMEWORK') || nt.includes('EXAM')) return markRaw(HomeworkNode)
-  if (nt.includes('RESOURCE') || nt.includes('THEORY') || nt.includes('READ')) return markRaw(ResourceNode)
-  return markRaw(GenericNode)
-})
-
-// === 核心方法 ===
-
-/**
- * 加载实训参与信息
- * 
- * 从后端获取实训参与详情，包括：
- * - 参与记录基本信息
- * - 模板JSON（节点和连接线）
- * - 当前节点ID
- * 
- * 如果状态为进行中但无当前节点ID，则默认取有序序列的第一个节点。
- */
-async function loadInfo() {
-  loading.value = true
-  try {
-    const r = await getParticipation(taskId)
-    if (r.code === 200) {
-      info.value = r.data
-      const json = r.data.templateJson
-      if (json) {
-          const payload = typeof json === 'string' ? JSON.parse(json) : json
-          allNodes.value = payload.nodes || []
-          allEdges.value = payload.edges || []
-          orderedSeq.value = buildOrderedSequence(allNodes.value, allEdges.value)
-          // 恢复当前节点（字符串 node_id）
-          if (r.data.currentNodeId) {
-            currentNodeId.value = r.data.currentNodeId
-          } else if (info.value.status === 1 && orderedSeq.value.length > 0) {
-            // 状态为进行中但无当前节点时，默认取有序序列第一个节点
-            currentNodeId.value = orderedSeq.value[0]?.node_id ?? null
-          }
-        }
-    } else message.error(r.message || '加载失败')
-  } catch { message.error('加载实训数据失败') } finally { loading.value = false }
-}
-
-/**
- * 开始实训
- * 
- * 调用后端开始实训接口，将状态设置为进行中并定位到起始节点。
- */
-async function handleStart() {
-  if (!info.value.participationId) { message.error('参与记录加载失败，请刷新重试'); return }
-  const startId = findStartNodeId(allNodes.value)
-  if (!startId) { message.error('未找到起始节点'); return }
-  acting.value = true
-  try {
-    const r = await startTraining(info.value.participationId, startId)
-    if (r.code === 200) {
-      info.value.status = 1
-      currentNodeId.value = startId
-    } else message.error(r.message || '启动失败')
-  } catch { message.error('操作失败') } finally { acting.value = false }
-}
-
-/**
- * 进入下一节点
- * 
- * 处理节点推进逻辑：
- * 1. 如果当前是结束节点，则标记实训为已完成
- * 2. 否则查找下一个节点并推进
- * 
- * @returns Promise<void>
- */
-async function handleNext() {
-  if (!info.value.participationId) { message.error('参与记录加载失败'); return }
-  if (!currentNodeId.value) return
-
-  const isEnd = curNode.value ? checkIsEndNode(curNode.value) : false
-  if (isEnd) {
-    acting.value = true
-    try {
-      const r = await nextTraining(info.value.participationId, currentNodeId.value, true)
-      if (r.code === 200 && r.data.completed) { info.value.status = 2; message.success('实训完成！') }
-      else message.error(r.message || '提交失败')
-    } catch { message.error('操作失败') } finally { acting.value = false }
+async function loadCurrentNode(): Promise<void> {
+  const nodeId = store.currentNodeId
+  if (!nodeId) {
+    currentComponent.value = null
     return
   }
 
-  // 通过 edges 查找下一个节点
-  const nextId = getNextNodeId(currentNodeId.value, allEdges.value)
-  if (!nextId) { message.warning('没有更多节点了'); return }
-  const nextNode = allNodes.value.find(n => n.node_id === nextId)
-  const isNextEnd = nextNode ? checkIsEndNode(nextNode) : false
+  // 查找节点元信息
+  const nodeInfo = store.currentNodeConfig
+  if (!nodeInfo) {
+    currentComponent.value = null
+    return
+  }
 
-  acting.value = true
+  // 解析组件
+  const component = resolveNodePage(nodeInfo.node_type, 'student')
+  if (!component) {
+    nodeTypeError.value = nodeInfo.node_type
+    currentComponent.value = null
+    return
+  }
+
+  nodeTypeError.value = null
+
+  // 获取节点内容
+  nodeLoading.value = true
   try {
-    const r = await nextTraining(info.value.participationId, nextId, isNextEnd)
-    if (r.code === 200) {
-      if (r.data.completed) { info.value.status = 2; message.success('实训完成！') }
-      else currentNodeId.value = nextId
-    }
-  } catch { message.error('操作失败') } finally { acting.value = false }
+    const result = await getNodeContent(nodeId)
+    nodeConfig.value = result.data.node_config ?? {}
+    currentComponent.value = component
+    // 进入节点
+    await store.enterNode(nodeId)
+  } catch (e: unknown) {
+    store.error = e instanceof Error ? e.message : '加载节点内容失败'
+    currentComponent.value = null
+  } finally {
+    nodeLoading.value = false
+  }
 }
 
-onMounted(() => { if (taskId) loadInfo() })
+/**
+ * 节点完成事件处理
+ */
+async function handleNodeComplete(): Promise<void> {
+  const nodeId = store.currentNodeId
+  if (!nodeId) return
+
+  nodeLoading.value = true
+  try {
+    const result = await store.completeNode(nodeId)
+
+    // 检查是否阶段完成
+    if (result?.phase_complete) {
+      // 记录完成的阶段名称
+      completedPhaseName.value = currentPhaseName.value
+      phaseCompleted.value = true
+
+      // 3秒内显示返回按钮
+      showBackButton.value = false
+      setTimeout(() => {
+        showBackButton.value = true
+      }, 300)
+
+      // 检查是否整体完成
+      if (result.training_complete) {
+        trainingComplete.value = true
+        phaseCompleted.value = false
+      }
+      return
+    }
+
+    // 自动导航到下一节点
+    const nextNodeId = store.navigateToNextNode()
+    if (nextNodeId) {
+      await loadCurrentNode()
+    } else {
+      // 所有节点已完成
+      trainingComplete.value = true
+    }
+  } catch {
+    message.error('完成节点失败，请重试')
+  } finally {
+    nodeLoading.value = false
+  }
+}
+
+/** 进入下一阶段 */
+async function handleNextPhase(): Promise<void> {
+  phaseCompleted.value = false
+  showBackButton.value = false
+  const nextNodeId = store.navigateToNextNode()
+  if (nextNodeId) {
+    await loadCurrentNode()
+  } else {
+    trainingComplete.value = true
+  }
+}
+
+/** 返回预览页面 */
+function handleBackToPreview(): void {
+  router.push({
+    path: `/student/training-preview`,
+    query: { taskId: String(taskId.value) }
+  })
+}
+
+/** 重试加载 */
+async function handleRetry(): Promise<void> {
+  store.error = null
+  if (taskId.value) {
+    await store.loadTaskOverview(taskId.value)
+    if (!store.error) {
+      await loadCurrentNode()
+    }
+  }
+}
+
+/** 监听 currentNodeId 变化 */
+watch(() => store.currentNodeId, (newId) => {
+  if (newId && !phaseCompleted.value && !trainingComplete.value) {
+    loadCurrentNode()
+  }
+})
+
+onMounted(async () => {
+  if (!taskId.value) {
+    router.push('/student/workbench')
+    return
+  }
+
+  // 加载总览（如果尚未加载或 taskId 变化）
+  if (!store.taskOverview || store.taskId !== taskId.value) {
+    await store.loadTaskOverview(taskId.value)
+  }
+
+  if (store.error) return
+
+  // 检查实训是否已完成
+  if (store.taskOverview?.participation.status === 2) {
+    trainingComplete.value = true
+    return
+  }
+
+  // 如果路由中指定了 nodeId，使用它
+  const queryNodeId = route.query.nodeId ? Number(route.query.nodeId) : null
+  if (queryNodeId && store.isNodeAccessible(queryNodeId)) {
+    store.currentNodeId = queryNodeId
+  }
+
+  // 加载当前节点
+  if (store.currentNodeId) {
+    await loadCurrentNode()
+  }
+})
 </script>
 
 <style scoped>
-.execute-wrapper { display: flex; flex-direction: column; height: calc(100vh - 64px); background: #F8FAFC; }
-.top-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 32px; background: #FFFFFF; border-bottom: 1px solid #E2E8F0; }
-.task-name { font-size: 18px; font-weight: 700; color: #0F172A; }
-.step-hint { font-size: 13px; color: #64748B; font-weight: 600; }
-.center-area { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; overflow-y: auto; }
-.start-card, .complete-card { text-align: center; }
-.start-card h1, .complete-card h1 { font-size: 28px; font-weight: 800; color: #0F172A; margin: 0 0 12px 0; }
-.start-card p, .complete-card p { color: #64748B; margin: 0 0 24px 0; font-size: 15px; }
-.icon-big { font-size: 64px; margin-bottom: 16px; }
-.check-icon { font-size: 64px; margin-bottom: 16px; }
+.execute-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  background: var(--color-background);
+}
+
+/* 顶部栏 */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 24px;
+  background: var(--color-background-soft, #ffffff);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.top-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.back-btn {
+  font-size: 14px;
+  color: var(--color-text);
+  opacity: 0.7;
+}
+
+.task-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-heading);
+}
+
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.phase-label {
+  font-size: 13px;
+  color: var(--color-text);
+  opacity: 0.7;
+  background: var(--color-background-mute, #f2f2f2);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.step-hint {
+  font-size: 13px;
+  color: var(--color-text);
+  opacity: 0.6;
+  font-weight: 600;
+}
+
+/* 中心区域 */
+.center-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.node-spin {
+  min-height: 200px;
+}
+
+/* 加载状态 */
+.loading-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.loading-text {
+  color: var(--color-text);
+  opacity: 0.6;
+  font-size: 14px;
+}
+
+/* 错误状态 */
+.error-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.error-icon {
+  font-size: 48px;
+}
+
+.error-message {
+  color: var(--color-text);
+  font-size: 15px;
+  text-align: center;
+  max-width: 400px;
+}
+
+/* 阶段完成 */
+.phase-complete-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.phase-complete-icon {
+  font-size: 64px;
+}
+
+.phase-complete-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-heading);
+  margin: 0;
+}
+
+.phase-complete-message {
+  font-size: 15px;
+  color: var(--color-text);
+  opacity: 0.7;
+  margin: 0 0 16px 0;
+}
+
+/* 实训完成 */
+.complete-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.complete-icon {
+  font-size: 64px;
+}
+
+.complete-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-heading);
+  margin: 0;
+}
+
+.complete-message {
+  font-size: 15px;
+  color: var(--color-text);
+  opacity: 0.7;
+  margin: 0 0 16px 0;
+}
+
+.complete-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* 空状态 */
+.empty-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.empty-text {
+  color: var(--color-text);
+  opacity: 0.6;
+  font-size: 15px;
+}
 </style>

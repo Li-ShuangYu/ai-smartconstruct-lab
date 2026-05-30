@@ -561,6 +561,24 @@ CREATE TABLE `biz_learning_survey_response` (
   UNIQUE KEY `uk_participation_node` (`participation_id`, `node_instance_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学情调查回答表';
 
+-- AI处理日志表
+CREATE TABLE IF NOT EXISTS `ai_processing_log` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `template_id` BIGINT NOT NULL COMMENT '模板ID',
+  `node_id` VARCHAR(64) DEFAULT NULL COMMENT '节点ID（节点级事件时非空）',
+  `node_type` VARCHAR(32) DEFAULT NULL COMMENT '节点类型',
+  `job_id` VARCHAR(64) DEFAULT NULL COMMENT 'AI引擎job_id',
+  `event_type` VARCHAR(32) NOT NULL COMMENT '事件类型',
+  `event_label` VARCHAR(128) NOT NULL COMMENT '事件中文标签',
+  `event_status` VARCHAR(16) NOT NULL COMMENT '状态: processing/success/failed/warning',
+  `message` TEXT DEFAULT NULL COMMENT '事件描述文本',
+  `detail_json` JSON DEFAULT NULL COMMENT '事件详情JSON',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '事件时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_template_id` (`template_id`),
+  KEY `idx_created_at` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI处理日志表';
+
 -- ALTER: wf_training_template 新增 phases_json
 ALTER TABLE `wf_training_template`
   ADD COLUMN `phases_json` JSON DEFAULT NULL COMMENT '阶段定义JSON' AFTER `raw_canvas_json`;

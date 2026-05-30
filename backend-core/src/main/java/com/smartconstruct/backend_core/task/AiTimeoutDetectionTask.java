@@ -6,6 +6,7 @@ import com.smartconstruct.backend_core.dto.AiJobStatus;
 import com.smartconstruct.backend_core.entity.WfTrainingTemplate;
 import com.smartconstruct.backend_core.mapper.WfTrainingTemplateMapper;
 import com.smartconstruct.backend_core.service.IAiEngineClient;
+import com.smartconstruct.backend_core.service.IAiProcessingLogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,9 @@ public class AiTimeoutDetectionTask {
 
     @Autowired
     private IAiEngineClient aiEngineClient;
+
+    @Autowired
+    private IAiProcessingLogService aiLogService;
 
     /**
      * 每60秒执行一次，检测超时的AI处理任务。
@@ -108,6 +112,11 @@ public class AiTimeoutDetectionTask {
         log.warn("Template [id={}] has been in AI processing state for over {} minutes, querying AI engine status...",
                 templateId, TIMEOUT_MINUTES);
 
+        // Log timeout detection event
+        aiLogService.logDetail(templateId, null, null, jobId,
+                "TIMEOUT_DETECTED", "AI处理超时检测", "warning",
+                "模板AI处理状态已持续超过" + TIMEOUT_MINUTES + "分钟，正在查询AI引擎状态（jobId=" + jobId + "）", null);
+
         try {
             AiJobStatus status = aiEngineClient.queryStatus(jobId);
 
@@ -121,6 +130,9 @@ public class AiTimeoutDetectionTask {
             // AI engine is unreachable or returned an error — mark as failed
             log.warn("Template [id={}] - AI engine unreachable during status query: {}",
                     templateId, e.getMessage());
+            aiLogService.logDetail(templateId, null, null, jobId,
+                    "TIMEOUT_DETECTED", "AI引擎不可达", "failed",
+                    "AI引擎状态查询失败: " + e.getMessage(), null);
             markTemplateAsFailed(templateId, "AI处理超时：AI引擎不可达 (" + e.getMessage() + ")");
         }
     }

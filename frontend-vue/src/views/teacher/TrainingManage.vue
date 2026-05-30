@@ -45,6 +45,7 @@
               <button v-if="tpl.aiStatus === 2" class="text-btn primary" @click="openPublish(tpl)">发布任务</button>
               <button v-if="tpl.aiStatus === 3" class="text-btn" @click="retryAi(tpl)">重试AI</button>
               <button v-if="tpl.aiStatus === 3" class="text-btn" @click="showError(tpl)">查看原因</button>
+              <button class="text-btn" @click="openAiLogs(tpl)">查看日志</button>
               <button class="text-btn danger" @click="handleDeleteTemplate(tpl)">删除</button>
             </div>
           </div>
@@ -179,9 +180,9 @@
           </n-radio-group>
         </n-form-item>
         <n-form-item :label="dispatchForm.dispatchType === 'class' ? '选择班级' : '选择课程'" path="targetId">
-          <n-select 
-            v-model:value="dispatchForm.targetId" 
-            :options="dispatchTargetOptions" 
+          <n-select
+            v-model:value="dispatchForm.targetId"
+            :options="dispatchTargetOptions"
             :placeholder="dispatchForm.dispatchType === 'class' ? '请选择要下发的班级' : '请选择要下发的课程'"
             multiple
             :max-tag-count="3"
@@ -199,8 +200,8 @@
           <n-switch v-model:value="dispatchForm.isClassTraining" />
         </n-form-item>
         <n-form-item label="起止时间">
-          <n-date-picker 
-            v-model:value="dispatchForm.timeRange" 
+          <n-date-picker
+            v-model:value="dispatchForm.timeRange"
             type="daterange"
             show-time
             :placeholder="['开始时间', '结束时间'] as unknown as string"
@@ -214,6 +215,47 @@
         </div>
       </template>
     </n-modal>
+
+    <!-- AI处理日志弹窗 -->
+    <n-modal v-model:show="showAiLogs" preset="card" :title="'AI处理日志 - ' + aiLogTemplateName" style="width: 700px" :mask-closable="false">
+      <div v-if="aiLogsLoading" style="text-align:center;padding:40px">加载中...</div>
+      <div v-else-if="aiLogs.length === 0" style="text-align:center;padding:40px;color:#94A3B8;font-size:14px">暂无AI处理日志</div>
+      <div v-else class="ai-log-timeline">
+        <div class="ai-log-summary" v-if="aiLogTemplateName">
+          <strong>{{ aiLogTemplateName }}</strong>
+          <n-tag :type="aiLogStatusTag" size="small" style="margin-left: 8px">{{ aiLogStatusLabel }}</n-tag>
+          <span v-if="aiLogErrorReason" style="margin-left:8px;color:#EF4444;font-size:13px">{{ aiLogErrorReason }}</span>
+        </div>
+        <div class="timeline-list">
+          <div v-for="(logItem, idx) in aiLogs" :key="logItem.id" class="timeline-item">
+            <div class="timeline-dot" :class="statusDotClass(logItem.eventStatus)"></div>
+            <div v-if="idx < aiLogs.length - 1" class="timeline-line"></div>
+            <div class="timeline-content">
+              <div class="timeline-header">
+                <span class="timeline-status-badge" :class="statusBadgeClass(logItem.eventStatus)">
+                  {{ statusBadgeText(logItem.eventStatus) }}
+                </span>
+                <span class="timeline-label">{{ logItem.eventLabel }}</span>
+                <span class="timeline-time">{{ formatLogTime(logItem.createdAt) }}</span>
+              </div>
+              <div class="timeline-message" v-if="logItem.message">{{ logItem.message }}</div>
+              <div class="timeline-detail" v-if="logItem.nodeId">
+                <span class="timeline-detail-tag">节点: {{ logItem.nodeId }}</span>
+                <span class="timeline-detail-tag" v-if="logItem.nodeType">类型: {{ logItem.nodeType }}</span>
+              </div>
+              <div class="timeline-detail" v-if="logItem.jobId">
+                <span class="timeline-detail-tag">job_id: {{ logItem.jobId }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <div class="modal-footer">
+          <n-button @click="showAiLogs = false">关闭</n-button>
+        </div>
+      </template>
+    </n-modal>
   </div>
 </template>
 
@@ -222,7 +264,8 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { NButton, NPagination, NSpin, NTag, NModal, NForm, NFormItem, NInput, NSelect, NRadioGroup, NRadio, NSwitch, NDatePicker, useMessage } from 'naive-ui'
 import type { FormRules, FormInst } from 'naive-ui'
 import { getTemplates, deleteTemplate, updateTemplate } from '@/services/modules/teacher-template.service'
-import { retryTemplate, publishTemplate } from '@/services/modules/orchestration.service'
+import { retryTemplate, publishTemplate, getTemplateAiLogs } from '@/services/modules/orchestration.service'
+import type { AiProcessingLogItem } from '@/services/modules/orchestration.service'
 import { getTrainingTasks, createTrainingTask, startTrainingTask, reDispatchTrainingTask, updateTrainingTask, deleteTrainingTask } from '@/services/modules/teacher-dashboard.service'
 import { getClasses } from '@/services/modules/admin.service'
 import { getTeacherCourses } from '@/services/modules/teacher.service'
@@ -570,6 +613,73 @@ onMounted(()=>{
 onUnmounted(()=>{
   if (pollTimer) { clearInterval(pollTimer); pollTimer = undefined }
 })
+
+// AI处理日志弹窗
+const showAiLogs = ref(false)
+const aiLogsLoading = ref(false)
+const aiLogs = ref<AiProcessingLogItem[]>([])
+const aiLogTemplateName = ref('')
+const aiLogErrorReason = ref<string | null>(null)
+const aiLogAiStatus = ref<number>(0)
+
+const aiLogStatusLabel = computed(() => {
+  const s = aiLogAiStatus.value
+  if (s === 0) return '草稿'; if (s === 1) return 'AI处理中'; if (s === 2) return '已就绪'; return '异常'
+})
+const aiLogStatusTag = computed(() => {
+  const s = aiLogAiStatus.value
+  if (s === 0) return 'default' as const; if (s === 1) return 'warning' as const; if (s === 2) return 'success' as const; return 'error' as const
+})
+
+function statusDotClass(s: string) {
+  if (s === 'success') return 'dot-success'
+  if (s === 'failed') return 'dot-failed'
+  if (s === 'warning') return 'dot-warning'
+  if (s === 'processing') return 'dot-processing'
+  return 'dot-default'
+}
+function statusBadgeClass(s: string) {
+  if (s === 'success') return 'badge-success'
+  if (s === 'failed') return 'badge-failed'
+  if (s === 'warning') return 'badge-warning'
+  if (s === 'processing') return 'badge-processing'
+  return 'badge-default'
+}
+function statusBadgeText(s: string) {
+  if (s === 'success') return '✔'
+  if (s === 'failed') return '✘'
+  if (s === 'warning') return '⚠'
+  if (s === 'processing') return '●'
+  return '○'
+}
+function formatLogTime(t: string) {
+  if (!t) return ''
+  return t.slice(0, 19).replace('T', ' ')
+}
+
+async function openAiLogs(tpl: TrainingTemplate) {
+  if (!tpl.id) return
+  aiLogTemplateName.value = tpl.templateName || ''
+  aiLogAiStatus.value = tpl.aiStatus ?? 0
+  aiLogErrorReason.value = tpl.errorReason || null
+  showAiLogs.value = true
+  aiLogsLoading.value = true
+  try {
+    const r = await getTemplateAiLogs(String(tpl.id))
+    if (r.code === 200) {
+      aiLogs.value = r.data.logs || []
+    } else {
+      aiLogs.value = []
+      message.error(r.message || '获取日志失败')
+    }
+  } catch (e: unknown) {
+    const err = e as { response?: { data?: { message?: string } } }
+    message.error(err?.response?.data?.message || '获取日志失败')
+    aiLogs.value = []
+  } finally {
+    aiLogsLoading.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -608,4 +718,32 @@ onUnmounted(()=>{
 .pagination-wrapper { display:flex; justify-content:flex-end; margin-top:20px; padding:12px 24px; background:white; border-radius:12px; border:1px solid #F1F5F9; }
 .modal-footer { display:flex; justify-content:flex-end; gap:12px; }
 .selected-targets { min-height: 32px; display: flex; flex-wrap: wrap; align-items: center; }
+
+/* AI处理日志时间线 */
+.ai-log-timeline { max-height:480px; overflow-y:auto; padding:4px 0; }
+.ai-log-summary { display:flex; align-items:center; margin-bottom:20px; padding:12px 16px; background:#F8FAFC; border-radius:8px; border:1px solid #E2E8F0; }
+.timeline-list { position:relative; }
+.timeline-item { display:flex; position:relative; padding:0 0 20px 24px; }
+.timeline-item:last-child { padding-bottom:0; }
+.timeline-dot { position:absolute; left:0; top:4px; width:12px; height:12px; border-radius:50%; z-index:1; }
+.dot-success { background:#22C55E; box-shadow:0 0 0 3px rgba(34,197,94,.15); }
+.dot-failed { background:#EF4444; box-shadow:0 0 0 3px rgba(239,68,68,.15); }
+.dot-warning { background:#F59E0B; box-shadow:0 0 0 3px rgba(245,158,11,.15); }
+.dot-processing { background:#3B82F6; box-shadow:0 0 0 3px rgba(59,130,246,.15); animation:pulse 2s infinite; }
+.dot-default { background:#94A3B8; }
+.timeline-line { position:absolute; left:5px; top:16px; bottom:0; width:2px; background:#E2E8F0; }
+.timeline-content { flex:1; min-width:0; }
+.timeline-header { display:flex; align-items:center; gap:8px; }
+.timeline-status-badge { font-size:11px; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; flex-shrink:0; }
+.badge-success { background:#DCFCE7; color:#166534; }
+.badge-failed { background:#FEE2E2; color:#991B1B; }
+.badge-warning { background:#FEF3C7; color:#92400E; }
+.badge-processing { background:#DBEAFE; color:#1E40AF; }
+.badge-default { background:#F1F5F9; color:#475569; }
+.timeline-label { font-weight:600; font-size:14px; color:#1E293B; }
+.timeline-time { margin-left:auto; font-size:12px; color:#94A3B8; flex-shrink:0; }
+.timeline-message { margin-top:4px; font-size:13px; color:#64748B; line-height:1.5; }
+.timeline-detail { display:flex; gap:6px; flex-wrap:wrap; margin-top:4px; }
+.timeline-detail-tag { font-size:11px; color:#64748B; background:#F1F5F9; padding:2px 8px; border-radius:4px; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.6; } }
 </style>

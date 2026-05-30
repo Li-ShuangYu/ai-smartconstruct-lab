@@ -1,4 +1,124 @@
+import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router'
+import { useStudentFlowStore } from '@/stores/modules/studentFlow.store'
+
+/**
+ * 学生实训执行路由 beforeEnter 守卫
+ *
+ * 验证阶段解锁状态：
+ * 1. 加载实训任务总览（如果尚未加载）
+ * 2. 所有阶段已完成 → 允许自由访问
+ * 3. 尝试访问未解锁阶段的节点 → 重定向到当前解锁且未完成阶段的第一个未完成节点
+ * 4. 否则允许导航
+ *
+ * Validates: Requirements 5.4, 5.5, 5.6
+ */
+async function studentTrainingGuard(
+  to: RouteLocationNormalized,
+  _from: RouteLocationNormalized,
+  next: NavigationGuardNext
+): Promise<void> {
+  const store = useStudentFlowStore()
+  const taskId = Number(to.params.taskId)
+
+  if (!taskId || isNaN(taskId)) {
+    next({ path: '/student/workbench' })
+    return
+  }
+
+  // 1. Load task overview if not already loaded (or if taskId changed)
+  if (!store.taskOverview || store.taskId !== taskId) {
+    await store.loadTaskOverview(taskId)
+  }
+
+  // If loading failed, allow navigation (the page will show error state)
+  if (store.error || !store.taskOverview) {
+    next()
+    return
+  }
+
+  const phases = store.taskOverview.phases
+
+  // 2. All phases complete → allow free access (Requirement 5.6)
+  const allPhasesComplete = phases.every(p => p.is_complete)
+  if (allPhasesComplete) {
+    next()
+    return
+  }
+
+  // 3. Check if the target node (from query param) belongs to a locked phase
+  const targetNodeId = to.query.nodeId ? Number(to.query.nodeId) : null
+  const targetPhaseId = to.query.phaseId as string | undefined
+
+  if (targetPhaseId || targetNodeId) {
+    let targetPhase = targetPhaseId
+      ? phases.find(p => p.phase_id === targetPhaseId)
+      : undefined
+
+    // If we have a nodeId but no phaseId, find the phase containing that node
+    if (!targetPhase && targetNodeId) {
+      targetPhase = phases.find(p =>
+        p.nodes.some(n => n.node_instance_id === targetNodeId)
+      )
+    }
+
+    // If target phase is locked → redirect to current unlocked & incomplete phase's first incomplete node
+    if (targetPhase && !targetPhase.is_unlocked) {
+      const redirectTarget = _findFirstIncompleteNodeRoute(phases, taskId)
+      if (redirectTarget) {
+        next(redirectTarget)
+        return
+      }
+    }
+  }
+
+  // 4. Allow navigation
+  next()
+}
+
+/**
+ * 查找当前解锁且未完成阶段的第一个未完成节点，返回重定向路由
+ */
+function _findFirstIncompleteNodeRoute(
+  phases: Array<{ phase_id: string; sort_num: number; is_unlocked: boolean; is_complete: boolean; nodes: Array<{ node_instance_id: number; sort_num: number; status: number }> }>,
+  taskId: number
+): { path: string; query: Record<string, string> } | null {
+  const sortedPhases = [...phases].sort((a, b) => a.sort_num - b.sort_num)
+  const currentPhase = sortedPhases.find(p => p.is_unlocked && !p.is_complete)
+
+  if (!currentPhase) return null
+
+  const sortedNodes = [...currentPhase.nodes].sort((a, b) => a.sort_num - b.sort_num)
+  const firstIncomplete = sortedNodes.find(n => n.status !== 2)
+
+  if (!firstIncomplete) return null
+
+  return {
+    path: `/student/training/${taskId}/execute`,
+    query: {
+      phaseId: currentPhase.phase_id,
+      nodeId: String(firstIncomplete.node_instance_id)
+    }
+  }
+}
+
 const trainingRoutes = [
+  // ===== 学生实训执行路由（带导航守卫）=====
+  {
+    path: '/student/training/:taskId/execute',
+    name: 'StudentTrainingExecuteFlow',
+    component: () => import('@/views/student/TrainingExecute.vue'),
+    meta: { title: '实训执行', role: 'student' },
+    beforeEnter: studentTrainingGuard
+  },
+
+  // ===== 学生实训总结页面 =====
+  {
+    path: '/student/training/:taskId/summary',
+    name: 'StudentTrainingSummary',
+    component: () => import('@/views/student/TrainingSummary.vue'),
+    meta: { title: '实训总结', role: 'student' }
+  },
+
   // ===== 独立顶层路由（无侧边栏）=====
   {
     path: '/training/student-training/start-portal',

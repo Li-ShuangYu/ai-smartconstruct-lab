@@ -1,9 +1,11 @@
 package com.smartconstruct.backend_core.controller;
 
 import com.smartconstruct.backend_core.dto.ApiResult;
+import com.smartconstruct.backend_core.dto.DemoSeedResult;
 import com.smartconstruct.backend_core.dto.RegisterRequest;
 import com.smartconstruct.backend_core.entity.*;
 import com.smartconstruct.backend_core.service.*;
+import com.smartconstruct.backend_core.service.impl.DemoDataSeederService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -30,6 +32,7 @@ public class InitController {
     private final INodeDefService nodeDefService;
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbcTemplate;
+    private final DemoDataSeederService demoDataSeederService;
 
     public InitController(
             IDepartmentService departmentService,
@@ -40,7 +43,8 @@ public class InitController {
             ITeacherService teacherService,
             INodeDefService nodeDefService,
             PasswordEncoder passwordEncoder,
-            JdbcTemplate jdbcTemplate) {
+            JdbcTemplate jdbcTemplate,
+            DemoDataSeederService demoDataSeederService) {
         this.departmentService = departmentService;
         this.majorService = majorService;
         this.adminClassService = adminClassService;
@@ -50,6 +54,7 @@ public class InitController {
         this.nodeDefService = nodeDefService;
         this.passwordEncoder = passwordEncoder;
         this.jdbcTemplate = jdbcTemplate;
+        this.demoDataSeederService = demoDataSeederService;
     }
 
     @PostMapping("/init")
@@ -110,6 +115,17 @@ public class InitController {
         seedNodeDefs(now);
 
         return ApiResult.ok("系统数据初始化完成：院系/专业/班级/管理员/教师/学生/编排节点");
+    }
+
+    @PostMapping("/demo/seed")
+    public ApiResult<DemoSeedResult> seedDemoData() {
+        try {
+            DemoSeedResult result = demoDataSeederService.seedAll();
+            return ApiResult.ok(result);
+        } catch (RuntimeException e) {
+            log.error("演示数据播种失败: {}", e.getMessage(), e);
+            return ApiResult.error(400, e.getMessage());
+        }
     }
 
     private void seedNodeDefs(LocalDateTime now) {
@@ -213,8 +229,6 @@ public class InitController {
         }
 
         String[] dropCols = {
-            "ALTER TABLE biz_student DROP INDEX IF EXISTS uk_student_no",
-            "ALTER TABLE biz_student DROP COLUMN IF EXISTS student_no",
             "ALTER TABLE biz_teacher DROP INDEX IF EXISTS uk_employee_no",
             "ALTER TABLE biz_teacher DROP COLUMN IF EXISTS employee_no"
         };
@@ -227,6 +241,7 @@ public class InitController {
             "ALTER TABLE biz_major ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
             "ALTER TABLE biz_admin_class ADD COLUMN IF NOT EXISTS enrollment_year INT NOT NULL DEFAULT 2026",
             "ALTER TABLE biz_admin_class ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_student ADD COLUMN IF NOT EXISTS student_no VARCHAR(32) DEFAULT NULL",
             "ALTER TABLE biz_student ADD COLUMN IF NOT EXISTS real_name VARCHAR(64) NOT NULL DEFAULT ''",
             "ALTER TABLE biz_student ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
             "ALTER TABLE biz_student ADD COLUMN IF NOT EXISTS updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",

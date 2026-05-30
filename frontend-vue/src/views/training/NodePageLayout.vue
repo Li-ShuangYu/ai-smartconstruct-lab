@@ -103,9 +103,11 @@ const isCurrentNodeComplete = ref<boolean>(false)
 const overallProgress = computed<number>(() => studentFlowStore.overallProgress)
 
 /** Current phase name */
-const currentPhaseName = computed<string>(() =>
-  studentFlowStore.currentPhase?.phase_name ?? ''
-)
+const currentPhaseName = computed<string>(() => {
+  const overview = studentFlowStore.taskOverview
+  const phase = overview?.phases.find(p => p.phase_id === studentFlowStore.currentPhaseId)
+  return phase?.phase_name ?? ""
+})
 
 /** Node type display name mapping */
 const nodeTypeNames: Record<string, string> = {

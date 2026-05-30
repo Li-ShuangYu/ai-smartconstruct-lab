@@ -1,6 +1,9 @@
 package com.smartconstruct.backend_core.service;
 
+import com.smartconstruct.backend_core.dto.PhaseUnlockStatus;
 import com.smartconstruct.backend_core.entity.WfStudentNodeProgress;
+
+import java.util.List;
 
 /**
  * 阶段执行服务接口
@@ -73,4 +76,28 @@ public interface IPhaseExecutionService {
      * @param nodeInstanceId  节点实例ID（对应 wf_node_instance.id）
      */
     void completeNode(Long participationId, Long nodeInstanceId);
+
+    /**
+     * 检查并解锁下一阶段
+     *
+     * 当指定阶段完成时（所有 is_required=true 节点的 Node_Progress status 均为 2），
+     * 将 sort_num 紧邻的下一阶段设为 is_unlocked=true。
+     * 如果下一阶段无 is_required 节点，则自动标记为 complete 并继续解锁后续阶段。
+     *
+     * @param participationId 学生实训参与ID（对应 biz_training_participation.id）
+     * @param currentPhaseId  当前阶段ID（刚完成的阶段）
+     */
+    void checkAndUnlockNextPhase(Long participationId, String currentPhaseId);
+
+    /**
+     * 获取学生所有阶段的解锁状态列表
+     *
+     * 返回该学生在指定实训任务中所有阶段的解锁和完成状态，按 sort_num 升序排列。
+     * 第一个阶段（sort_num 最小）始终为已解锁状态。
+     * 如果所有阶段均已完成，则所有阶段均为已解锁状态。
+     *
+     * @param participationId 学生实训参与ID（对应 biz_training_participation.id）
+     * @return 阶段解锁状态列表，按 sort_num 升序排列
+     */
+    List<PhaseUnlockStatus> getPhaseUnlockStatuses(Long participationId);
 }

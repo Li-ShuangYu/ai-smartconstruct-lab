@@ -3,7 +3,7 @@ package com.smartconstruct.backend_core.controller;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.smartconstruct.backend_core.dto.ApiResult;
+import com.smartconstruct.backend_core.dto.*;
 import com.smartconstruct.backend_core.entity.*;
 import com.smartconstruct.backend_core.mapper.BizTrainingParticipationMapper;
 import com.smartconstruct.backend_core.mapper.BizTrainingTaskMapper;
@@ -17,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -92,18 +93,19 @@ public class StudentFlowController {
      * 获取实训任务总览
      *
      * 返回当前学生在指定实训任务中的完整视图：
-     * - 所有阶段列表（按sort_num排序）
-     * - 每个阶段内的节点实例列表
-     * - 每个节点的学生进度状态
-     * - 阶段解锁状态
+     * - 任务基本信息（名称、时间、过期状态）
+     * - 学生参与状态
+     * - 所有阶段列表（按sort_num排序），含解锁状态和节点进度统计
+     * - 每个阶段内的节点实例列表及学生进度
+     * - 当前位置信息（阶段ID、节点实例ID）
      *
      * 仅返回当前学生自身的进度数据，不暴露其他学生信息。
      *
      * @param taskId 实训任务ID
-     * @return 实训总览数据
+     * @return 实训总览数据（StudentTaskOverviewDTO）
      */
     @GetMapping("/tasks/{taskId}/overview")
-    public ApiResult<Map<String, Object>> getTaskOverview(@PathVariable Long taskId) {
+    public ApiResult<StudentTaskOverviewDTO> getTaskOverview(@PathVariable Long taskId) {
         Long currentUserId = getCurrentUserId();
 
         // 1. 获取学生的参与记录
@@ -144,153 +146,135 @@ public class StudentFlowController {
             progressMap.put(p.getNodeInstanceId(), p);
         }
 
-        // 7. 获取当前解锁阶段
-        String currentUnlockedPhaseId = phaseExecutionService.getCurrentUnlockedPhaseId(taskId, currentUserId);
+        // 7. 获取阶段解锁状态
+        List<PhaseUnlockStatus> phaseUnlockStatuses = phaseExecutionService.getPhaseUnlockStatuses(participation.getId());
+        Map<String, PhaseUnlockStatus> unlockStatusMap = new HashMap<>();
+        for (PhaseUnlockStatus pus : phaseUnlockStatuses) {
+            unlockStatusMap.put(pus.getPhaseId(), pus);
+        }
 
-        // 8. 构建响应数据
-        List<Map<String, Object>> phasesData = new ArrayList<>();
+        // 8. 获取当前活动状态（当前节点）
+        LambdaQueryWrapper<WfStudentActivityState> stateQuery = new LambdaQueryWrapper<>();
+        stateQuery.eq(WfStudentActivityState::getParticipationId, participation.getId());
+        WfStudentActivityState activityState = studentActivityStateMapper.selectOne(stateQuery);
+
+        String currentNodeInstanceId = null;
+        String currentPhaseId = null;
+        if (activityState != null && activityState.getCurrentNodeId() != null) {
+            currentNodeInstanceId = activityState.getCurrentNodeId();
+            // 查找当前节点所属阶段
+            try {
+                WfNodeInstance currentNode = nodeInstanceMapper.selectById(Long.parseLong(currentNodeInstanceId));
+                if (currentNode != null) {
+                    currentPhaseId = currentNode.getPhaseId();
+                }
+            } catch (NumberFormatException e) {
+                log.warn("无法解析当前节点实例ID: {}", currentNodeInstanceId);
+            }
+        }
+        // 如果没有活动状态，使用当前解锁阶段
+        if (currentPhaseId == null) {
+            currentPhaseId = phaseExecutionService.getCurrentUnlockedPhaseId(taskId, currentUserId);
+        }
+
+        // 9. 构建阶段进度列表
+        List<PhaseProgressDTO> phasesData = new ArrayList<>();
         for (JsonNode phase : sortedPhases) {
             String phaseId = phase.has("phase_id") ? phase.get("phase_id").asText() : "";
             String phaseName = phase.has("phase_name") ? phase.get("phase_name").asText() : "";
             int sortNum = phase.has("sort_num") ? phase.get("sort_num").asInt(0) : 0;
 
-            // 判断阶段是否已解锁
-            boolean isUnlocked = isPhaseUnlocked(phaseId, currentUnlockedPhaseId, sortedPhases);
-            boolean isComplete = phaseExecutionService.isPhaseComplete(taskId, phaseId, currentUserId);
+            // 从解锁状态映射获取
+            PhaseUnlockStatus unlockStatus = unlockStatusMap.get(phaseId);
+            boolean isUnlocked = unlockStatus != null ? Boolean.TRUE.equals(unlockStatus.getIsUnlocked()) : false;
+            boolean isComplete = unlockStatus != null ? Boolean.TRUE.equals(unlockStatus.getIsComplete()) : false;
 
             // 获取该阶段的节点实例
             List<WfNodeInstance> phaseNodes = allNodeInstances.stream()
                     .filter(n -> phaseId.equals(n.getPhaseId()))
                     .collect(Collectors.toList());
 
-            List<Map<String, Object>> nodesData = new ArrayList<>();
+            int totalNodes = phaseNodes.size();
+            int completedNodes = 0;
+            int requiredNodes = 0;
+            int completedRequiredNodes = 0;
+
+            List<NodeProgressDTO> nodesData = new ArrayList<>();
             for (WfNodeInstance node : phaseNodes) {
-                Map<String, Object> nodeData = new HashMap<>();
-                nodeData.put("nodeInstanceId", String.valueOf(node.getId()));
-                nodeData.put("nodeType", node.getNodeType());
-                nodeData.put("nodeName", node.getNodeName());
-                nodeData.put("sortNum", node.getSortNum());
+                boolean nodeIsRequired = parseIsRequired(node);
+                if (nodeIsRequired) {
+                    requiredNodes++;
+                }
+
+                NodeProgressDTO nodeDTO = new NodeProgressDTO();
+                nodeDTO.setNodeInstanceId(String.valueOf(node.getId()));
+                nodeDTO.setNodeId(node.getNodeDefId() != null ? String.valueOf(node.getNodeDefId()) : null);
+                nodeDTO.setNodeType(node.getNodeType());
+                nodeDTO.setNodeName(node.getNodeName());
+                nodeDTO.setPhaseId(node.getPhaseId());
+                nodeDTO.setSortNum(node.getSortNum());
+                nodeDTO.setIsRequired(nodeIsRequired);
 
                 // 学生进度
                 WfStudentNodeProgress progress = progressMap.get(node.getId());
                 if (progress != null) {
-                    nodeData.put("status", progress.getStatus());
-                    nodeData.put("enteredAt", progress.getEnteredAt());
-                    nodeData.put("exitedAt", progress.getExitedAt());
-                    nodeData.put("stayDurationSeconds", progress.getStayDurationSeconds());
+                    nodeDTO.setStatus(progress.getStatus());
+                    nodeDTO.setEnteredAt(progress.getEnteredAt());
+                    nodeDTO.setExitedAt(progress.getExitedAt());
+                    nodeDTO.setStayDurationSeconds(progress.getStayDurationSeconds());
+
+                    if (progress.getStatus() != null && progress.getStatus() == 2) {
+                        completedNodes++;
+                        if (nodeIsRequired) {
+                            completedRequiredNodes++;
+                        }
+                    }
                 } else {
-                    nodeData.put("status", 0); // 未开始
-                    nodeData.put("enteredAt", null);
-                    nodeData.put("exitedAt", null);
-                    nodeData.put("stayDurationSeconds", null);
+                    nodeDTO.setStatus(0);
                 }
 
-                nodesData.add(nodeData);
+                nodesData.add(nodeDTO);
             }
 
-            Map<String, Object> phaseData = new HashMap<>();
-            phaseData.put("phaseId", phaseId);
-            phaseData.put("phaseName", phaseName);
-            phaseData.put("sortNum", sortNum);
-            phaseData.put("isUnlocked", isUnlocked);
-            phaseData.put("isComplete", isComplete);
-            phaseData.put("nodes", nodesData);
+            PhaseProgressDTO phaseDTO = new PhaseProgressDTO();
+            phaseDTO.setPhaseId(phaseId);
+            phaseDTO.setPhaseName(phaseName);
+            phaseDTO.setSortNum(sortNum);
+            phaseDTO.setIsUnlocked(isUnlocked);
+            phaseDTO.setIsComplete(isComplete);
+            phaseDTO.setTotalNodes(totalNodes);
+            phaseDTO.setCompletedNodes(completedNodes);
+            phaseDTO.setRequiredNodes(requiredNodes);
+            phaseDTO.setCompletedRequiredNodes(completedRequiredNodes);
+            phaseDTO.setNodes(nodesData);
 
-            // 可选时间字段
-            if (phase.has("plan_start_time") && !phase.get("plan_start_time").isNull()) {
-                phaseData.put("planStartTime", phase.get("plan_start_time").asText());
-            }
-            if (phase.has("plan_end_time") && !phase.get("plan_end_time").isNull()) {
-                phaseData.put("planEndTime", phase.get("plan_end_time").asText());
-            }
-
-            phasesData.add(phaseData);
+            phasesData.add(phaseDTO);
         }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("taskId", String.valueOf(taskId));
-        result.put("taskName", task.getTaskName());
-        result.put("startTime", task.getStartTime());
-        result.put("endTime", task.getEndTime());
-        result.put("participationId", String.valueOf(participation.getId()));
-        result.put("participationStatus", participation.getStatus());
-        result.put("currentUnlockedPhaseId", currentUnlockedPhaseId);
-        result.put("phases", phasesData);
+        // 10. 构建总览DTO
+        boolean isExpired = task.getEndTime() != null && LocalDateTime.now().isAfter(task.getEndTime());
 
-        return ApiResult.ok(result);
+        StudentTaskOverviewDTO overview = new StudentTaskOverviewDTO();
+        overview.setTaskId(String.valueOf(taskId));
+        overview.setTaskName(task.getTaskName());
+        overview.setTemplateName(template.getTemplateName());
+        overview.setStartTime(task.getStartTime());
+        overview.setEndTime(task.getEndTime());
+        overview.setIsExpired(isExpired);
+        overview.setParticipationId(String.valueOf(participation.getId()));
+        overview.setParticipationStatus(participation.getStatus());
+        overview.setCurrentPhaseId(currentPhaseId);
+        overview.setCurrentNodeInstanceId(currentNodeInstanceId);
+        overview.setPhases(phasesData);
+
+        return ApiResult.ok(overview);
     }
 
     // ==================== Step 2: POST /api/student/nodes/{nodeInstanceId}/enter ====================
-
-    /**
-     * 学生进入节点
-     *
-     * 调用 PhaseExecutionService.enterNode 创建或恢复进度记录。
-     * PhaseExecutionService 内部会：
-     * - 检查阶段锁定（PHASE_LOCKED）
-     * - 检查任务过期（TASK_EXPIRED）
-     * - 更新 wf_student_activity_state（活动状态追踪）
-     *
-     * @param nodeInstanceId 节点实例ID
-     * @return 节点进度记录
-     */
-    @PostMapping("/nodes/{nodeInstanceId}/enter")
-    public ApiResult<WfStudentNodeProgress> enterNode(@PathVariable Long nodeInstanceId) {
-        Long currentUserId = getCurrentUserId();
-
-        // 查找节点实例获取taskId
-        WfNodeInstance nodeInstance = nodeInstanceMapper.selectById(nodeInstanceId);
-        if (nodeInstance == null) {
-            return ApiResult.error("节点实例不存在");
-        }
-
-        // 获取学生的参与记录
-        BizTrainingParticipation participation = getParticipation(nodeInstance.getTaskId(), currentUserId);
-        if (participation == null) {
-            return ApiResult.error("未找到该实训任务的参与记录");
-        }
-
-        // 调用PhaseExecutionService.enterNode（内部处理阶段锁定、过期检查、活动状态更新）
-        WfStudentNodeProgress progress = phaseExecutionService.enterNode(participation.getId(), nodeInstanceId);
-
-        return ApiResult.ok(progress);
-    }
+    // 端点移至 StudentTrainingController，此处不再重复注册
 
     // ==================== Step 3: POST /api/student/nodes/{nodeInstanceId}/complete ====================
-
-    /**
-     * 学生完成节点
-     *
-     * 调用 PhaseExecutionService.completeNode 将节点标记为已完成。
-     * PhaseExecutionService 内部会：
-     * - 设置 status=2, exited_at, stay_duration_seconds
-     * - 清除 wf_student_activity_state.current_node_instance_id（活动状态追踪）
-     * - 自动检查阶段推进
-     *
-     * @param nodeInstanceId 节点实例ID
-     * @return 操作结果
-     */
-    @PostMapping("/nodes/{nodeInstanceId}/complete")
-    public ApiResult<Void> completeNode(@PathVariable Long nodeInstanceId) {
-        Long currentUserId = getCurrentUserId();
-
-        // 查找节点实例获取taskId
-        WfNodeInstance nodeInstance = nodeInstanceMapper.selectById(nodeInstanceId);
-        if (nodeInstance == null) {
-            return ApiResult.error("节点实例不存在");
-        }
-
-        // 获取学生的参与记录
-        BizTrainingParticipation participation = getParticipation(nodeInstance.getTaskId(), currentUserId);
-        if (participation == null) {
-            return ApiResult.error("未找到该实训任务的参与记录");
-        }
-
-        // 调用PhaseExecutionService.completeNode（内部处理活动状态更新）
-        phaseExecutionService.completeNode(participation.getId(), nodeInstanceId);
-
-        return ApiResult.ok();
-    }
+    // 端点移至 StudentTrainingController，此处不再重复注册
 
     // ==================== Step 4: GET /api/student/tasks/{taskId}/current-position ====================
 
@@ -298,12 +282,14 @@ public class StudentFlowController {
      * 获取学生当前位置
      *
      * 返回学生当前所在的阶段和节点信息，用于断线重连或页面初始化时定位。
+     * - 如果 Student_Activity_State 的 current_node_instance_id 不为 null，返回该节点位置
+     * - 如果为 null 或记录不存在，返回当前解锁阶段的第一个未完成节点
      *
      * @param taskId 实训任务ID
-     * @return 当前阶段ID和节点实例ID
+     * @return 当前位置信息（CurrentPositionDTO）
      */
     @GetMapping("/tasks/{taskId}/current-position")
-    public ApiResult<Map<String, Object>> getCurrentPosition(@PathVariable Long taskId) {
+    public ApiResult<CurrentPositionDTO> getCurrentPosition(@PathVariable Long taskId) {
         Long currentUserId = getCurrentUserId();
 
         // 获取学生的参与记录
@@ -312,43 +298,73 @@ public class StudentFlowController {
             return ApiResult.error("未找到该实训任务的参与记录");
         }
 
-        // 获取当前解锁阶段
-        String currentPhaseId = phaseExecutionService.getCurrentUnlockedPhaseId(taskId, currentUserId);
-
         // 获取活动状态（当前所在节点）
         LambdaQueryWrapper<WfStudentActivityState> stateQuery = new LambdaQueryWrapper<>();
         stateQuery.eq(WfStudentActivityState::getParticipationId, participation.getId());
         WfStudentActivityState activityState = studentActivityStateMapper.selectOne(stateQuery);
 
         String currentNodeInstanceId = null;
+        String currentPhaseId = null;
         String currentNodeType = null;
         String currentNodeName = null;
 
         if (activityState != null && activityState.getCurrentNodeId() != null) {
+            // Requirement 7.6: 如果 current_node_instance_id 不为 null，定位到该节点
             currentNodeInstanceId = activityState.getCurrentNodeId();
 
-            // 获取节点实例详情
             try {
                 WfNodeInstance nodeInstance = nodeInstanceMapper.selectById(Long.parseLong(currentNodeInstanceId));
                 if (nodeInstance != null) {
+                    currentPhaseId = nodeInstance.getPhaseId();
                     currentNodeType = nodeInstance.getNodeType();
                     currentNodeName = nodeInstance.getNodeName();
                 }
             } catch (NumberFormatException e) {
                 log.warn("无法解析当前节点实例ID: {}", currentNodeInstanceId);
             }
+        } else {
+            // Requirement 7.7: 如果 current_node_instance_id 为 null 或记录不存在，
+            // 定位到当前解锁阶段的第一个未完成节点
+            currentPhaseId = phaseExecutionService.getCurrentUnlockedPhaseId(taskId, currentUserId);
+
+            if (currentPhaseId != null) {
+                // 获取该阶段的节点实例（按sort_num排序）
+                LambdaQueryWrapper<WfNodeInstance> nodeQuery = new LambdaQueryWrapper<>();
+                nodeQuery.eq(WfNodeInstance::getTaskId, taskId)
+                        .eq(WfNodeInstance::getPhaseId, currentPhaseId)
+                        .orderByAsc(WfNodeInstance::getSortNum);
+                List<WfNodeInstance> phaseNodes = nodeInstanceMapper.selectList(nodeQuery);
+
+                // 获取该学生的节点进度
+                LambdaQueryWrapper<WfStudentNodeProgress> progressQuery = new LambdaQueryWrapper<>();
+                progressQuery.eq(WfStudentNodeProgress::getParticipationId, participation.getId());
+                List<WfStudentNodeProgress> allProgress = studentNodeProgressMapper.selectList(progressQuery);
+                Map<Long, WfStudentNodeProgress> progressMap = new HashMap<>();
+                for (WfStudentNodeProgress p : allProgress) {
+                    progressMap.put(p.getNodeInstanceId(), p);
+                }
+
+                // 找到第一个未完成的节点
+                for (WfNodeInstance node : phaseNodes) {
+                    WfStudentNodeProgress progress = progressMap.get(node.getId());
+                    int status = (progress != null && progress.getStatus() != null) ? progress.getStatus() : 0;
+                    if (status != 2) { // 不是已完成
+                        currentNodeInstanceId = String.valueOf(node.getId());
+                        currentNodeType = node.getNodeType();
+                        currentNodeName = node.getNodeName();
+                        break;
+                    }
+                }
+            }
         }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("taskId", String.valueOf(taskId));
-        result.put("participationId", String.valueOf(participation.getId()));
-        result.put("currentPhaseId", currentPhaseId);
-        result.put("currentNodeInstanceId", currentNodeInstanceId);
-        result.put("currentNodeType", currentNodeType);
-        result.put("currentNodeName", currentNodeName);
-        result.put("participationStatus", participation.getStatus());
+        CurrentPositionDTO position = new CurrentPositionDTO();
+        position.setCurrentNodeInstanceId(currentNodeInstanceId);
+        position.setPhaseId(currentPhaseId);
+        position.setNodeType(currentNodeType);
+        position.setNodeName(currentNodeName);
 
-        return ApiResult.ok(result);
+        return ApiResult.ok(position);
     }
 
     // ==================== Helper Methods ====================
@@ -392,37 +408,43 @@ public class StudentFlowController {
     }
 
     /**
-     * 判断指定阶段是否已解锁
+     * 解析节点的 is_required 字段
      *
-     * 逻辑：阶段的sort_num <= 当前解锁阶段的sort_num 则视为已解锁
+     * 从节点的 configJson.orchestration_settings.is_required 中读取是否为必修节点。
+     * 如果字段缺失或解析失败，默认视为必修（true）。
      *
-     * @param phaseId              要判断的阶段ID
-     * @param currentUnlockedPhaseId 当前解锁的阶段ID
-     * @param sortedPhases         按sort_num排序的阶段列表
-     * @return 是否已解锁
+     * @param node 节点实例
+     * @return 是否为必修节点
      */
-    private boolean isPhaseUnlocked(String phaseId, String currentUnlockedPhaseId, List<JsonNode> sortedPhases) {
-        if (currentUnlockedPhaseId == null) {
-            // 无法确定解锁阶段，默认第一个阶段解锁
-            return sortedPhases.size() > 0 && phaseId.equals(
-                    sortedPhases.get(0).has("phase_id") ? sortedPhases.get(0).get("phase_id").asText() : "");
+    private boolean parseIsRequired(WfNodeInstance node) {
+        Object configJson = node.getConfigJson();
+        if (configJson == null) {
+            return true;
         }
 
-        int targetSortNum = Integer.MAX_VALUE;
-        int unlockedSortNum = Integer.MAX_VALUE;
-
-        for (JsonNode phase : sortedPhases) {
-            String id = phase.has("phase_id") ? phase.get("phase_id").asText() : "";
-            int sortNum = phase.has("sort_num") ? phase.get("sort_num").asInt(Integer.MAX_VALUE) : Integer.MAX_VALUE;
-
-            if (phaseId.equals(id)) {
-                targetSortNum = sortNum;
+        try {
+            JsonNode configNode;
+            if (configJson instanceof String) {
+                configNode = objectMapper.readTree((String) configJson);
+            } else {
+                String jsonStr = objectMapper.writeValueAsString(configJson);
+                configNode = objectMapper.readTree(jsonStr);
             }
-            if (currentUnlockedPhaseId.equals(id)) {
-                unlockedSortNum = sortNum;
+
+            JsonNode orchestrationSettings = configNode.get("orchestration_settings");
+            if (orchestrationSettings == null || !orchestrationSettings.isObject()) {
+                return true;
             }
+
+            JsonNode isRequiredNode = orchestrationSettings.get("is_required");
+            if (isRequiredNode == null || !isRequiredNode.isBoolean()) {
+                return true;
+            }
+
+            return isRequiredNode.asBoolean();
+        } catch (Exception e) {
+            log.warn("解析节点 {} 的 is_required 字段失败，默认视为必须完成: {}", node.getId(), e.getMessage());
+            return true;
         }
-
-        return targetSortNum <= unlockedSortNum;
     }
 }
