@@ -9,7 +9,7 @@ import type { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'a
  * @module services/api
  */
 const http: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: 'http://localhost:8080/api-smart',
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json'
