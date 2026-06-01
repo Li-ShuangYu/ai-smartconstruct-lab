@@ -143,6 +143,27 @@ public class DemoDataSeederService {
         }
 
         List<JsonNode> phases = parsePhasesJson(template.getPhasesJson());
+        if (phases.isEmpty() && template.getRawCanvasJson() != null) {
+            log.info("phases_json 为空，从 raw_canvas_json 解析 phases");
+            try {
+                JsonNode canvasNode;
+                if (template.getRawCanvasJson() instanceof String) {
+                    canvasNode = objectMapper.readTree((String) template.getRawCanvasJson());
+                } else {
+                    canvasNode = objectMapper.valueToTree(template.getRawCanvasJson());
+                }
+                JsonNode phasesNode = canvasNode.get("phases");
+                if (phasesNode != null && phasesNode.isArray()) {
+                    for (JsonNode node : phasesNode) {
+                        phases.add(node);
+                    }
+                    phases.sort(Comparator.comparingInt(n -> n.has("sort_num") ? n.get("sort_num").asInt(Integer.MAX_VALUE) : Integer.MAX_VALUE));
+                    log.info("从 raw_canvas_json 解析到 {} 个阶段", phases.size());
+                }
+            } catch (Exception e) {
+                log.error("从 raw_canvas_json 解析 phases 失败: {}", e.getMessage());
+            }
+        }
         if (phases.isEmpty()) {
             throw new RuntimeException("模板 phases_json 为空或无法解析, templateId=" + templateId);
         }
@@ -719,6 +740,26 @@ public class DemoDataSeederService {
 
         // 3. 解析 phases_json 和 standard_payload_json，创建 Node_Instance 记录
         List<JsonNode> phases = parsePhasesJson(template.getPhasesJson());
+        if (phases.isEmpty() && template.getRawCanvasJson() != null) {
+            try {
+                JsonNode canvasNode;
+                if (template.getRawCanvasJson() instanceof String) {
+                    canvasNode = objectMapper.readTree((String) template.getRawCanvasJson());
+                } else {
+                    canvasNode = objectMapper.valueToTree(template.getRawCanvasJson());
+                }
+                JsonNode phasesNode = canvasNode.get("phases");
+                if (phasesNode != null && phasesNode.isArray()) {
+                    for (JsonNode node : phasesNode) {
+                        phases.add(node);
+                    }
+                    phases.sort(Comparator.comparingInt(n ->
+                            n.has("sort_num") ? n.get("sort_num").asInt(Integer.MAX_VALUE) : Integer.MAX_VALUE));
+                }
+            } catch (Exception e) {
+                log.error("createTaskAndAssign: 从 raw_canvas_json 解析 phases 失败: {}", e.getMessage());
+            }
+        }
         JsonNode payloadJson = parseStandardPayloadJson(template.getStandardPayloadJson());
 
         // 预加载所有 node_def，建立 nodeType -> nodeDefId 映射

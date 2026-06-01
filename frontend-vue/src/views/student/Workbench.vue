@@ -43,14 +43,24 @@
 
             <footer class="card-actions">
               <span class="deadline">⏱️ {{ formatTime(item.startTime) }}</span>
-              <button
-                class="mini-btn"
-                :class="actionBtnClass(item.status)"
-                :disabled="actionLoading === item.id"
-                @click="handleAction(item)"
-              >
-                {{ actionLabel(item) }}
-              </button>
+              <div class="card-actions__buttons">
+                <button
+                  class="mini-btn"
+                  :class="actionBtnClass(item.status)"
+                  :disabled="actionLoading === item.id"
+                  @click="handleAction(item)"
+                >
+                  {{ actionLabel(item) }}
+                </button>
+                <button
+                  v-if="item.status === 2"
+                  class="mini-btn mini-btn--restart"
+                  :disabled="actionLoading === item.id"
+                  @click="handleRestart(item)"
+                >
+                  重新学习
+                </button>
+              </div>
             </footer>
           </div>
           <div v-if="!loading && tasks.length === 0" class="empty-state">暂无实训任务</div>
@@ -75,15 +85,16 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { NPagination, NSpin } from 'naive-ui'
+import { NPagination, NSpin, useMessage } from 'naive-ui'
 import { getStudentTrainingTasks } from '@/services/modules/student-dashboard.service'
 import { getProfile } from '@/services/modules/student-dashboard.service'
-import { startTraining, getTaskOverview } from '@/services/modules/studentTraining.service'
+import { startTraining, getTaskOverview, resetTraining } from '@/services/modules/studentTraining.service'
 import type { StudentTrainingTask, StudentProfile } from '@/services/types/dashboard.types'
 
 const loading = ref(false)
 const actionLoading = ref<number | null>(null)
 const router = useRouter()
+const message = useMessage()
 const profile = ref<StudentProfile>({ userId: 0, username: '' })
 const tasks = ref<StudentTrainingTask[]>([])
 const activeTab = ref('all')
@@ -213,6 +224,24 @@ async function handleAction(item: StudentTrainingTask): Promise<void> {
   } else {
     // 已完成：查看总结页面
     router.push(`/student/training/${item.id}/summary`)
+  }
+}
+
+/** 重新学习按钮点击 */
+async function handleRestart(item: StudentTrainingTask): Promise<void> {
+  actionLoading.value = item.id
+  try {
+    const res = await resetTraining(item.id)
+    if (res.code === 200) {
+      message.success('实训已重置，正在重新进入...')
+      router.push(`/student/training/${item.id}/execute`)
+    } else {
+      message.error(res.message || '重置失败')
+    }
+  } catch {
+    message.error('重置请求失败')
+  } finally {
+    actionLoading.value = null
   }
 }
 
@@ -400,6 +429,11 @@ onMounted(async () => {
   padding-top: 16px;
 }
 
+.card-actions__buttons {
+  display: flex;
+  gap: 8px;
+}
+
 .deadline {
   font-size: 12px;
   color: var(--color-gray-400, #94a3b8);
@@ -444,6 +478,16 @@ onMounted(async () => {
 .mini-btn--default:hover:not(:disabled) {
   border-color: var(--color-primary-300, #a5b4fc);
   color: var(--color-primary-600, #4f46e5);
+}
+
+.mini-btn--restart {
+  background: var(--color-emerald-500, #10b981);
+  color: white;
+  border-color: var(--color-emerald-500, #10b981);
+}
+
+.mini-btn--restart:hover:not(:disabled) {
+  background: var(--color-emerald-600, #059669);
 }
 
 .pagination-wrapper {

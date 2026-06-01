@@ -13,49 +13,20 @@
       <n-button type="primary" @click="handleRetry">重试</n-button>
     </div>
 
-    <!-- 阶段完成提示 -->
-    <div v-else-if="phaseCompleted" class="phase-complete-container">
-      <div class="phase-complete-icon">🎉</div>
-      <h2 class="phase-complete-title">阶段完成！</h2>
-      <p class="phase-complete-message">
-        「{{ completedPhaseName }}」阶段的所有必修节点已完成
-      </p>
-      <n-button
-        v-if="showBackButton"
-        type="primary"
-        size="large"
-        @click="handleBackToPreview"
-      >
-        返回预览
-      </n-button>
-      <n-button
-        v-if="hasNextPhase"
-        type="info"
-        size="large"
-        @click="handleNextPhase"
-        style="margin-left: 12px;"
-      >
-        进入下一阶段
-      </n-button>
-    </div>
-
     <!-- 实训已完成 -->
     <div v-else-if="trainingComplete" class="complete-container">
       <div class="complete-icon">✅</div>
       <h2 class="complete-title">实训完成</h2>
-      <p class="complete-message">恭喜！你已完成本实训的所有必修节点</p>
+      <p class="complete-message">恭喜你完成了本次实训的所有内容！</p>
       <div class="complete-actions">
-        <n-button type="primary" @click="handleBackToPreview">查看总览</n-button>
-        <n-button @click="router.push('/student/workbench')">返回工作台</n-button>
+        <n-button type="primary" @click="router.push('/student/workbench')">返回工作台</n-button>
       </div>
     </div>
 
     <!-- 节点类型未注册错误 -->
     <div v-else-if="nodeTypeError" class="error-container">
       <div class="error-icon">❌</div>
-      <p class="error-message">
-        未注册的节点类型：「{{ nodeTypeError }}」，无法加载对应组件
-      </p>
+      <p class="error-message">未注册的节点类型：「{{ nodeTypeError }}」</p>
       <n-button type="primary" @click="handleBackToPreview">返回预览</n-button>
     </div>
 
@@ -63,35 +34,23 @@
     <template v-else-if="currentComponent">
       <header class="top-bar">
         <div class="top-bar-left">
-          <n-button text @click="handleBackToPreview" class="back-btn">
-            ← 返回
-          </n-button>
           <span class="task-name">{{ store.taskOverview?.task_name }}</span>
         </div>
         <div class="top-bar-right">
           <span class="phase-label">{{ currentPhaseName }}</span>
-          <span class="step-hint">
-            {{ currentNodeIndex + 1 }} / {{ currentPhaseNodeCount }}
-          </span>
+          <span class="step-hint">{{ currentNodeIndex + 1 }} / {{ currentPhaseNodeCount }}</span>
         </div>
       </header>
-
       <main class="center-area">
         <n-spin :show="nodeLoading" class="node-spin">
-          <component
-            :is="currentComponent"
-            :node-instance-id="store.currentNodeId"
-            :node-config="nodeConfig"
-            @complete="handleNodeComplete"
-          />
+          <component :is="currentComponent" :node-instance-id="store.currentNodeId" :node-config="nodeConfig" @complete="handleNodeComplete" />
         </n-spin>
       </main>
     </template>
 
-    <!-- 空状态 -->
     <div v-else class="empty-container">
       <p class="empty-text">暂无可执行的节点</p>
-      <n-button type="primary" @click="handleBackToPreview">返回预览</n-button>
+      <n-button type="primary" @click="router.push('/student/workbench')">返回工作台</n-button>
     </div>
   </div>
 </template>
@@ -136,20 +95,14 @@ const currentComponent = ref<VueComponent | null>(null)
 /** 节点类型错误（未注册类型） */
 const nodeTypeError = ref<string | null>(null)
 
-/** 阶段完成标志 */
-const phaseCompleted = ref(false)
-
-/** 完成的阶段名称 */
-const completedPhaseName = ref('')
-
-/** 返回按钮显示标志（3秒内显示） */
-const showBackButton = ref(false)
-
 /** 实训整体完成标志 */
 const trainingComplete = ref(false)
 
-/** 从路由获取 taskId */
-const taskId = computed(() => Number(route.params.taskId) || 0)
+/** 从路由获取 taskId（保持为字符串，避免雪花ID精度丢失） */
+const taskId = computed(() => {
+  const raw = route.params.taskId
+  return (typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : '') || ''
+})
 
 /** 当前阶段名称 */
 const currentPhaseName = computed(() =>
@@ -167,12 +120,6 @@ const currentNodeIndex = computed(() => {
   const sorted = [...store.currentPhaseProgress.nodes].sort((a, b) => a.sort_num - b.sort_num)
   const idx = sorted.findIndex(n => n.node_instance_id === store.currentNodeId)
   return idx >= 0 ? idx : 0
-})
-
-/** 是否有下一个解锁的未完成阶段 */
-const hasNextPhase = computed(() => {
-  const sorted = [...store.phases].sort((a, b) => a.sort_num - b.sort_num)
-  return sorted.some(p => p.is_unlocked && !p.is_complete)
 })
 
 /**
@@ -227,34 +174,13 @@ async function handleNodeComplete(): Promise<void> {
 
   nodeLoading.value = true
   try {
-    const result = await store.completeNode(nodeId)
+    await store.completeNode(nodeId)
 
-    // 检查是否阶段完成
-    if (result?.phase_complete) {
-      // 记录完成的阶段名称
-      completedPhaseName.value = currentPhaseName.value
-      phaseCompleted.value = true
-
-      // 3秒内显示返回按钮
-      showBackButton.value = false
-      setTimeout(() => {
-        showBackButton.value = true
-      }, 300)
-
-      // 检查是否整体完成
-      if (result.training_complete) {
-        trainingComplete.value = true
-        phaseCompleted.value = false
-      }
-      return
-    }
-
-    // 自动导航到下一节点
+    // 自动导航到下一节点，不显示阶段完成弹窗
     const nextNodeId = store.navigateToNextNode()
     if (nextNodeId) {
       await loadCurrentNode()
     } else {
-      // 所有节点已完成
       trainingComplete.value = true
     }
   } catch {
@@ -316,13 +242,13 @@ onMounted(async () => {
   if (store.error) return
 
   // 检查实训是否已完成
-  if (store.taskOverview?.participation.status === 2) {
+  if (store.taskOverview?.participation_status === 2) {
     trainingComplete.value = true
     return
   }
 
-  // 如果路由中指定了 nodeId，使用它
-  const queryNodeId = route.query.nodeId ? Number(route.query.nodeId) : null
+  // 如果路由中指定了 nodeId，使用它（保持字符串避免雪花ID精度丢失）
+  const queryNodeId = route.query.nodeId ? String(route.query.nodeId) : null
   if (queryNodeId && store.isNodeAccessible(queryNodeId)) {
     store.currentNodeId = queryNodeId
   }

@@ -132,7 +132,7 @@ public class PhaseExecutionServiceImpl implements IPhaseExecutionService {
         }
 
         // 3. 解析 phases_json 为阶段列表并按 sort_num 排序
-        List<JsonNode> sortedPhases = parsePhasesJson(template.getPhasesJson());
+        List<JsonNode> sortedPhases = parsePhasesJson(template.getPhasesJson(), template);
         if (sortedPhases.isEmpty()) {
             log.warn("模板 {} 的 phases_json 为空或无法解析", template.getId());
             return null;
@@ -161,14 +161,48 @@ public class PhaseExecutionServiceImpl implements IPhaseExecutionService {
 
     /**
      * 解析 phases_json 字段为 JsonNode 列表，并按 sort_num 升序排序。
-     *
-     * phases_json 可能是 String、List/Map（由JacksonTypeHandler反序列化），
-     * 需要统一转换为 JsonNode 数组后排序。
+     * 如果 phases_json 为空，自动回退到 raw_canvas_json.phases。
      *
      * @param phasesJson phases_json 字段值
      * @return 按 sort_num 排序的阶段 JsonNode 列表，解析失败返回空列表
      */
     private List<JsonNode> parsePhasesJson(Object phasesJson) {
+        return parsePhasesJson(phasesJson, null);
+    }
+
+    /**
+     * 解析 phases_json 字段为 JsonNode 列表，并按 sort_num 升序排序。
+     * 如果 phases_json 为空且有 template，自动回退到 raw_canvas_json.phases。
+     *
+     * @param phasesJson phases_json 字段值
+     * @param template   可选，用于 phases_json 为空时回退到 raw_canvas_json
+     * @return 按 sort_num 排序的阶段 JsonNode 列表
+     */
+    private List<JsonNode> parsePhasesJson(Object phasesJson, WfTrainingTemplate template) {
+        List<JsonNode> result = doParsePhasesJson(phasesJson);
+        if (result.isEmpty() && template != null && template.getRawCanvasJson() != null) {
+            log.info("phases_json 为空，从 raw_canvas_json 解析 phases");
+            try {
+                JsonNode canvasNode;
+                if (template.getRawCanvasJson() instanceof String) {
+                    canvasNode = objectMapper.readTree((String) template.getRawCanvasJson());
+                } else {
+                    canvasNode = objectMapper.valueToTree(template.getRawCanvasJson());
+                }
+                JsonNode phasesNode = canvasNode.get("phases");
+                if (phasesNode != null && phasesNode.isArray()) {
+                    for (JsonNode node : phasesNode) { result.add(node); }
+                    result.sort(Comparator.comparingInt(n ->
+                            n.has("sort_num") ? n.get("sort_num").asInt(Integer.MAX_VALUE) : Integer.MAX_VALUE));
+                }
+            } catch (Exception e) {
+                log.error("从 raw_canvas_json 解析 phases 失败: {}", e.getMessage());
+            }
+        }
+        return result;
+    }
+
+    private List<JsonNode> doParsePhasesJson(Object phasesJson) {
         if (phasesJson == null) {
             return new ArrayList<>();
         }
@@ -363,7 +397,7 @@ public class PhaseExecutionServiceImpl implements IPhaseExecutionService {
             return;
         }
 
-        List<JsonNode> sortedPhases = parsePhasesJson(template.getPhasesJson());
+        List<JsonNode> sortedPhases = parsePhasesJson(template.getPhasesJson(), template);
         if (sortedPhases.isEmpty()) {
             return;
         }
@@ -438,7 +472,7 @@ public class PhaseExecutionServiceImpl implements IPhaseExecutionService {
             return result;
         }
 
-        List<JsonNode> sortedPhases = parsePhasesJson(template.getPhasesJson());
+        List<JsonNode> sortedPhases = parsePhasesJson(template.getPhasesJson(), template);
         if (sortedPhases.isEmpty()) {
             return result;
         }
@@ -652,7 +686,7 @@ public class PhaseExecutionServiceImpl implements IPhaseExecutionService {
             return;
         }
 
-        List<JsonNode> sortedPhases = parsePhasesJson(template.getPhasesJson());
+        List<JsonNode> sortedPhases = parsePhasesJson(template.getPhasesJson(), template);
         if (sortedPhases.isEmpty()) {
             return;
         }

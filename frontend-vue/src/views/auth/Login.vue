@@ -131,7 +131,7 @@ const roles = [
 
 /** 默认账号密码配置 */
 const defaultCredentials: Record<string, { account: string; password: string }> = {
-  student: { account: '2270410234', password: '123456' },
+  student: { account: 'student', password: '123456' },
   teacher: { account: 'teacher', password: '123456' },
   admin: { account: 'user1', password: '123456' }
 }

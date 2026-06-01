@@ -36,11 +36,18 @@
         叶子节点
       </span>
     </footer>
+
+    <!-- Complete Button -->
+    <div class="mindmap-preview__actions">
+      <button class="mindmap-preview__complete-btn" @click="handleComplete">继续下一阶段</button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, defineComponent, h } from 'vue'
+
+const emit = defineEmits<{ complete: [] }>()
 
 interface MindMapNodeData {
   id: string
@@ -137,6 +144,10 @@ function expandAll() {
 
 function collapseAll() {
   expandedIds.value = new Set()
+}
+
+function handleComplete() {
+  emit('complete')
 }
 
 function collectAllIds(node: MindMapNodeData): string[] {
@@ -356,5 +367,24 @@ const MindMapNode = defineComponent({
   margin-left: 1.5rem;
   border-left: 1px solid #e2e8f0;
   padding-left: 0.5rem;
+}
+
+.mindmap-preview__actions {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.mindmap-preview__complete-btn {
+  padding: 10px 40px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.mindmap-preview__complete-btn:hover {
+  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.4);
 }
 </style>

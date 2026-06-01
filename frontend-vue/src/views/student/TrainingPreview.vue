@@ -84,7 +84,7 @@
       <footer class="preview-footer">
         <n-button @click="router.back()">返回</n-button>
         <n-button
-          v-if="store.taskOverview.participation.status === 0"
+          v-if="store.taskOverview.participation_status === 0"
           type="primary"
           size="large"
           :loading="starting"
@@ -93,7 +93,7 @@
           开始实训
         </n-button>
         <n-button
-          v-else-if="store.taskOverview.participation.status === 1"
+          v-else-if="store.taskOverview.participation_status === 1"
           type="primary"
           size="large"
           @click="handleContinue"
@@ -101,7 +101,7 @@
           继续实训
         </n-button>
         <n-button
-          v-else-if="store.taskOverview.participation.status === 2"
+          v-else-if="store.taskOverview.participation_status === 2"
           type="info"
           size="large"
           @click="handleContinue"
@@ -137,10 +137,10 @@ const store = useStudentFlowStore()
 
 const starting = ref(false)
 
-/** 从路由获取 taskId */
+/** 从路由获取 taskId（保持字符串避免雪花ID精度丢失） */
 const taskId = computed(() => {
   const id = route.params.taskId || route.query.taskId
-  return Number(id) || 0
+  return String(id || '')
 })
 
 /** 总阶段数 */

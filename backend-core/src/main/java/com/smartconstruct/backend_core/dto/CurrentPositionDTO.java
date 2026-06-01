@@ -1,5 +1,6 @@
 package com.smartconstruct.backend_core.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,11 +18,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CurrentPositionDTO {
     /** 当前节点实例ID */
+    @JsonProperty("current_node_instance_id")
     private String currentNodeInstanceId;
     /** 当前所在阶段ID */
+    @JsonProperty("phase_id")
     private String phaseId;
     /** 当前节点类型 */
+    @JsonProperty("node_type")
     private String nodeType;
     /** 当前节点名称 */
+    @JsonProperty("node_name")
     private String nodeName;
 }

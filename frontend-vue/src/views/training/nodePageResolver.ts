@@ -12,6 +12,7 @@ import { defineAsyncComponent, type Component } from 'vue'
 const studentNodePages: Record<string, Component> = {
   start: defineAsyncComponent(() => import('./studentTraining/StartPortal.vue')),
   grouping: defineAsyncComponent(() => import('./studentTraining/GroupingPage.vue')),
+  video_learn: defineAsyncComponent(() => import('./studentTraining/VideoPlayer.vue')),
   resource_read: defineAsyncComponent(() => import('./studentTraining/ResourceViewer.vue')),
   theory_class: defineAsyncComponent(() => import('./studentTraining/TheoryClassView.vue')),
   coding_class: defineAsyncComponent(() => import('./studentTraining/StudentCodingLab.vue')),
@@ -36,7 +37,7 @@ const teacherNodePages: Record<string, Component> = {
   grouping: defineAsyncComponent(() => import('./teacherTraining/TeacherGrouping.vue')),
   resource_read: defineAsyncComponent(() => import('./teacherTraining/TeacherResourceViewer.vue')),
   theory_class: defineAsyncComponent(() => import('./teacherTraining/TeacherTheoryClassView.vue')),
-  coding_class: defineAsyncComponent(() => import('./teacherTraining/TeacherCodingLab.vue')),
+  coding_class: defineAsyncComponent(() => import('./teacherTraining/TeacherSimulatedIDE.vue')),
   learning_survey: defineAsyncComponent(() => import('./teacherTraining/TeacherLearningSurvey.vue')),
   task_distribute: defineAsyncComponent(() => import('./teacherTraining/TeacherTaskBoard.vue')),
   req_upload: defineAsyncComponent(() => import('./teacherTraining/TeacherRequirementCloud.vue')),
@@ -61,7 +62,7 @@ const teacherNodePages: Record<string, Component> = {
  */
 export function resolveNodePage(nodeType: string, role: 'student' | 'teacher'): Component | null {
   const pages = role === 'student' ? studentNodePages : teacherNodePages
-  return pages[nodeType] ?? null
+  return pages[nodeType.toLowerCase()] ?? null
 }
 
 /**

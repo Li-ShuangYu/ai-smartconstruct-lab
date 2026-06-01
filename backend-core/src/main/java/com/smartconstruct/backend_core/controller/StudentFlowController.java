@@ -126,8 +126,27 @@ public class StudentFlowController {
             return ApiResult.error("实训模板不存在");
         }
 
-        // 4. 解析phases_json
+        // 4. 解析phases_json（优先使用 phases_json，如果为空则从 raw_canvas_json 的 "phases" 数组解析）
         List<JsonNode> sortedPhases = parsePhasesJson(template.getPhasesJson());
+        if (sortedPhases.isEmpty() && template.getRawCanvasJson() != null) {
+            log.info("phases_json 为空，从 raw_canvas_json 解析 phases");
+            try {
+                JsonNode canvasNode;
+                if (template.getRawCanvasJson() instanceof String) {
+                    canvasNode = objectMapper.readTree((String) template.getRawCanvasJson());
+                } else {
+                    canvasNode = objectMapper.valueToTree(template.getRawCanvasJson());
+                }
+                JsonNode phasesNode = canvasNode.get("phases");
+                if (phasesNode != null && phasesNode.isArray()) {
+                    for (JsonNode node : phasesNode) { sortedPhases.add(node); }
+                    sortedPhases.sort(Comparator.comparingInt(n ->
+                            n.has("sort_num") ? n.get("sort_num").asInt(Integer.MAX_VALUE) : Integer.MAX_VALUE));
+                }
+            } catch (Exception e) {
+                log.error("从 raw_canvas_json 解析 phases 失败: {}", e.getMessage());
+            }
+        }
 
         // 5. 获取该任务的所有节点实例
         LambdaQueryWrapper<WfNodeInstance> nodeQuery = new LambdaQueryWrapper<>();

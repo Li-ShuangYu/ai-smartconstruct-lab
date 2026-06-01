@@ -32,8 +32,7 @@ public class WfNodeInstance {
     @JsonSerialize(using = ToStringSerializer.class)
     private Long taskId;
 
-    /** 所属阶段ID — 需要先执行 ALTER TABLE wf_node_instance ADD COLUMN phase_id VARCHAR(64) 后移除 exist=false */
-    @TableField()
+    /** 所属阶段ID */
     private String phaseId;
 
     /** 关联全局节点定义ID */

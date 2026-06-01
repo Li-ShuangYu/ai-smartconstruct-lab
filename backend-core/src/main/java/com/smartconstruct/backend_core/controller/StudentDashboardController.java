@@ -141,7 +141,7 @@ public class StudentDashboardController {
         for (BizTrainingTask t : p.getRecords()) {
             BizTrainingParticipation pt = partMap.get(t.getId());
             Map<String, Object> map = new LinkedHashMap<>();
-            map.put("id", t.getId());
+            map.put("id", String.valueOf(t.getId()));
             map.put("taskName", t.getTaskName());
             map.put("status", pt != null ? pt.getStatus() : 0);
             map.put("startTime", t.getStartTime());
@@ -173,7 +173,7 @@ public class StudentDashboardController {
         List<Map<String, Object>> list = new ArrayList<>();
         for (BizTrainingTask t : tasks) {
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", t.getId());
+            m.put("id", String.valueOf(t.getId()));
             m.put("taskName", t.getTaskName());
             m.put("status", t.getStatus());
             m.put("startTime", t.getStartTime());
@@ -206,7 +206,7 @@ public class StudentDashboardController {
         List<Map<String, Object>> list = new ArrayList<>();
         for (BizStudent s : classmates) {
             Map<String, Object> map = new LinkedHashMap<>();
-            map.put("userId", s.getUserId());
+            map.put("userId", String.valueOf(s.getUserId()));
             map.put("realName", s.getRealName());
             list.add(map);
         }
@@ -230,16 +230,16 @@ public class StudentDashboardController {
                 new LambdaQueryWrapper<BizStudent>().eq(BizStudent::getUserId, userId));
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("userId", user.getId());
+        data.put("userId", String.valueOf(user.getId()));
         data.put("username", user.getUsername());
         data.put("phone", user.getPhone());
         data.put("avatarUrl", user.getAvatarUrl());
         data.put("bio", user.getBio());
         if (student != null) {
             data.put("realName", student.getRealName());
-            data.put("deptId", student.getDeptId());
-            data.put("majorId", student.getMajorId());
-            data.put("classId", student.getClassId());
+            data.put("deptId", String.valueOf(student.getDeptId()));
+            data.put("majorId", String.valueOf(student.getMajorId()));
+            data.put("classId", String.valueOf(student.getClassId()));
             BizAdminClass cls = adminClassService.getById(student.getClassId());
             data.put("className", cls != null ? cls.getClassName() : "");
             BizDepartment dept = departmentService.getById(student.getDeptId());

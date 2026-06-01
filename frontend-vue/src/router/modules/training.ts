@@ -18,9 +18,11 @@ async function studentTrainingGuard(
   next: NavigationGuardNext
 ): Promise<void> {
   const store = useStudentFlowStore()
-  const taskId = Number(to.params.taskId)
+  const taskIdParam = to.params.taskId
+  // 保持为字符串，避免雪花ID（19位）超出 Number.MAX_SAFE_INTEGER 导致精度丢失
+  const taskId = typeof taskIdParam === 'string' ? taskIdParam : Array.isArray(taskIdParam) ? taskIdParam[0] : ''
 
-  if (!taskId || isNaN(taskId)) {
+  if (!taskId) {
     next({ path: '/student/workbench' })
     return
   }
@@ -46,7 +48,7 @@ async function studentTrainingGuard(
   }
 
   // 3. Check if the target node (from query param) belongs to a locked phase
-  const targetNodeId = to.query.nodeId ? Number(to.query.nodeId) : null
+  const targetNodeId = to.query.nodeId ? String(to.query.nodeId) : null
   const targetPhaseId = to.query.phaseId as string | undefined
 
   if (targetPhaseId || targetNodeId) {
@@ -79,8 +81,8 @@ async function studentTrainingGuard(
  * 查找当前解锁且未完成阶段的第一个未完成节点，返回重定向路由
  */
 function _findFirstIncompleteNodeRoute(
-  phases: Array<{ phase_id: string; sort_num: number; is_unlocked: boolean; is_complete: boolean; nodes: Array<{ node_instance_id: number; sort_num: number; status: number }> }>,
-  taskId: number
+  phases: Array<{ phase_id: string; sort_num: number; is_unlocked: boolean; is_complete: boolean; nodes: Array<{ node_instance_id: string; sort_num: number; status: number }> }>,
+  taskId: string
 ): { path: string; query: Record<string, string> } | null {
   const sortedPhases = [...phases].sort((a, b) => a.sort_num - b.sort_num)
   const currentPhase = sortedPhases.find(p => p.is_unlocked && !p.is_complete)

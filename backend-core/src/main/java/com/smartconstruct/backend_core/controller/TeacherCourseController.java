@@ -118,7 +118,7 @@ public class TeacherCourseController {
                 if (!match) continue;
             }
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("userId", s.getUserId());
+            m.put("userId", String.valueOf(s.getUserId()));
             m.put("realName", s.getRealName());
             m.put("username", u.getUsername());
             m.put("createdAt", u.getCreatedAt());

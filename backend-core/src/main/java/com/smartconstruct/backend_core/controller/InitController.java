@@ -237,22 +237,22 @@ public class InitController {
         }
 
         String[] addCols = {
-            "ALTER TABLE biz_department ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
-            "ALTER TABLE biz_major ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
-            "ALTER TABLE biz_admin_class ADD COLUMN IF NOT EXISTS enrollment_year INT NOT NULL DEFAULT 2026",
-            "ALTER TABLE biz_admin_class ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
-            "ALTER TABLE biz_student ADD COLUMN IF NOT EXISTS student_no VARCHAR(32) DEFAULT NULL",
-            "ALTER TABLE biz_student ADD COLUMN IF NOT EXISTS real_name VARCHAR(64) NOT NULL DEFAULT ''",
-            "ALTER TABLE biz_student ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
-            "ALTER TABLE biz_student ADD COLUMN IF NOT EXISTS updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
-            "ALTER TABLE biz_teacher ADD COLUMN IF NOT EXISTS real_name VARCHAR(64) NOT NULL DEFAULT ''",
-            "ALTER TABLE biz_teacher ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
-            "ALTER TABLE biz_teacher ADD COLUMN IF NOT EXISTS updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
-            "ALTER TABLE wf_node_def ADD COLUMN IF NOT EXISTS node_type VARCHAR(32) NOT NULL DEFAULT ''",
-            "ALTER TABLE wf_node_def ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
-            "ALTER TABLE wf_node_def ADD COLUMN IF NOT EXISTS updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
-            "ALTER TABLE wf_global_activity_state ADD COLUMN IF NOT EXISTS created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
-            "ALTER TABLE wf_global_activity_state ADD COLUMN IF NOT EXISTS updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
+            "ALTER TABLE biz_department ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_major ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_admin_class ADD COLUMN enrollment_year INT NOT NULL DEFAULT 2026",
+            "ALTER TABLE biz_admin_class ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_student ADD COLUMN student_no VARCHAR(32) DEFAULT NULL",
+            "ALTER TABLE biz_student ADD COLUMN real_name VARCHAR(64) NOT NULL DEFAULT ''",
+            "ALTER TABLE biz_student ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_student ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_teacher ADD COLUMN real_name VARCHAR(64) NOT NULL DEFAULT ''",
+            "ALTER TABLE biz_teacher ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE biz_teacher ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE wf_node_def ADD COLUMN node_type VARCHAR(32) NOT NULL DEFAULT ''",
+            "ALTER TABLE wf_node_def ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE wf_node_def ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE wf_global_activity_state ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP",
+            "ALTER TABLE wf_global_activity_state ADD COLUMN updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP"
         };
         for (String sql : addCols) {
             executeIgnoreError(sql);

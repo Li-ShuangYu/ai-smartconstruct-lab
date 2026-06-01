@@ -398,8 +398,23 @@ public class StudentTrainingController {
 
             // 检查是否所有必修节点已完成 → 更新 Participation status=2
             BizTrainingParticipation participation = participationService.getById(participationId);
+            Long taskId = participation.getTaskId();
+            Long partStudentId = participation.getStudentId();
+
+            // 查询当前节点的阶段
+            WfNodeInstance completedNode = nodeInstanceMapper.selectById(nodeInstanceId);
+            String currentPhaseId = completedNode != null ? completedNode.getPhaseId() : null;
+
+            // 判断当前阶段是否已完成
+            boolean phaseComplete = false;
+            if (currentPhaseId != null) {
+                phaseComplete = phaseExecutionService.isPhaseComplete(taskId, currentPhaseId, partStudentId);
+            }
+
+            // 判断是否所有阶段已完成
             boolean allComplete = checkAllRequiredNodesComplete(participation);
-            if (allComplete && participation.getStatus() != null && participation.getStatus() == 1) {
+            boolean trainingComplete = allComplete;
+            if (trainingComplete && participation.getStatus() != null && participation.getStatus() == 1) {
                 participation.setStatus(2);
                 participation.setUpdatedAt(LocalDateTime.now());
                 participationService.updateById(participation);
@@ -415,7 +430,8 @@ public class StudentTrainingController {
             result.put("nodeInstanceId", String.valueOf(nodeInstanceId));
             result.put("status", progress != null ? progress.getStatus() : 2);
             result.put("stayDurationSeconds", progress != null ? progress.getStayDurationSeconds() : null);
-            result.put("allComplete", allComplete);
+            result.put("phase_complete", phaseComplete);
+            result.put("training_complete", trainingComplete);
             result.put("participationStatus", participation.getStatus());
 
             return ApiResult.ok(result);
@@ -444,6 +460,80 @@ public class StudentTrainingController {
         result.put("nodeType", nodeInstance.getNodeType());
         result.put("nodeName", nodeInstance.getNodeName());
         result.put("node_config", nodeInstance.getConfigJson());
+
+        return ApiResult.ok(result);
+    }
+
+    // ==================== 重置实训（支持重复学习） ====================
+
+    /**
+     * 重置实训进度
+     *
+     * 将学生的实训参与记录重置为未开始状态（status=0），
+     * 清除所有节点进度记录、活动状态记录及相关数据。
+     * 学生可以重新从头开始实训流程。
+     *
+     * @param taskId 实训任务ID
+     * @return 重置结果
+     */
+    @OperationLog(action = "学生重置实训")
+    @PostMapping("/tasks/{taskId}/reset")
+    public ApiResult<Map<String, Object>> resetTraining(@PathVariable Long taskId) {
+        Long studentId = getCurrentUserId();
+
+        // 查找学生的 Participation 记录
+        BizTrainingParticipation participation = participationService.getOne(
+                new LambdaQueryWrapper<BizTrainingParticipation>()
+                        .eq(BizTrainingParticipation::getTaskId, taskId)
+                        .eq(BizTrainingParticipation::getStudentId, studentId));
+        if (participation == null) {
+            return ApiResult.error(404, "PARTICIPATION_NOT_FOUND", "您未参与该实训任务");
+        }
+
+        Long participationId = participation.getId();
+
+        // 1. 删除所有节点进度记录
+        studentNodeProgressMapper.delete(
+                new LambdaQueryWrapper<WfStudentNodeProgress>()
+                        .eq(WfStudentNodeProgress::getParticipationId, participationId));
+
+        // 2. 删除活动状态记录
+        activityStateService.remove(
+                new LambdaQueryWrapper<WfStudentActivityState>()
+                        .eq(WfStudentActivityState::getParticipationId, participationId));
+
+        // 3. 重置参与记录状态
+        participation.setStatus(0);
+        participation.setTotalScore(null);
+        participation.setUpdatedAt(LocalDateTime.now());
+        participationService.updateById(participation);
+
+        // 4. 重新创建初始进度记录（所有节点 status=0）
+        List<WfNodeInstance> allNodes = nodeInstanceMapper.selectList(
+                new LambdaQueryWrapper<WfNodeInstance>()
+                        .eq(WfNodeInstance::getTaskId, taskId)
+                        .orderByAsc(WfNodeInstance::getSortNum));
+
+        LocalDateTime now = LocalDateTime.now();
+        for (WfNodeInstance node : allNodes) {
+            WfStudentNodeProgress progress = new WfStudentNodeProgress();
+            progress.setParticipationId(participationId);
+            progress.setNodeInstanceId(node.getId());
+            progress.setStatus(0);
+            progress.setIsForcedComplete(0);
+            progress.setCreatedAt(now);
+            progress.setUpdatedAt(now);
+            try {
+                studentNodeProgressMapper.insert(progress);
+            } catch (Exception e) {
+                log.warn("创建进度记录失败: {}", e.getMessage());
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("participationId", String.valueOf(participationId));
+        result.put("status", 0);
+        result.put("message", "实训已重置，可以重新开始");
 
         return ApiResult.ok(result);
     }

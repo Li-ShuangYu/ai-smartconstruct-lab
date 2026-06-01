@@ -136,6 +136,11 @@
         </button>
       </div>
     </section>
+
+    <!-- Complete Button -->
+    <div class="summary-report__actions">
+      <button class="summary-report__complete-btn" @click="handleCompleteAction">实训完成，进入下一阶段</button>
+    </div>
   </div>
 </template>
 
@@ -231,6 +236,10 @@ const isSurveySubmitted = ref<boolean>(false)
 /** Handle survey submission */
 function handleSurveySubmit() {
   isSurveySubmitted.value = true
+  emit('complete')
+}
+
+function handleCompleteAction() {
   emit('complete')
 }
 </script>
@@ -490,5 +499,24 @@ function handleSurveySubmit() {
 .summary-report__survey-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.summary-report__actions {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.summary-report__complete-btn {
+  padding: 12px 48px;
+  font-size: 15px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.summary-report__complete-btn:hover {
+  box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.4);
 }
 </style>

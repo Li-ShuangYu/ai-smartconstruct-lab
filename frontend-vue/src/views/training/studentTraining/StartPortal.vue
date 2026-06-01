@@ -166,7 +166,10 @@ const placeholderPhases = ref<FlowPhase[]>([
 
 /** Calculate total duration for a phase */
 function phaseTotalDuration(phase: FlowPhase): number {
-  return phase.nodes.reduce((sum, n) => sum + n.estimated_duration_minutes, 0)
+  if (!phase?.nodes || !Array.isArray(phase.nodes)) {
+    return 0
+  }
+  return phase.nodes.reduce((sum, n) => sum + (n?.estimated_duration_minutes || 0), 0)
 }
 
 /** Handle start button click */

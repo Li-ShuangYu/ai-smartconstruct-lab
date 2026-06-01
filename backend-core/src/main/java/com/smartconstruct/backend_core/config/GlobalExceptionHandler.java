@@ -2,6 +2,8 @@ package com.smartconstruct.backend_core.config;
 
 import com.smartconstruct.backend_core.dto.ApiResult;
 import com.smartconstruct.backend_core.exception.BusinessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -30,6 +32,8 @@ import java.util.stream.Collectors;
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
      * 处理认证异常（未登录、Token无效等）
@@ -101,8 +105,9 @@ public class GlobalExceptionHandler {
         }
         // 判断是否为数据库/SQL异常（不应返回400）
         if (message != null && (message.contains("SQL") || message.contains("jdbc") || message.contains("Unknown column"))) {
+            log.error("SQL异常: {}", message, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResult.error(500, "SYSTEM_INTERNAL_ERROR", "系统内部错误，请稍后重试"));
+                    .body(ApiResult.error(500, "DB_ERROR", "数据库错误: " + message));
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResult.error(400, "BUSINESS_ERROR", message));
@@ -113,7 +118,8 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResult<Void>> handleException(Exception e) {
+        log.error("未捕获的异常: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResult.error(500, "SYSTEM_INTERNAL_ERROR", "系统内部错误，请稍后重试"));
+                .body(ApiResult.error(500, "SYSTEM_INTERNAL_ERROR", "系统错误: " + e.getMessage()));
     }
 }

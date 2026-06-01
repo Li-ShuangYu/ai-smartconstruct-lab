@@ -39,12 +39,35 @@
       <section class="classmates-section">
         <h2 class="section-title">同班同学 ({{ classmates.length }})</h2>
         <n-spin :show="memberLoading">
-          <div class="avatar-grid">
-            <div v-for="s in classmates" :key="s.userId" class="student-item">
-              <div class="student-avatar">{{ s.realName.charAt(0) }}</div>
-              <span class="student-name" :title="s.realName">{{ s.realName }}</span>
+          <div class="classmates-wrapper">
+            <div class="avatar-grid">
+              <div v-for="s in displayedClassmates" :key="s.userId" class="student-item">
+                <div class="student-avatar">{{ s.realName.charAt(0) }}</div>
+                <span class="student-name" :title="s.realName">{{ s.realName }}</span>
+              </div>
+              <div v-if="!memberLoading && classmates.length === 0" class="empty-text">暂无数据</div>
             </div>
-            <div v-if="!memberLoading && classmates.length === 0" class="empty-text">暂无数据</div>
+
+            <!-- 分页控件 -->
+            <div v-if="totalPages > 1" class="pagination">
+              <button 
+                class="pagination-btn" 
+                :disabled="currentPage === 1"
+                @click="currentPage--"
+              >
+                ←
+              </button>
+              <span class="pagination-info">
+                第 {{ currentPage }} / {{ totalPages }} 页
+              </span>
+              <button 
+                class="pagination-btn" 
+                :disabled="currentPage === totalPages"
+                @click="currentPage++"
+              >
+                →
+              </button>
+            </div>
           </div>
         </n-spin>
       </section>
@@ -53,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { NSpin } from 'naive-ui'
 import { getClassmates, getProfile, getClassTrainingTasks } from '@/services/modules/student-dashboard.service'
 import type { StudentProfile, Classmate, StudentTrainingTask } from '@/services/types/dashboard.types'
@@ -64,6 +87,10 @@ const profile = ref<StudentProfile>({ userId: 0, username: '' })
 const classmates = ref<Classmate[]>([])
 const tasks = ref<StudentTrainingTask[]>([])
 
+// 分页配置
+const pageSize = ref(12) // 每页显示12个同学
+const currentPage = ref(1)
+
 function statusClass(s: number) {
   if (s === 0) return 'pending'
   if (s === 1) return 'active'
@@ -73,6 +100,18 @@ function formatTime(t?: string) {
   if (!t) return '-'
   return t.slice(0, 10)
 }
+
+// 总页数
+const totalPages = computed(() => {
+  return Math.ceil(classmates.value.length / pageSize.value)
+})
+
+// 当前页显示的同学列表
+const displayedClassmates = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return classmates.value.slice(start, end)
+})
 
 onMounted(async () => {
   const profRes = await getProfile()
@@ -111,7 +150,9 @@ onMounted(async () => {
 .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: start; }
 .task-section, .classmates-section { background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 8px; padding: 20px 12px 20px 20px; height: 480px; display: flex; flex-direction: column; box-sizing: border-box; }
 .section-title { font-size: 15px; font-weight: 700; color: #1E293B; margin: 0 8px 16px 0; padding-bottom: 8px; border-bottom: 1px solid #E2E8F0; flex-shrink: 0; }
-.task-list, .avatar-grid { flex: 1; overflow-y: auto; padding-right: 8px; }
+.task-list { flex: 1; overflow-y: auto; padding-right: 8px; }
+.classmates-wrapper { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.avatar-grid { flex: 1; overflow-y: auto; padding-right: 8px; display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 12px; align-content: start; }
 .task-list::-webkit-scrollbar, .avatar-grid::-webkit-scrollbar { width: 4px; }
 .task-list::-webkit-scrollbar-thumb, .avatar-grid::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
 .task-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #F1F5F9; }
@@ -126,10 +167,16 @@ onMounted(async () => {
 .task-time { font-size: 12px; color: #94A3B8; }
 .text-btn { background: none; border: none; color: #4F46E5; font-size: 13px; font-weight: 700; cursor: pointer; }
 .text-btn:hover { color: #4338CA; text-decoration: underline; }
-.avatar-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 12px; align-content: start; }
 .student-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px 0; border-radius: 8px; transition: background 0.2s; }
 .student-item:hover { background: #F8FAFC; }
 .student-avatar { width: 40px; height: 40px; border-radius: 50%; background: #EEF2FF; color: #4F46E5; font-weight: 700; font-size: 16px; display: flex; align-items: center; justify-content: center; }
 .student-name { font-size: 12px; color: #475569; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .empty-text { text-align: center; color: #94A3B8; padding: 20px; font-size: 13px; }
+
+/* 分页控件样式 */
+.pagination { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 12px 0; border-top: 1px solid #E2E8F0; margin-top: auto; }
+.pagination-btn { width: 32px; height: 32px; border: 1px solid #E2E8F0; border-radius: 6px; background: #FFFFFF; color: #64748B; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+.pagination-btn:hover:not(:disabled) { background: #F1F5F9; color: #334155; }
+.pagination-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pagination-info { font-size: 13px; color: #64748B; }
 </style>

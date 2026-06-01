@@ -21,7 +21,7 @@
           <h2 class="summary-section__title">总分</h2>
           <div class="score-display">
             <span class="score-display__value">
-              {{ overview.participation.total_score ?? '—' }}
+              {{ '—' }}
             </span>
             <span class="score-display__label">分</span>
           </div>
@@ -67,6 +67,9 @@
         <!-- Actions -->
         <footer class="summary-footer">
           <button class="summary-footer__btn" @click="goBack">返回工作台</button>
+          <button class="summary-footer__btn summary-footer__btn--secondary" @click="handleRestart" :disabled="resetting">
+            {{ resetting ? '重置中...' : '重新学习' }}
+          </button>
         </footer>
       </template>
     </n-spin>
@@ -76,8 +79,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { NSpin } from 'naive-ui'
+import { NSpin, useMessage } from 'naive-ui'
 import { getTaskOverview } from '@/services/modules/studentTraining.service'
+import { resetTraining } from '@/services/modules/studentTraining.service'
 import type { StudentTaskOverview, PhaseProgress } from '@/services/types/studentTraining'
 
 const route = useRoute()
@@ -86,8 +90,14 @@ const router = useRouter()
 const loading = ref(false)
 const error = ref<string | null>(null)
 const overview = ref<StudentTaskOverview | null>(null)
+const resetting = ref(false)
 
-const taskId = computed(() => Number(route.params.taskId) || 0)
+const message = useMessage()
+
+const taskId = computed(() => {
+  const raw = route.params.taskId
+  return (typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] : '') || ''
+})
 
 /** 整体进度百分比 */
 const progressPercent = computed<number>(() => {
@@ -131,6 +141,24 @@ async function loadSummary(): Promise<void> {
     error.value = '网络请求失败，请重试'
   } finally {
     loading.value = false
+  }
+}
+
+/** 重新学习：重置实训进度后重新开始 */
+async function handleRestart(): Promise<void> {
+  resetting.value = true
+  try {
+    const res = await resetTraining(taskId.value)
+    if (res.code === 200) {
+      message.success('实训已重置，正在重新进入...')
+      router.push(`/student/training/${taskId.value}/execute`)
+    } else {
+      message.error(res.message || '重置失败')
+    }
+  } catch {
+    message.error('重置请求失败，请重试')
+  } finally {
+    resetting.value = false
   }
 }
 
@@ -366,5 +394,22 @@ onMounted(() => {
 .summary-footer__btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px -4px rgba(99, 102, 241, 0.4);
+}
+
+.summary-footer__btn--secondary {
+  background: white;
+  color: var(--color-primary-600, #4f46e5);
+  border: 2px solid var(--color-primary-300, #a5b4fc);
+  margin-left: 12px;
+}
+
+.summary-footer__btn--secondary:hover {
+  background: var(--color-primary-50, #eef2ff);
+  box-shadow: none;
+}
+
+.summary-footer__btn--secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

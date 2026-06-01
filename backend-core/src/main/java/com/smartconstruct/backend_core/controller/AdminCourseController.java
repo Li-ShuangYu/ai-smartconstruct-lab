@@ -180,7 +180,7 @@ public class AdminCourseController {
             SysUser u = sysUserService.getById(s.getUserId());
             if (u == null) continue;
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("userId", s.getUserId());
+            m.put("userId", String.valueOf(s.getUserId()));
             m.put("realName", s.getRealName());
             m.put("username", u.getUsername());
             m.put("createdAt", u.getCreatedAt());

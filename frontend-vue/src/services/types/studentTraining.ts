@@ -87,7 +87,7 @@ export interface CodingTaskConfig {
 export interface StudentNodeProgress {
   id: number
   participation_id: number
-  node_instance_id: number
+  node_instance_id: string
   status: NodeProgressStatus
   entered_at: string | null
   exited_at: string | null
@@ -98,17 +98,28 @@ export interface StudentNodeProgress {
 
 /** 节点实例进度（运行时视图，含节点元信息） */
 export interface NodeInstanceProgress {
-  node_instance_id: number
+  /** 节点实例ID */
+  node_instance_id: string
+  /** 节点定义ID */
   node_id: string
+  /** 节点类型 */
   node_type: string
+  /** 节点名称 */
   node_name: string
+  /** 所属阶段ID */
   phase_id: string
+  /** 排序序号 */
   sort_num: number
+  /** 是否为必修节点 */
   is_required: boolean
+  /** 节点进度状态：0-未开始 1-进行中 2-已完成 3-已跳过 */
   status: NodeProgressStatus
+  /** 进入节点时间 */
   entered_at: string | null
+  /** 离开节点时间 */
   exited_at: string | null
-  stay_duration_seconds: number
+  /** 总停留时长(秒) */
+  stay_duration_seconds: number | null
 }
 
 /** NodeProgress 别名 — 与后端 NodeProgressDTO 对应 */
@@ -118,40 +129,53 @@ export type NodeProgress = NodeInstanceProgress
 
 /** 阶段进度 */
 export interface PhaseProgress {
+  /** 阶段ID */
   phase_id: string
+  /** 阶段名称 */
   phase_name: string
+  /** 阶段排序号 */
   sort_num: number
+  /** 是否已解锁 */
   is_unlocked: boolean
+  /** 是否已完成 */
   is_complete: boolean
+  /** 阶段内节点总数 */
   total_nodes: number
+  /** 已完成节点数 */
   completed_nodes: number
+  /** 必修节点总数 */
   required_nodes: number
+  /** 已完成的必修节点数 */
   completed_required_nodes: number
+  /** 阶段内节点进度列表 */
   nodes: NodeInstanceProgress[]
 }
 
 // ─── 实训任务总览 ─────────────────────────────────────────────────────────────
 
-/** 参与信息摘要 */
-export interface ParticipationInfo {
-  participation_id: number
-  status: ParticipationStatus
-  total_score: number | null
-  started_at: string | null
-  updated_at: string | null
-}
-
 /** 实训任务总览（学生视角） */
 export interface StudentTaskOverview {
-  task_id: number
+  /** 实训任务ID */
+  task_id: string
+  /** 实训任务名称 */
   task_name: string
+  /** 模板名称 */
   template_name: string
+  /** 任务开始时间 */
   start_time: string
+  /** 任务结束时间 */
   end_time: string
+  /** 是否已过期 */
   is_expired: boolean
-  participation: ParticipationInfo
+  /** 参与记录ID */
+  participation_id: string
+  /** 参与状态：0=未开始，1=进行中，2=已完成 */
+  participation_status: number
+  /** 当前所在阶段ID */
   current_phase_id: string | null
-  current_node_instance_id: number | null
+  /** 当前所在节点实例ID */
+  current_node_instance_id: string | null
+  /** 阶段进度列表 */
   phases: PhaseProgress[]
 }
 
@@ -159,7 +183,7 @@ export interface StudentTaskOverview {
 
 /** 学生当前位置（与后端 current-position 接口 DTO 对应） */
 export interface CurrentPosition {
-  current_node_instance_id: number | null
+  current_node_instance_id: string | null
   phase_id: string | null
   node_type: string | null
   node_name: string | null
@@ -171,7 +195,7 @@ export interface CurrentPosition {
  */
 export interface StudentCurrentPosition {
   phase_id: string | null
-  node_instance_id: number | null
+  node_instance_id: string | null
   node_type: string | null
   node_name: string | null
 }

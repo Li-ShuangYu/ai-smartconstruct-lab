@@ -57,11 +57,18 @@
         <span class="task-board__deadline-value">{{ deadline }}</span>
       </div>
     </section>
+
+    <!-- Complete Button -->
+    <div class="task-board__actions">
+      <button class="task-board__complete-btn" @click="handleComplete">查看下一阶段</button>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+
+const emit = defineEmits<{ complete: [] }>()
 
 type SubTaskStatus = 'pending' | 'in_progress' | 'completed'
 
@@ -131,6 +138,10 @@ function statusLabel(status: SubTaskStatus): string {
     case 'in_progress': return '进行中'
     case 'pending': return '待开始'
   }
+}
+
+function handleComplete() {
+  emit('complete')
 }
 </script>
 
@@ -364,5 +375,24 @@ function statusLabel(status: SubTaskStatus): string {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--color-gray-800, #1e293b);
+}
+
+.task-board__actions {
+  text-align: center;
+  padding-top: 8px;
+}
+
+.task-board__complete-btn {
+  padding: 10px 40px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.task-board__complete-btn:hover {
+  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.4);
 }
 </style>

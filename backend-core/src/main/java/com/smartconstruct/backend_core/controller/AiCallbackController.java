@@ -89,7 +89,7 @@ public class AiCallbackController {
         }
 
         Map<String, Object> result = new HashMap<>();
-        result.put("templateId", template.getId());
+        result.put("templateId", String.valueOf(template.getId()));
         result.put("aiStatus", template.getAiStatus());
         result.put("errorReason", template.getErrorReason());
 

@@ -50,6 +50,7 @@ CREATE TABLE `biz_student` (
   `class_id` BIGINT NOT NULL COMMENT '所属行政班级ID',
   `created_at` DATETIME NOT NULL COMMENT '档案建立时间',
   `updated_at` DATETIME NOT NULL COMMENT '档案最后更新时间',
+  `student_no` VARCHAR(32) DEFAULT NULL COMMENT '学号',
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `uk_student_no` (`student_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='学生业务档案表';
@@ -61,6 +62,7 @@ CREATE TABLE `biz_teacher` (
   `dept_id` BIGINT NOT NULL COMMENT '所属院系ID',
   `created_at` DATETIME NOT NULL COMMENT '档案建立时间',
   `updated_at` DATETIME NOT NULL COMMENT '档案最后更新时间',
+  `student_no` VARCHAR(32) DEFAULT NULL COMMENT '学号',
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `uk_employee_no` (`employee_no`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='教师业务档案表';
@@ -200,7 +202,7 @@ CREATE TABLE `biz_training_task` (
 CREATE TABLE `wf_node_instance` (
   `id` BIGINT NOT NULL COMMENT '主键',
   `task_id` BIGINT NOT NULL COMMENT '关联实训任务ID',
-  `node_def_id` BIGINT NOT NULL COMMENT '关联全局节点定义ID',
+  `node_def_id` BIGINT DEFAULT NULL COMMENT '关联全局节点定义ID',
   `node_type` VARCHAR(32) NOT NULL COMMENT '节点类型(冗余，快速查询用)',
   `node_name` VARCHAR(64) NOT NULL COMMENT '节点自定义名称',
   `sort_num` INT NOT NULL COMMENT '流程排序序号',
@@ -289,7 +291,7 @@ CREATE TABLE `biz_group_member` (
 CREATE TABLE `wf_global_activity_state` (
   `id` BIGINT NOT NULL COMMENT '主键',
   `task_id` BIGINT NOT NULL COMMENT '关联实训任务',
-  `current_node_instance_id` BIGINT NOT NULL COMMENT '关联当前节点实例ID',
+  `current_node_instance_id` BIGINT DEFAULT NULL COMMENT '关联当前节点实例ID',
   `created_at` DATETIME NOT NULL COMMENT '全局状态机建立时间',
   `updated_at` DATETIME NOT NULL COMMENT '全局状态机最后跃迁时间',
   PRIMARY KEY (`id`)
@@ -299,7 +301,7 @@ CREATE TABLE `wf_global_activity_state` (
 CREATE TABLE `wf_student_activity_state` (
   `id` BIGINT NOT NULL COMMENT '主键',
   `participation_id` BIGINT NOT NULL COMMENT '关联个人参与实例',
-  `current_node_instance_id` BIGINT NOT NULL COMMENT '关联当前节点实例ID',
+  `current_node_instance_id` BIGINT DEFAULT NULL COMMENT '关联当前节点实例ID',
   `created_at` DATETIME NOT NULL COMMENT '个人状态机建立时间',
   `updated_at` DATETIME NOT NULL COMMENT '个人状态机最后跃迁时间',
   PRIMARY KEY (`id`)

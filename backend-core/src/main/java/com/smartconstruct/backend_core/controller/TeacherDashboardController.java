@@ -73,14 +73,14 @@ public class TeacherDashboardController {
                 new LambdaQueryWrapper<BizTeacher>().eq(BizTeacher::getUserId, userId));
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("userId", user.getId());
+        data.put("userId", String.valueOf(user.getId()));
         data.put("username", user.getUsername());
         data.put("phone", user.getPhone());
         data.put("avatarUrl", user.getAvatarUrl());
         data.put("bio", user.getBio());
         if (teacher != null) {
             data.put("realName", teacher.getRealName());
-            data.put("deptId", teacher.getDeptId());
+            data.put("deptId", String.valueOf(teacher.getDeptId()));
             BizDepartment dept = departmentService.getById(teacher.getDeptId());
             data.put("deptName", dept != null ? dept.getDeptName() : "");
         }
@@ -114,7 +114,7 @@ public class TeacherDashboardController {
                 if (!nameMatch && !userMatch) continue;
             }
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("userId", s.getUserId());
+            m.put("userId", String.valueOf(s.getUserId()));
             m.put("studentNo", u.getUsername());
             m.put("realName", s.getRealName());
             m.put("username", u.getUsername());
@@ -141,7 +141,7 @@ public class TeacherDashboardController {
                 if (!nameMatch && !userMatch) continue;
             }
             Map<String, Object> m = new LinkedHashMap<>();
-            m.put("userId", s.getUserId());
+            m.put("userId", String.valueOf(s.getUserId()));
             m.put("studentNo", u.getUsername());
             m.put("realName", s.getRealName());
             m.put("username", u.getUsername());
