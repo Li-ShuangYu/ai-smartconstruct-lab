@@ -1,398 +1,95 @@
-<template>
-  <div class="task-board">
-    <!-- Task Overview -->
-    <section class="task-board__overview">
-      <div class="task-board__overview-header">
-        <h2 class="task-board__title">{{ taskTitle }}</h2>
-        <div class="task-board__progress-badge">
-          <span class="task-board__progress-value">{{ completedSubTasks }}/{{ subTasks.length }}</span>
-          <span class="task-board__progress-label">已完成</span>
+﻿<template>
+  <div class="page-wrapper flex items-center justify-center w-full h-full min-h-[calc(100vh-100px)]">
+    
+    <div class="glass-card w-full max-w-3xl p-8 md:p-12 flex flex-col relative z-10">
+      
+      <div class="flex justify-between items-start mb-8 pb-6 border-b border-gray-200/50">
+        <div>
+          <div class="mb-2 text-xs font-bold text-indigo-400 tracking-widest uppercase flex items-center gap-2">
+            <svg style="width: 14px; height: 14px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+            Node: TASK_DISTRIBUTE
+          </div>
+          <h1 class="text-3xl font-bold text-gray-800">{{ taskConfig.taskTitle }}</h1>
+        </div>
+        <div class="text-right">
+          <span class="inline-block px-3 py-1 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-md text-xs font-bold tracking-wider">
+            WORK ORDER
+          </span>
         </div>
       </div>
-      <p class="task-board__description">{{ taskDescription }}</p>
-      <div class="task-board__progress-bar">
-        <div
-          class="task-board__progress-fill"
-          :style="{ width: `${taskProgressPercent}%` }"
-        ></div>
-      </div>
-    </section>
 
-    <!-- Sub-task List -->
-    <section class="task-board__list">
-      <h3 class="task-board__section-title">子任务列表</h3>
-      <div class="task-board__items">
-        <div
-          v-for="(task, index) in subTasks"
-          :key="task.id"
-          class="task-board__item"
-          :class="`task-board__item--${task.status}`"
+      <div class="flex-1 bg-white/60 border border-gray-100 rounded-xl p-8 mb-8 shadow-sm relative overflow-hidden">
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-5 pointer-events-none">
+          <svg style="width: 300px; height: 300px; flex-shrink: 0;" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 7.5l-10-5v10.5l10 5 10-5V4.5l-10 5z"/></svg>
+        </div>
+
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <span class="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
+          任务背景与说明
+        </h3>
+        <p class="text-gray-600 leading-relaxed mb-6 whitespace-pre-wrap">{{ taskConfig.taskDesc }}</p>
+
+        <h3 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <span class="w-1.5 h-6 bg-purple-500 rounded-full"></span>
+          具体执行要求
+        </h3>
+        <ul class="space-y-3 text-gray-600">
+          <li v-for="(req, index) in taskConfig.requirements" :key="index" class="flex items-start gap-3">
+            <svg class="text-indigo-400 mt-1" style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+            <span class="leading-relaxed">{{ req }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <div class="flex flex-col items-center">
+        <div v-if="isReceived" class="mb-4 flex items-center gap-2 text-sm text-green-600 bg-green-50 px-6 py-2 rounded-full border border-green-100 animate-fade-in shadow-sm">
+          <svg style="width: 18px; height: 18px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span class="font-bold">任务已确认查收，系统已在侧边栏生成专属任务书入口。</span>
+        </div>
+        
+        <button 
+          class="hero-send-btn w-full md:w-2/3 justify-center text-lg py-4 rounded-xl shadow-lg transition-all duration-300"
+          :class="isReceived ? 'opacity-50 cursor-not-allowed bg-green-600 shadow-none' : 'hover:-translate-y-1 hover:shadow-indigo-500/40'"
+          @click="handleReceive"
+          :disabled="isReceived"
         >
-          <div class="task-board__item-left">
-            <div class="task-board__item-check">
-              <span v-if="task.status === 'completed'" class="task-board__check-icon">✓</span>
-              <span v-else-if="task.status === 'in_progress'" class="task-board__progress-icon">◐</span>
-              <span v-else class="task-board__pending-icon">{{ index + 1 }}</span>
-            </div>
-            <div class="task-board__item-content">
-              <span class="task-board__item-name">{{ task.name }}</span>
-              <span class="task-board__item-desc">{{ task.description }}</span>
-            </div>
-          </div>
-          <div class="task-board__item-right">
-            <span class="task-board__item-assignee">{{ task.assignee }}</span>
-            <span class="task-board__item-status-tag" :class="`task-board__item-status-tag--${task.status}`">
-              {{ statusLabel(task.status) }}
-            </span>
-          </div>
-        </div>
+          <svg v-if="!isReceived" style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
+          <svg v-else style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+          {{ isReceived ? '已查收，可进入下一步' : '我已仔细阅读，确认接收任务' }}
+        </button>
       </div>
-    </section>
 
-    <!-- Deadline Info -->
-    <section class="task-board__deadline">
-      <div class="task-board__deadline-icon">⏰</div>
-      <div class="task-board__deadline-info">
-        <span class="task-board__deadline-label">截止时间</span>
-        <span class="task-board__deadline-value">{{ deadline }}</span>
-      </div>
-    </section>
-
-    <!-- Complete Button -->
-    <div class="task-board__actions">
-      <button class="task-board__complete-btn" @click="handleComplete">查看下一阶段</button>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { computed } from 'vue'
+<script setup>
+import { ref } from 'vue'
 
-const emit = defineEmits<{ complete: [] }>()
-
-type SubTaskStatus = 'pending' | 'in_progress' | 'completed'
-
-interface SubTask {
-  id: string
-  name: string
-  description: string
-  assignee: string
-  status: SubTaskStatus
-}
-
-interface TaskBoardConfig {
-  display?: {
-    task_title?: string
-    task_description?: string
-    deadline?: string
-  }
-  data_collection?: {
-    sub_tasks?: SubTask[]
-  }
-  [key: string]: unknown
-}
-
-const props = defineProps<{
-  nodeInstanceId: number
-  nodeConfig: TaskBoardConfig
-}>()
-
-const taskTitle = computed<string>(() =>
-  props.nodeConfig.display?.task_title ?? '项目任务分配'
-)
-
-const taskDescription = computed<string>(() =>
-  props.nodeConfig.display?.task_description ?? '请按照分配的子任务完成各自的工作，注意截止时间。'
-)
-
-const deadline = computed<string>(() =>
-  props.nodeConfig.display?.deadline ?? '2025-03-15 23:59'
-)
-
-/** Sub-tasks from config or placeholder */
-const subTasks = computed<SubTask[]>(() =>
-  props.nodeConfig.data_collection?.sub_tasks ?? placeholderSubTasks
-)
-
-const placeholderSubTasks: SubTask[] = [
-  { id: 't1', name: '需求分析文档', description: '编写项目需求分析报告', assignee: '张伟', status: 'completed' },
-  { id: 't2', name: '系统设计', description: '完成系统架构设计图', assignee: '李娜', status: 'in_progress' },
-  { id: 't3', name: '数据库设计', description: '设计数据库ER图和表结构', assignee: '王磊', status: 'in_progress' },
-  { id: 't4', name: '前端开发', description: '实现用户界面原型', assignee: '刘洋', status: 'pending' },
-  { id: 't5', name: '后端开发', description: '实现核心业务逻辑', assignee: '陈静', status: 'pending' },
-  { id: 't6', name: '测试报告', description: '编写测试用例并执行', assignee: '张伟', status: 'pending' }
-]
-
-const completedSubTasks = computed<number>(() =>
-  subTasks.value.filter(t => t.status === 'completed').length
-)
-
-const taskProgressPercent = computed<number>(() => {
-  if (subTasks.value.length === 0) return 0
-  return Math.round((completedSubTasks.value / subTasks.value.length) * 100)
+// 模拟通过编排注入的任务配置数据
+const taskConfig = ref({
+  taskTitle: 'SM4 密码模块系统集成与联调任务',
+  taskDesc: '本次实训进入工程实践阶段。各组/个人需要将前期编写的 SM4 算法核心代码，封装为标准的动态链接库或 API 接口，并部署到模拟的云端服务器 10.0.9.155 节点上，实现端到端的加解密通信链路连通。',
+  requirements: [
+    '严格按照国密局规范对输入输出参数进行标准化封装。',
+    '查收任务后，请在左侧侧边栏“任务书”中查阅接口文档及服务器 SSH 密钥。',
+    '遇到环境问题，优先查看终端报错日志，其次可通过求助面板向导师发起提问。'
+  ]
 })
 
-function statusLabel(status: SubTaskStatus): string {
-  switch (status) {
-    case 'completed': return '已完成'
-    case 'in_progress': return '进行中'
-    case 'pending': return '待开始'
-  }
-}
+const isReceived = ref(false)
 
-function handleComplete() {
-  emit('complete')
+const handleReceive = () => {
+  if (isReceived.value) return
+  isReceived.value = true
+  // 模拟发送“已查收”信号给教师端和后端状态机
 }
 </script>
 
 <style scoped>
-.task-board {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg, 1.5rem);
-  padding: var(--spacing-lg, 1.5rem);
-  height: 100%;
-  overflow-y: auto;
-}
-
-.task-board__overview {
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.task-board__overview-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.75rem;
-}
-
-.task-board__title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-gray-800, #1e293b);
-}
-
-.task-board__progress-badge {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  background: var(--color-primary-50, #eef2ff);
-  border-radius: var(--radius-md, 0.5rem);
-}
-
-.task-board__progress-value {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-primary-600, #4f46e5);
-}
-
-.task-board__progress-label {
-  font-size: 0.75rem;
-  color: var(--color-primary-500, #6366f1);
-}
-
-.task-board__description {
-  font-size: 0.875rem;
-  color: var(--color-gray-500, #64748b);
-  margin-bottom: var(--spacing-md, 1rem);
-}
-
-.task-board__progress-bar {
-  height: 6px;
-  background: var(--color-gray-100, #f1f5f9);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.task-board__progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.task-board__list {
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.task-board__section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-gray-800, #1e293b);
-  margin-bottom: var(--spacing-md, 1rem);
-}
-
-.task-board__items {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.task-board__item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-gray-100, #f1f5f9);
-  border-radius: var(--radius-md, 0.5rem);
-  transition: border-color 0.15s ease;
-}
-
-.task-board__item--completed {
-  border-left: 3px solid #22c55e;
-  background: rgba(34, 197, 94, 0.03);
-}
-
-.task-board__item--in_progress {
-  border-left: 3px solid #f59e0b;
-  background: rgba(245, 158, 11, 0.03);
-}
-
-.task-board__item--pending {
-  border-left: 3px solid var(--color-gray-300, #cbd5e1);
-}
-
-.task-board__item-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.task-board__item-check {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.task-board__check-icon {
-  color: #22c55e;
-  font-size: 1rem;
-}
-
-.task-board__progress-icon {
-  color: #f59e0b;
-  font-size: 1rem;
-}
-
-.task-board__pending-icon {
-  color: var(--color-gray-400, #94a3b8);
-  background: var(--color-gray-100, #f1f5f9);
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.task-board__item-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.task-board__item-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-gray-800, #1e293b);
-}
-
-.task-board__item-desc {
-  font-size: 0.75rem;
-  color: var(--color-gray-400, #94a3b8);
-}
-
-.task-board__item-right {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.task-board__item-assignee {
-  font-size: 0.75rem;
-  color: var(--color-gray-500, #64748b);
-}
-
-.task-board__item-status-tag {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  padding: 0.125rem 0.5rem;
-  border-radius: var(--radius-sm, 0.25rem);
-}
-
-.task-board__item-status-tag--completed {
-  background: rgba(34, 197, 94, 0.1);
-  color: #16a34a;
-}
-
-.task-board__item-status-tag--in_progress {
-  background: rgba(245, 158, 11, 0.1);
-  color: #d97706;
-}
-
-.task-board__item-status-tag--pending {
-  background: var(--color-gray-100, #f1f5f9);
-  color: var(--color-gray-500, #64748b);
-}
-
-.task-board__deadline {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md, 1rem);
-  padding: var(--spacing-md, 1rem) var(--spacing-lg, 1.5rem);
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-}
-
-.task-board__deadline-icon {
-  font-size: 1.5rem;
-}
-
-.task-board__deadline-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.task-board__deadline-label {
-  font-size: 0.75rem;
-  color: var(--color-gray-500, #64748b);
-}
-
-.task-board__deadline-value {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--color-gray-800, #1e293b);
-}
-
-.task-board__actions {
-  text-align: center;
-  padding-top: 8px;
-}
-
-.task-board__complete-btn {
-  padding: 10px 40px;
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-.task-board__complete-btn:hover {
-  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.4);
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>

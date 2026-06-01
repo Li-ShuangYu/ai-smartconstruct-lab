@@ -1772,3 +1772,32 @@ INSERT INTO `wf_node_config_schema` (`node_type`, `schema_json`, `schema_version
     }
   }
 }', 1);
+
+-- AI 对话会话主表
+CREATE TABLE `biz_ai_session` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `student_id` BIGINT NOT NULL COMMENT '学生ID',
+  `title` VARCHAR(128) DEFAULT NULL COMMENT '会话标题',
+  `task_id` BIGINT DEFAULT NULL COMMENT '关联实训任务ID（可空）',
+  `node_instance_id` BIGINT DEFAULT NULL COMMENT '关联节点实例ID（可空）',
+  `session_type` TINYINT NOT NULL DEFAULT 1 COMMENT '1-全局悬浮 2-AI对练 3-理论实训 4-编码实训 5-答疑',
+  `summary` VARCHAR(255) DEFAULT NULL COMMENT 'AI生成的会话摘要',
+  `is_deleted` TINYINT NOT NULL DEFAULT 0 COMMENT '软删除：0-正常 1-已删除',
+  `created_at` DATETIME NOT NULL COMMENT '会话建立时间',
+  `updated_at` DATETIME NOT NULL COMMENT '会话状态最后更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_student_id` (`student_id`),
+  KEY `idx_task_id` (`task_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 对话会话主表';
+
+-- AI 对话消息明细表
+CREATE TABLE `biz_ai_message` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '主键',
+  `session_id` BIGINT NOT NULL COMMENT '关联会话ID',
+  `role` VARCHAR(16) NOT NULL COMMENT 'user/assistant/system',
+  `content` TEXT NOT NULL COMMENT '消息内容',
+  `tokens_used` INT DEFAULT NULL COMMENT '消耗Token数',
+  `created_at` DATETIME NOT NULL COMMENT '消息生成时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_session_id` (`session_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='AI 对话消息明细表';

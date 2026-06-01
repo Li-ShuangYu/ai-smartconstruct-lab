@@ -74,7 +74,12 @@ export const usePlanUploadStore = defineStore('planUpload', () => {
         lastSubmission.value = state.last_submission ?? null
       }
     } catch (e: unknown) {
-      error.value = e instanceof Error ? e.message : '加载 AI 分析数据失败'
+      // 400 错误可能是后端接口问题，不阻止页面显示，仅记录警告
+      console.warn('加载 AI 分析数据失败:', e)
+      // 重置为初始状态，允许上传功能正常使用
+      dimensions.value = []
+      analysisStatus.value = 0
+      lastSubmission.value = null
     } finally {
       loading.value = false
     }

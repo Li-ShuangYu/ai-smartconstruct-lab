@@ -1,69 +1,132 @@
 <template>
   <div class="global-ai-assistant">
-    <div 
+    <!-- 悬浮球 -->
+    <div
       v-show="!isOpen"
       ref="floatBall"
-      class="fixed z-[9999] w-14 h-14 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center cursor-grab active:cursor-grabbing hover:scale-110 transition-transform duration-200"
-      :style="{ left: position.x + 'px', top: position.y + 'px', transition: isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }"
+      class="float-ball"
+      :style="{
+        left: position.x + 'px',
+        top: position.y + 'px',
+        transition: isDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      }"
       @mousedown="startDrag"
       @touchstart.passive="startDrag"
     >
-      <svg class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="ball-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 5.5-2.84a.5.5 0 0 1 .5.5v3.08A9 9 0 0 1 12 21a9 9 0 0 1-8-15.01V2.92a.5.5 0 0 1 .5-.5c.47 0 3.72.84 5.5 2.84.65-.17 1.33-.26 2-.26z" />
         <path d="M8 14v.5" /><path d="M16 14v.5" />
         <path d="M11.25 16.25h1.5L12 17l-.75-.75z" />
       </svg>
-      <span class="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white rounded-full animate-pulse"></span>
+      <span class="ball-badge"></span>
     </div>
 
+    <!-- 对话窗口 -->
     <transition name="pop">
-      <div v-show="isOpen" class="fixed bottom-6 right-6 w-[380px] h-[600px] z-[9998] bg-white/85 backdrop-blur-2xl border border-white/60 shadow-2xl rounded-2xl flex flex-col overflow-hidden">
-        
-        <div class="h-14 bg-gradient-to-r from-indigo-500 to-purple-600 px-4 flex items-center justify-between shrink-0 shadow-sm relative z-20">
-          <div class="flex items-center gap-2">
-            <button @click="toggleHistory" class="p-1.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors">
-              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+      <div v-show="isOpen" class="chat-window">
+
+        <!-- 标题栏 -->
+        <div class="chat-header">
+          <div class="header-left">
+            <button class="icon-btn" title="历史对话" @click="toggleHistory">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7"/></svg>
             </button>
-            <span class="font-bold text-white tracking-wide">喵喵 AI 助教</span>
+            <span class="header-title">喵喵 AI 助教</span>
           </div>
-          <button @click="closeChat" class="p-1.5 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-colors">
-            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
+          <div class="header-right">
+            <button class="icon-btn" title="新建对话" @click="handleNewSession">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            </button>
+            <button class="icon-btn" title="关闭" @click="closeChat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+          </div>
         </div>
 
-        <div class="flex-1 relative overflow-hidden bg-slate-50/50">
-          
-          <div class="absolute left-0 top-0 h-full w-2/3 bg-white/95 backdrop-blur-md border-r border-gray-200 shadow-xl z-10 transition-transform duration-300 flex flex-col"
-               :class="showHistory ? 'translate-x-0' : '-translate-x-full'">
-            <div class="p-3 border-b border-gray-100 text-sm font-bold text-gray-600">历史对话</div>
-            <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-1">
-              <button v-for="i in 5" :key="i" class="w-full text-left px-3 py-2 text-xs text-gray-600 hover:bg-indigo-50 hover:text-indigo-600 rounded-lg truncate transition-colors">
-                {{ i === 1 ? '关于 Docker 的底层原理' : '上次代码报错怎么改...' }}
+        <!-- 主体区域 -->
+        <div class="chat-body">
+
+          <!-- 历史会话侧边栏 -->
+          <div class="history-panel" :class="{ open: showHistory }">
+            <div class="history-header">
+              <span>历史对话</span>
+              <button class="icon-btn-sm" @click="handleNewSession">+ 新建</button>
+            </div>
+            <div v-if="store.sessionsLoading" class="history-loading">加载中…</div>
+            <div v-else-if="store.sessions.length === 0" class="history-empty">暂无历史对话</div>
+            <div v-else class="history-list custom-scrollbar">
+              <button
+                v-for="session in store.sessions"
+                :key="session.id"
+                class="history-item"
+                :class="{ active: store.currentSessionId === session.id }"
+                @click="handleSwitchSession(session.id)"
+              >
+                <span class="history-item-title">{{ session.title || '未命名对话' }}</span>
+                <button
+                  class="history-delete"
+                  title="删除"
+                  @click.stop="handleDeleteSession(session.id)"
+                >×</button>
               </button>
             </div>
           </div>
 
-          <div class="h-full overflow-y-auto p-4 space-y-4 custom-scrollbar" @click="showHistory = false">
-            <div class="flex flex-col items-start gap-1">
-              <span class="text-[10px] text-gray-400 ml-2">喵喵 AI</span>
-              <div class="bg-white border border-gray-100 shadow-sm text-sm text-gray-700 px-4 py-2.5 rounded-2xl rounded-tl-sm max-w-[85%]">
+          <!-- 消息区域 -->
+          <div
+            ref="messageContainer"
+            class="message-list custom-scrollbar"
+            @click="showHistory = false"
+          >
+            <!-- 欢迎语（无消息时显示） -->
+            <div v-if="store.messages.length === 0" class="welcome-msg">
+              <div class="msg-bubble assistant-bubble">
                 同学你好！我是你的专属 AI 助教，遇到任何实训问题都可以问我哦 🐱
               </div>
             </div>
-            
-            <div class="flex flex-col items-end gap-1">
-              <div class="bg-gradient-to-br from-indigo-500 to-purple-600 shadow-sm text-sm text-white px-4 py-2.5 rounded-2xl rounded-tr-sm max-w-[85%]">
-                帮我检查一下刚才写的 Vue3 组件状态为什么没有更新？
+
+            <!-- 消息列表 -->
+            <template v-for="msg in store.messages" :key="msg.id">
+              <!-- 用户消息 -->
+              <div v-if="msg.role === 'user'" class="msg-row user-row">
+                <div class="msg-bubble user-bubble">{{ msg.content }}</div>
+              </div>
+              <!-- AI 消息 -->
+              <div v-else class="msg-row assistant-row">
+                <span class="msg-label">喵喵 AI</span>
+                <div class="msg-bubble assistant-bubble">{{ msg.content }}</div>
+              </div>
+            </template>
+
+            <!-- AI 思考中 -->
+            <div v-if="store.loading" class="msg-row assistant-row">
+              <span class="msg-label">喵喵 AI</span>
+              <div class="msg-bubble assistant-bubble thinking">
+                <span></span><span></span><span></span>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="p-3 bg-white border-t border-gray-100 shrink-0 z-20">
-          <div class="relative flex items-center">
-            <textarea rows="1" class="w-full bg-gray-50 border border-gray-200 text-sm rounded-xl py-2.5 pl-4 pr-12 resize-none focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 custom-scrollbar" placeholder="输入你的问题..."></textarea>
-            <button class="absolute right-2 p-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors shadow-sm active:scale-95">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+        <!-- 输入区域 -->
+        <div class="chat-input-area">
+          <div class="input-wrapper">
+            <textarea
+              ref="inputRef"
+              v-model="inputText"
+              rows="1"
+              class="chat-textarea custom-scrollbar"
+              placeholder="输入你的问题…"
+              :disabled="store.loading"
+              @keydown.enter.exact.prevent="handleSend"
+              @input="autoResize"
+            ></textarea>
+            <button
+              class="send-btn"
+              :disabled="!inputText.trim() || store.loading"
+              @click="handleSend"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
             </button>
           </div>
         </div>
@@ -73,20 +136,27 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+<script setup lang="ts">
+import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import { useAiChatStore } from '@/stores/modules/aiChat.store'
 
-// 状态控制
+const store = useAiChatStore()
+
+// ─── UI 状态 ──────────────────────────────────────────────────────────────────
 const isOpen = ref(false)
 const showHistory = ref(false)
+const inputText = ref('')
+const inputRef = ref<HTMLTextAreaElement | null>(null)
+const messageContainer = ref<HTMLDivElement | null>(null)
 
-// 拖拽与坐标控制
-const floatBall = ref(null)
+// ─── 悬浮球拖拽 ───────────────────────────────────────────────────────────────
+const floatBall = ref<HTMLDivElement | null>(null)
 const position = ref({ x: 0, y: 0 })
 const isDragging = ref(false)
-let hasMoved = false // 用于区分是“点击”还是“拖拽”
+let hasMoved = false
+let startMousePos = { x: 0, y: 0 }
+let startElPos = { x: 0, y: 0 }
 
-// 初始化位置 (右下角偏上)
 onMounted(() => {
   position.value = {
     x: window.innerWidth - 80,
@@ -94,18 +164,23 @@ onMounted(() => {
   }
 })
 
-// === 核心逻辑：360悬浮球拖拽与吸边 ===
-let startMousePos = { x: 0, y: 0 }
-let startElPos = { x: 0, y: 0 }
+const getClientPos = (e: MouseEvent | TouchEvent): { x: number; y: number } => {
+  if ('touches' in e) {
+    const touch0 = e.touches.item(0)
+    if (touch0) {
+      return { x: touch0.clientX, y: touch0.clientY }
+    }
+  }
+  const mouseEvent = e as MouseEvent
+  return { x: mouseEvent.clientX, y: mouseEvent.clientY }
+}
 
-const startDrag = (e) => {
-  e.preventDefault() // 防止选中文本
+const startDrag = (e: MouseEvent | TouchEvent) => {
+  e.preventDefault()
   isDragging.value = true
   hasMoved = false
-  
-  const clientX = e.clientX || e.touches?.[0].clientX
-  const clientY = e.clientY || e.touches?.[0].clientY
-  
+
+  const { x: clientX, y: clientY } = getClientPos(e)
   startMousePos = { x: clientX, y: clientY }
   startElPos = { ...position.value }
 
@@ -115,30 +190,17 @@ const startDrag = (e) => {
   window.addEventListener('touchend', endDrag)
 }
 
-const onDrag = (e) => {
+const onDrag = (e: MouseEvent | TouchEvent) => {
   if (!isDragging.value) return
-  
-  const clientX = e.clientX || e.touches?.[0].clientX
-  const clientY = e.clientY || e.touches?.[0].clientY
-  
+  const { x: clientX, y: clientY } = getClientPos(e)
+
   const deltaX = clientX - startMousePos.x
   const deltaY = clientY - startMousePos.y
-  
-  // 移动超过 3px 才认定为拖拽，防止轻微手抖导致无法点击
-  if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) {
-    hasMoved = true
-  }
 
-  // 边界约束
-  let newX = startElPos.x + deltaX
-  let newY = startElPos.y + deltaY
-  
-  const maxX = window.innerWidth - 56 // 56 是球的宽度
-  const maxY = window.innerHeight - 56
-  
-  newX = Math.max(0, Math.min(newX, maxX))
-  newY = Math.max(0, Math.min(newY, maxY))
+  if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) hasMoved = true
 
+  const newX = Math.max(0, Math.min(startElPos.x + deltaX, window.innerWidth - 56))
+  const newY = Math.max(0, Math.min(startElPos.y + deltaY, window.innerHeight - 56))
   position.value = { x: newX, y: newY }
 }
 
@@ -149,44 +211,441 @@ const endDrag = () => {
   window.removeEventListener('mouseup', endDrag)
   window.removeEventListener('touchend', endDrag)
 
-  // 如果没有移动（或者移动极小），说明是点击事件
   if (!hasMoved) {
-    isOpen.value = true
+    openChat()
     return
   }
 
-  // 吸边逻辑 (松手后自动贴近左侧或右侧)
+  // 吸边
   const centerX = window.innerWidth / 2
-  if (position.value.x < centerX) {
-    position.value.x = 10 // 吸附左边缘
-  } else {
-    position.value.x = window.innerWidth - 66 // 吸附右边缘
-  }
+  position.value.x = position.value.x < centerX ? 10 : window.innerWidth - 66
 }
 
-// 界面控制逻辑
+onUnmounted(() => {
+  window.removeEventListener('mousemove', onDrag)
+  window.removeEventListener('touchmove', onDrag)
+  window.removeEventListener('mouseup', endDrag)
+  window.removeEventListener('touchend', endDrag)
+})
+
+// ─── 窗口控制 ─────────────────────────────────────────────────────────────────
+const openChat = () => {
+  isOpen.value = true
+  store.loadSessions()
+  nextTick(() => scrollToBottom())
+}
+
 const closeChat = () => {
   isOpen.value = false
-  showHistory.value = false // 关闭时重置历史状态
+  showHistory.value = false
 }
 
 const toggleHistory = () => {
   showHistory.value = !showHistory.value
 }
+
+// ─── 消息操作 ─────────────────────────────────────────────────────────────────
+const handleSend = async () => {
+  const text = inputText.value.trim()
+  if (!text || store.loading) return
+
+  inputText.value = ''
+  resetTextareaHeight()
+  showHistory.value = false
+
+  await store.sendMessage(text)
+  await nextTick()
+  scrollToBottom()
+}
+
+const handleNewSession = () => {
+  store.newSession()
+  showHistory.value = false
+  nextTick(() => inputRef.value?.focus())
+}
+
+const handleSwitchSession = async (sessionId: string) => {
+  await store.switchSession(sessionId)
+  showHistory.value = false
+  await nextTick()
+  scrollToBottom()
+}
+
+const handleDeleteSession = async (sessionId: string) => {
+  await store.removeSession(sessionId)
+}
+
+// ─── 辅助 ─────────────────────────────────────────────────────────────────────
+const scrollToBottom = () => {
+  if (messageContainer.value) {
+    messageContainer.value.scrollTop = messageContainer.value.scrollHeight
+  }
+}
+
+const autoResize = () => {
+  const el = inputRef.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px'
+}
+
+const resetTextareaHeight = () => {
+  if (inputRef.value) inputRef.value.style.height = 'auto'
+}
+
+// 新消息时自动滚底
+watch(
+  () => store.messages.length,
+  async () => {
+    await nextTick()
+    scrollToBottom()
+  }
+)
 </script>
 
 <style scoped>
-/* 滚动条美化 */
-.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+/* ─── 悬浮球 ─────────────────────────────────────────────────────────────── */
+.float-ball {
+  position: fixed;
+  z-index: 9999;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #9333ea);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
+  transition: transform 0.2s;
+}
+.float-ball:hover { transform: scale(1.1); }
+.float-ball:active { cursor: grabbing; }
+
+.ball-icon { width: 28px; height: 28px; }
+
+.ball-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: #ef4444;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ─── 对话窗口 ───────────────────────────────────────────────────────────── */
+.chat-window {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 380px;
+  height: 600px;
+  z-index: 9998;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── 标题栏 ─────────────────────────────────────────────────────────────── */
+.chat-header {
+  height: 52px;
+  background: linear-gradient(90deg, #6366f1, #9333ea);
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.header-left,
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.icon-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  padding: 0;
+}
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+.icon-btn svg { width: 18px; height: 18px; }
+
+/* ─── 主体 ───────────────────────────────────────────────────────────────── */
+.chat-body {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+/* ─── 历史侧边栏 ─────────────────────────────────────────────────────────── */
+.history-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 65%;
+  background: rgba(255, 255, 255, 0.97);
+  border-right: 1px solid #e2e8f0;
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 0.25s ease;
+}
+.history-panel.open { transform: translateX(0); }
+
+.history-header {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.icon-btn-sm {
+  font-size: 11px;
+  color: #6366f1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.icon-btn-sm:hover { background: #ede9fe; }
+
+.history-loading,
+.history-empty {
+  padding: 16px 12px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.history-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+  gap: 6px;
+}
+.history-item:hover { background: #f1f5f9; }
+.history-item.active { background: #ede9fe; }
+
+.history-item-title {
+  font-size: 12px;
+  color: #374151;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-delete {
+  font-size: 14px;
+  color: #94a3b8;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+.history-delete:hover { color: #ef4444; }
+
+/* ─── 消息列表 ───────────────────────────────────────────────────────────── */
+.message-list {
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.welcome-msg { display: flex; flex-direction: column; align-items: flex-start; }
+
+.msg-row { display: flex; flex-direction: column; }
+.user-row { align-items: flex-end; }
+.assistant-row { align-items: flex-start; gap: 2px; }
+
+.msg-label {
+  font-size: 10px;
+  color: #94a3b8;
+  margin-left: 4px;
+  margin-bottom: 2px;
+}
+
+.msg-bubble {
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.user-bubble {
+  background: linear-gradient(135deg, #6366f1, #9333ea);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.assistant-bubble {
+  background: #fff;
+  color: #374151;
+  border: 1px solid #e2e8f0;
+  border-top-left-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* 思考动画 */
+.thinking {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+}
+.thinking span {
+  width: 6px;
+  height: 6px;
+  background: #94a3b8;
+  border-radius: 50%;
+  animation: bounce 1.2s infinite;
+}
+.thinking span:nth-child(2) { animation-delay: 0.2s; }
+.thinking span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
+}
+
+/* ─── 输入区域 ───────────────────────────────────────────────────────────── */
+.chat-input-area {
+  padding: 10px 12px;
+  background: #fff;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 6px 6px 6px 12px;
+  transition: border-color 0.15s;
+}
+.input-wrapper:focus-within { border-color: #6366f1; }
+
+.chat-textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: #374151;
+  resize: none;
+  min-height: 22px;
+  max-height: 120px;
+  line-height: 1.5;
+  font-family: inherit;
+}
+.chat-textarea::placeholder { color: #94a3b8; }
+.chat-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.send-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: #6366f1;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+}
+.send-btn:hover:not(:disabled) { background: #4f46e5; }
+.send-btn:active:not(:disabled) { transform: scale(0.92); }
+.send-btn:disabled { background: #c7d2fe; cursor: not-allowed; }
+.send-btn svg { width: 16px; height: 16px; }
+
+/* ─── 滚动条 ─────────────────────────────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
-/* 窗口弹出动画 */
-.pop-enter-active, .pop-leave-active {
+/* ─── 弹出动画 ───────────────────────────────────────────────────────────── */
+.pop-enter-active,
+.pop-leave-active {
   transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   transform-origin: bottom right;
 }
-.pop-enter-from, .pop-leave-to {
+.pop-enter-from,
+.pop-leave-to {
   opacity: 0;
   transform: scale(0.8) translateY(20px);
 }
