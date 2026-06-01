@@ -185,13 +185,13 @@ const emit = defineEmits<{
 
 /** AI report text */
 const aiReport = computed<string>(() =>
-  props.nodeConfig.ai_report_text ??
+  props.nodeConfig?.ai_report_text ??
   '您在本次实训中表现优秀。在编码实践环节展现了扎实的基础功底，代码结构清晰、逻辑严谨。建议在算法优化和设计模式方面继续深入学习，以进一步提升工程能力。'
 )
 
 /** Ability dimensions for radar chart */
 const abilityDimensions = computed<AbilityDimension[]>(() =>
-  props.nodeConfig.ability_dimensions ?? [
+  props.nodeConfig?.ability_dimensions ?? [
     { name: '编码能力', score: 85 },
     { name: '逻辑思维', score: 78 },
     { name: '知识掌握', score: 92 },
@@ -203,7 +203,7 @@ const abilityDimensions = computed<AbilityDimension[]>(() =>
 
 /** Achievement badges */
 const achievementBadges = computed<AchievementBadge[]>(() =>
-  props.nodeConfig.badges ?? [
+  props.nodeConfig?.badges ?? [
     { id: 'b1', name: '全勤达人', description: '按时完成所有节点', icon: '🏆', earned: true },
     { id: 'b2', name: '代码之星', description: '编码实训获得90+', icon: '⭐', earned: true },
     { id: 'b3', name: '互评先锋', description: '互评质量排名前10%', icon: '🎯', earned: false },

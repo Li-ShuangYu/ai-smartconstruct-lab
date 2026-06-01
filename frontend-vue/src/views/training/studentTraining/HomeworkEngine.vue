@@ -257,12 +257,12 @@ const placeholderQuestions: Question[] = [
 
 /** Questions list from config or placeholder */
 const questions = computed<Question[]>(() =>
-  props.nodeConfig.questions ?? placeholderQuestions
+  props.nodeConfig?.questions ?? placeholderQuestions
 )
 
 /** Answers array initialized per question type */
 const answers = ref<(string | string[])[]>(
-  (props.nodeConfig.questions ?? placeholderQuestions).map(q =>
+  (props.nodeConfig?.questions ?? placeholderQuestions).map(q =>
     q.type === 'multi' ? [] : ''
   )
 )

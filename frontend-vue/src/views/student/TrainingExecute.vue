@@ -98,6 +98,12 @@ const nodeTypeError = ref<string | null>(null)
 /** 实训整体完成标志 */
 const trainingComplete = ref(false)
 
+/** 当前阶段完成标志 */
+const phaseCompleted = ref(false)
+
+/** 是否显示返回按钮 */
+const showBackButton = ref(false)
+
 /** 从路由获取 taskId（保持为字符串，避免雪花ID精度丢失） */
 const taskId = computed(() => {
   const raw = route.params.taskId

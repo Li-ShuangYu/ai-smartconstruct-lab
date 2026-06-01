@@ -113,23 +113,23 @@ const renderedMarkdown = ref('')
 const docViewerRef = ref<HTMLElement | null>(null)
 let progressTimer: ReturnType<typeof setInterval> | null = null
 
-const resourceName = computed(() => props.nodeConfig.resource_name ?? 'Python算法入门')
-const resourceType = computed(() => props.nodeConfig.resource_type ?? 'PDF')
+const resourceName = computed(() => props.nodeConfig?.resource_name ?? 'Python算法入门')
+const resourceType = computed(() => props.nodeConfig?.resource_type ?? 'PDF')
 const wordCount = computed(() => mdContent.replace(/[#*\n`\s]/g, '').length)
 
 const aiSummary = computed(() =>
-  props.nodeConfig.ai_summary ?? '本文档系统介绍了Python核心算法：从基础的时间复杂度分析，到排序（冒泡、选择、插入、快排）、查找（线性、二分）、递归、动态规划、贪心及图算法等经典内容，配有完整的代码示例和运行结果。'
+  props.nodeConfig?.ai_summary ?? '本文档系统介绍了Python核心算法：从基础的时间复杂度分析，到排序（冒泡、选择、插入、快排）、查找（线性、二分）、递归、动态规划、贪心及图算法等经典内容，配有完整的代码示例和运行结果。'
 )
 const aiKeyPoints = computed<string[]>(() =>
-  props.nodeConfig.ai_key_points ?? [
+  props.nodeConfig?.ai_key_points ?? [
     'O(n²)与O(nlogn)排序算法的适用场景选择',
     '递归三要素：终止条件、递归调用、问题分解',
     '动态规划的核心：状态转移方程与备忘录优化'
   ]
 )
 const knowledgePoints = computed(() =>
-  (props.nodeConfig.knowledge_points ?? []).length > 0
-    ? props.nodeConfig.knowledge_points
+  (props.nodeConfig?.knowledge_points ?? []).length > 0
+    ? props.nodeConfig?.knowledge_points
     : [
       { name: '时间复杂度分析' },
       { name: '冒泡排序原理' },

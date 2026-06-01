@@ -227,9 +227,9 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     const phase = phases.value.find(p => p.phase_id === currentPhaseId.value)
     if (!phase) return null
 
-    // 按 sort_num 升序排列，找到第一个未完成的非 start/end 节点（内部过渡节点对用户透明）
+    // 按 sort_num 升序排列，找到第一个未完成的节点（跳过 end 类型的过渡节点）
     const sortedNodes = [...phase.nodes].sort((a, b) => a.sort_num - b.sort_num)
-    const nextNode = sortedNodes.find(n => n.status !== 2 && n.node_type !== 'start' && n.node_type !== 'end')
+    const nextNode = sortedNodes.find(n => n.status !== 2 && n.node_type !== 'end')
 
     if (nextNode) {
       currentNodeId.value = nextNode.node_instance_id
@@ -243,8 +243,7 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     if (nextPhase) {
       currentPhaseId.value = nextPhase.phase_id
       const nextPhaseNodes = [...nextPhase.nodes].sort((a, b) => a.sort_num - b.sort_num)
-      // 跳过阶段内的过渡节点（start/end），定位到第一个真正的节点
-      const firstIncomplete = nextPhaseNodes.find(n => n.status !== 2 && n.node_type !== 'start' && n.node_type !== 'end')
+      const firstIncomplete = nextPhaseNodes.find(n => n.status !== 2)
       if (firstIncomplete) {
         currentNodeId.value = firstIncomplete.node_instance_id
         return firstIncomplete.node_instance_id
@@ -337,14 +336,9 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     if (targetPhase) {
       currentPhaseId.value = targetPhase.phase_id
       const sortedNodes = [...targetPhase.nodes].sort((a, b) => a.sort_num - b.sort_num)
-      // 跳过内部过渡节点（start/end），定位到第一个真正的实训节点
-      const firstIncomplete = sortedNodes.find(n => n.status !== 2 && n.node_type !== 'start' && n.node_type !== 'end')
+      const firstIncomplete = sortedNodes.find(n => n.status !== 2)
       if (firstIncomplete) {
         currentNodeId.value = firstIncomplete.node_instance_id
-      } else {
-        // 如果没有非过渡节点了，用第一个未完成节点兜底
-        const fallback = sortedNodes.find(n => n.status !== 2)
-        if (fallback) currentNodeId.value = fallback.node_instance_id
       }
     } else {
       // 所有阶段已完成，定位到最后一个阶段

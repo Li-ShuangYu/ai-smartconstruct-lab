@@ -114,18 +114,18 @@ const studentFlowStore = useStudentFlowStore()
 
 /** AI welcome text with fallback to teacher description */
 const displayWelcomeText = computed<string>(() => {
-  if (props.nodeConfig.ai_welcome_text) {
+  if (props.nodeConfig?.ai_welcome_text) {
     return props.nodeConfig.ai_welcome_text
   }
-  if (props.nodeConfig.welcome_text) {
+  if (props.nodeConfig?.welcome_text) {
     return props.nodeConfig.welcome_text
   }
-  return props.nodeConfig.description ?? '欢迎参加本次实训，请按照流程逐步完成各环节学习。'
+  return props.nodeConfig?.description ?? '欢迎参加本次实训，请按照流程逐步完成各环节学习。'
 })
 
 /** Flow overview phases from config */
 const flowOverview = computed<FlowPhase[]>(() => {
-  return props.nodeConfig.flow_overview_json ?? placeholderPhases.value
+  return props.nodeConfig?.flow_overview_json ?? placeholderPhases.value
 })
 
 /** Whether the training is expired */

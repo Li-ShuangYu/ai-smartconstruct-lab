@@ -158,7 +158,7 @@ const quizScore = ref(0)
 
 // ─── Computed ─────────────────────────────────────────────────────────────────
 
-const slides = computed<Slide[]>(() => props.nodeConfig.slides ?? [])
+const slides = computed<Slide[]>(() => props.nodeConfig?.slides ?? [])
 
 const totalSlides = computed<number>(() => slides.value.length)
 

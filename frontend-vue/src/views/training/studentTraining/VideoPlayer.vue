@@ -43,7 +43,7 @@
               <div class="flex items-center gap-6 text-sm font-medium">
                 <div class="flex items-center gap-2">
                   <span>倍速</span>
-                  <select class="bg-transparent border-none focus:ring-0 text-indigo-400 cursor-pointer" v-model="playbackRate">
+                  <select class="bg-transparent border-none focus:ring-0 text-indigo-400 cursor-pointer" v-model.number="playbackRate">
                     <option v-for="rate in speedOptions" :key="rate" :value="rate">{{ rate }}x</option>
                   </select>
                 </div>
@@ -70,7 +70,7 @@
               @click="seekTo(point.time)"
               class="group cursor-pointer p-3 rounded-xl border transition-all relative overflow-hidden"
               :class="[
-                currentTime >= point.time && (index === knowledgePointsData.length - 1 || currentTime < knowledgePointsData[index+1].time)
+                currentTime >= point.time && (index === knowledgePointsData.length - 1 || currentTime < knowledgePointsData[Number(index)+1]?.time)
                 ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-100'
                 : 'bg-white/60 border-transparent hover:border-gray-200 hover:bg-white/80'
               ]"
@@ -85,7 +85,7 @@
                   <p class="text-[10px] text-gray-500 mt-1 line-clamp-1 italic">{{ point.desc }}</p>
                 </div>
               </div>
-              <div v-if="currentTime >= point.time && (index === knowledgePointsData.length - 1 || currentTime < knowledgePointsData[index+1].time)" 
+              <div v-if="currentTime >= point.time && (index === knowledgePointsData.length - 1 || currentTime < knowledgePointsData[Number(index)+1]?.time)" 
                 class="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500"></div>
             </div>
           </div>
@@ -143,7 +143,7 @@ const knowledgePointsData = computed(() => props.nodeConfig?.knowledge_points ||
 // 播放状态管理
 const currentTime = ref(500)
 const duration = ref(600)
-const playbackRate = ref(1.0)
+const playbackRate = ref<number>(1.0)
 const showSubtitles = ref(true)
 const isVerifying = ref(false)
 const watchTime = ref(500)
@@ -180,7 +180,7 @@ let videoTimer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   videoTimer = setInterval(() => {
-    currentTime.value += playbackRate.value
+    currentTime.value += Number(playbackRate.value)
     if (currentTime.value > watchTime.value) {
       watchTime.value = currentTime.value
     }

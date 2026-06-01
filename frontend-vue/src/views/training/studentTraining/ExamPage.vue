@@ -202,7 +202,7 @@ const isSubmitted = ref<boolean>(false)
 
 /** Countdown timer (seconds) */
 const examDurationMinutes = computed<number>(() =>
-  props.nodeConfig.exam_duration_minutes ?? 30
+  props.nodeConfig?.exam_duration_minutes ?? 30
 )
 const timeLeftSeconds = ref<number>(examDurationMinutes.value * 60)
 
@@ -267,12 +267,12 @@ const placeholderQuestions: ExamQuestion[] = [
 
 /** Questions from config or placeholder */
 const questions = computed<ExamQuestion[]>(() =>
-  props.nodeConfig.questions ?? placeholderQuestions
+  props.nodeConfig?.questions ?? placeholderQuestions
 )
 
 /** Answers array */
 const answers = ref<(string | string[])[]>(
-  (props.nodeConfig.questions ?? placeholderQuestions).map(q =>
+  (props.nodeConfig?.questions ?? placeholderQuestions).map(q =>
     q.type === 'multi' ? [] : ''
   )
 )

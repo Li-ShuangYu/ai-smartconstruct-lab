@@ -69,12 +69,12 @@ const props = defineProps<{
 }>()
 
 const mapTitle = computed<string>(() =>
-  props.nodeConfig.display?.map_title ?? 'Python 数据结构知识图谱'
+  props.nodeConfig?.display?.map_title ?? 'Python 数据结构知识图谱'
 )
 
 /** Placeholder mind map data */
 const rootNode = computed<MindMapNodeData>(() =>
-  props.nodeConfig.display?.map_data ?? placeholderMapData
+  props.nodeConfig?.display?.map_data ?? placeholderMapData
 )
 
 const placeholderMapData: MindMapNodeData = {
