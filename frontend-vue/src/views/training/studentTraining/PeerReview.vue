@@ -1,371 +1,156 @@
 <template>
-  <div class="peer-review">
-    <!-- Header -->
-    <section class="peer-review__header">
-      <h2 class="peer-review__title">学生互评</h2>
-      <p class="peer-review__desc">请对同学的作品进行多维度评价，给出客观公正的评分和建议。</p>
-    </section>
-
-    <!-- Target Student Info -->
-    <section class="peer-review__target">
-      <div class="peer-review__target-avatar">{{ targetStudent.name.charAt(0) }}</div>
-      <div class="peer-review__target-info">
-        <span class="peer-review__target-name">{{ targetStudent.name }}</span>
-        <span class="peer-review__target-work">{{ targetStudent.workTitle }}</span>
-      </div>
-    </section>
-
-    <!-- Dimension Scores -->
-    <section class="peer-review__dimensions">
-      <h3 class="peer-review__section-title">评分维度</h3>
-      <div class="peer-review__dimension-list">
-        <div
-          v-for="dimension in dimensions"
-          :key="dimension.id"
-          class="peer-review__dimension"
-        >
-          <div class="peer-review__dimension-header">
-            <span class="peer-review__dimension-name">{{ dimension.name }}</span>
-            <span class="peer-review__dimension-value">
-              {{ scores[dimension.id] ?? 0 }}/{{ dimension.maxScore }}
-            </span>
+  <div class="page-wrapper flex items-center justify-center w-full h-full min-h-[calc(100vh-100px)]">
+    
+    <div class="glass-card w-full max-w-7xl p-6 md:p-8 flex flex-col z-10 h-[800px]">
+      
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 pb-4 border-b border-gray-200/50 shrink-0 gap-4">
+        <div>
+          <div class="mb-1 text-xs font-bold text-indigo-400 tracking-widest uppercase flex items-center gap-2">
+            <svg style="width: 14px; height: 14px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+            Node: STUDENT_PEER_REVIEW
           </div>
-          <p class="peer-review__dimension-desc">{{ dimension.description }}</p>
-          <input
-            type="range"
-            class="peer-review__slider"
-            :min="0"
-            :max="dimension.maxScore"
-            :value="scores[dimension.id] ?? 0"
-            @input="setScore(dimension.id, Number(($event.target as HTMLInputElement).value))"
-          />
+          <h1 class="text-3xl font-bold text-gray-800">同伴产出互评：SM4 代码实现</h1>
+        </div>
+        
+        <div class="flex items-center gap-3 bg-white/60 px-5 py-2.5 rounded-xl border border-gray-100 shadow-sm">
+          <span class="text-sm font-bold text-gray-600">互评任务进度：</span>
+          <div class="flex gap-2">
+            <div v-for="i in requiredCount" :key="i" class="w-8 h-2.5 rounded-full transition-colors duration-300"
+                 :class="i <= reviewedCount ? 'bg-green-400' : 'bg-gray-200'"></div>
+          </div>
+          <span class="text-sm font-bold w-12 text-right" :class="reviewedCount >= requiredCount ? 'text-green-600' : 'text-indigo-600'">
+            {{ reviewedCount }}/{{ requiredCount }}
+          </span>
         </div>
       </div>
-    </section>
 
-    <!-- Comments -->
-    <section class="peer-review__comments">
-      <h3 class="peer-review__section-title">评价意见</h3>
-      <textarea
-        class="peer-review__comment-input"
-        placeholder="请输入您对该同学作品的评价意见和改进建议..."
-        :value="comment"
-        rows="4"
-        @input="comment = ($event.target as HTMLTextAreaElement).value"
-      ></textarea>
-    </section>
+      <div class="flex-1 flex gap-6 min-h-0">
+        
+        <div class="flex-[1.8] flex flex-col bg-white/40 border border-gray-200/60 rounded-2xl shadow-sm overflow-hidden">
+          
+          <div class="flex overflow-x-auto border-b border-gray-200/50 bg-gray-50/50 custom-scrollbar shrink-0">
+            <button v-for="artifact in pendingArtifacts" :key="artifact.id"
+                    @click="selectArtifact(artifact)"
+                    class="px-6 py-4 text-sm font-bold border-b-2 transition-colors whitespace-nowrap flex items-center gap-2"
+                    :class="selectedArtifact?.id === artifact.id ? 'border-indigo-500 text-indigo-700 bg-white' : 'border-transparent text-gray-500 hover:bg-gray-100'">
+               <span class="w-2 h-2 rounded-full" :class="artifact.isReviewed ? 'bg-green-400' : 'bg-amber-400'"></span>
+               {{ artifact.author }} 的提交
+            </button>
+          </div>
 
-    <!-- Total Score -->
-    <section class="peer-review__total">
-      <span class="peer-review__total-label">总分：</span>
-      <span class="peer-review__total-value">{{ totalScore }}</span>
-      <span class="peer-review__total-max">/{{ maxTotalScore }}</span>
-    </section>
+          <div class="flex-1 overflow-y-auto p-6 custom-scrollbar bg-[#1e1e1e] relative group">
+            <div v-if="selectedArtifact" class="text-gray-300 font-mono text-sm leading-relaxed whitespace-pre-wrap">
+              <div class="text-xs text-gray-500 mb-4 border-b border-gray-700 pb-2 flex justify-between">
+                <span>文件名: {{ selectedArtifact.fileName }}</span>
+                <span>语言: Python</span>
+              </div>
+              <span class="text-pink-400">def</span> <span class="text-blue-400">sm4_round_function</span>(x0, x1, x2, x3, rk):
+                  <span class="text-gray-500"># {{ selectedArtifact.author }} 的轮函数实现</span>
+                  {{ selectedArtifact.codeSnippet }}
+            </div>
+          </div>
+        </div>
 
-    <!-- Submit -->
-    <section class="peer-review__footer">
-      <button
-        class="peer-review__submit-btn"
-        :disabled="totalScore === 0"
-        @click="handleSubmit"
-      >
-        提交互评
-      </button>
-    </section>
+        <div class="flex-[1.2] flex flex-col gap-4">
+          
+          <div class="flex-1 bg-white/60 border border-gray-100 rounded-2xl p-6 shadow-sm overflow-y-auto custom-scrollbar flex flex-col">
+            <h3 class="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2 border-b border-gray-200 pb-3">
+              <svg style="width: 20px; height: 20px; flex-shrink: 0;" class="text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              维度打分卡
+            </h3>
+            
+            <template v-if="selectedArtifact">
+              <div v-if="selectedArtifact.isReviewed" class="absolute inset-0 bg-white/60 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-2xl">
+                 <svg style="width: 48px; height: 48px; flex-shrink: 0;" class="text-green-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                 <span class="font-bold text-gray-700">您已完成对该同学的评价</span>
+              </div>
+
+              <div class="space-y-8 flex-1">
+                <div v-for="dim in dimensions" :key="dim" class="space-y-3">
+                  <div class="flex justify-between items-end">
+                    <label class="font-bold text-gray-700 text-sm">{{ dim }}</label>
+                    <span class="font-mono font-bold text-indigo-600 text-lg">{{ currentForm[dim] || 0 }} <span class="text-xs text-gray-400">分</span></span>
+                  </div>
+                  <input type="range" min="0" max="100" v-model="currentForm[dim]" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                  <div class="flex justify-between text-xs text-gray-400">
+                    <span>需改进</span>
+                    <span>优秀</span>
+                  </div>
+                </div>
+
+                <div class="mt-4 border-t border-gray-100 pt-6">
+                  <label class="font-bold text-gray-700 text-sm mb-2 block">综合评语 (可选)</label>
+                  <textarea v-model="currentForm.comment" placeholder="写下你对这份代码的建议或鼓励..." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm text-gray-700 outline-none focus:border-indigo-400 focus:bg-white transition-colors resize-none h-24 custom-scrollbar"></textarea>
+                </div>
+              </div>
+
+              <button @click="submitCurrentReview" class="mt-6 w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-md transition-all">
+                提交对此份作品的评价
+              </button>
+            </template>
+            <template v-else>
+               <div class="flex-1 flex items-center justify-center text-gray-400 text-sm">请先在左侧选择要评价的作品</div>
+            </template>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="mt-6 shrink-0 flex items-center justify-between bg-white/40 p-4 rounded-xl border border-gray-100">
+         <span class="text-sm text-gray-600">
+           <span class="font-bold text-indigo-600">规则要求：</span>请客观公正打分。系统会自动识别恶意刷分行为。
+         </span>
+         <button 
+            class="hero-send-btn px-8 py-3 rounded-xl shadow-lg transition-all duration-300"
+            :class="reviewedCount >= requiredCount ? 'hover:shadow-indigo-500/40 hover:-translate-y-1' : 'opacity-50 grayscale cursor-not-allowed'"
+            :disabled="reviewedCount < requiredCount"
+         >
+            完成所有互评，进入下一步
+            <svg style="width: 16px; height: 16px; flex-shrink: 0; margin-left: 4px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+         </button>
+      </div>
+
+    </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed } from 'vue'
+<script setup>
+import { ref, reactive, computed } from 'vue'
 
-interface ReviewDimension {
-  id: string
-  name: string
-  description: string
-  maxScore: number
+const dimensions = ref(['代码规范', '创新性', '密码学正确性'])
+const requiredCount = ref(3)
+
+// 模拟待评产出物
+const pendingArtifacts = ref([
+  { id: 1, author: '匿名为7A', fileName: 'sm4_core.py', codeSnippet: '\n  temp = x1 ^ x2 ^ x3 ^ rk\n  # 加入了位运算优化\n  return x0 ^ tau_transform(temp)', isReviewed: false },
+  { id: 2, author: '匿名为2B', fileName: 'sm4_sbox.py', codeSnippet: '\n  # 查表法实现 S 盒替换\n  res = (SBOX[(a >> 24) & 0xFF] << 24) | ...\n  return res', isReviewed: false },
+  { id: 3, author: '匿名为9C', fileName: 'main.py', codeSnippet: '\n  # 基础实现，缺乏异常处理\n  def encrypt(plaintext, key):\n      pass', isReviewed: false }
+])
+
+const selectedArtifact = ref(pendingArtifacts.value[0])
+const currentForm = reactive({ '代码规范': 50, '创新性': 50, '密码学正确性': 50, comment: '' })
+
+const reviewedCount = computed(() => pendingArtifacts.value.filter(a => a.isReviewed).length)
+
+const selectArtifact = (artifact) => {
+  selectedArtifact.value = artifact
+  // 重置表单
+  currentForm['代码规范'] = 50
+  currentForm['创新性'] = 50
+  currentForm['密码学正确性'] = 50
+  currentForm.comment = ''
 }
 
-interface TargetStudent {
-  name: string
-  workTitle: string
-}
-
-interface PeerReviewConfig {
-  display?: {
-    title?: string
+const submitCurrentReview = () => {
+  if (selectedArtifact.value) {
+    selectedArtifact.value.isReviewed = true
+    alert("该作品评价提交成功！")
   }
-  evaluation?: {
-    dimensions?: ReviewDimension[]
-  }
-  [key: string]: unknown
-}
-
-const props = defineProps<{
-  nodeInstanceId: number
-  nodeConfig: PeerReviewConfig
-}>()
-
-const emit = defineEmits<{
-  complete: []
-}>()
-
-/** Placeholder target student */
-const targetStudent = computed<TargetStudent>(() => ({
-  name: '李娜',
-  workTitle: '需求分析文档 v2.0'
-}))
-
-/** Dimensions from config or placeholder */
-const dimensions = computed<ReviewDimension[]>(() =>
-  props.nodeConfig.evaluation?.dimensions ?? placeholderDimensions
-)
-
-const placeholderDimensions: ReviewDimension[] = [
-  { id: 'd1', name: '内容完整性', description: '文档是否涵盖了所有必要的需求描述', maxScore: 25 },
-  { id: 'd2', name: '逻辑清晰度', description: '需求描述是否逻辑清晰、条理分明', maxScore: 25 },
-  { id: 'd3', name: '技术可行性', description: '提出的方案是否技术上可行', maxScore: 25 },
-  { id: 'd4', name: '文档规范性', description: '格式、排版、用语是否规范', maxScore: 25 }
-]
-
-/** Scores: dimensionId -> score */
-const scores = ref<Record<string, number>>({})
-
-/** Comment text */
-const comment = ref<string>('')
-
-function setScore(dimensionId: string, value: number) {
-  scores.value[dimensionId] = value
-}
-
-const totalScore = computed<number>(() =>
-  Object.values(scores.value).reduce((sum, v) => sum + v, 0)
-)
-
-const maxTotalScore = computed<number>(() =>
-  dimensions.value.reduce((sum, d) => sum + d.maxScore, 0)
-)
-
-function handleSubmit() {
-  emit('complete')
 }
 </script>
 
 <style scoped>
-.peer-review {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg, 1.5rem);
-  padding: var(--spacing-lg, 1.5rem);
-  height: 100%;
-  overflow-y: auto;
-}
-
-.peer-review__header {
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.peer-review__title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-gray-800, #1e293b);
-  margin-bottom: 0.5rem;
-}
-
-.peer-review__desc {
-  font-size: 0.875rem;
-  color: var(--color-gray-500, #64748b);
-}
-
-.peer-review__target {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md, 1rem);
-  padding: var(--spacing-md, 1rem) var(--spacing-lg, 1.5rem);
-  background: var(--color-primary-50, #eef2ff);
-  border: 1px solid var(--color-primary-100, #e0e7ff);
-  border-radius: var(--radius-lg, 0.75rem);
-}
-
-.peer-review__target-avatar {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.peer-review__target-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.peer-review__target-name {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--color-gray-800, #1e293b);
-}
-
-.peer-review__target-work {
-  font-size: 0.8125rem;
-  color: var(--color-gray-500, #64748b);
-}
-
-.peer-review__section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-gray-800, #1e293b);
-  margin-bottom: var(--spacing-md, 1rem);
-}
-
-.peer-review__dimensions {
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.peer-review__dimension-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md, 1rem);
-}
-
-.peer-review__dimension {
-  padding-bottom: var(--spacing-sm, 0.75rem);
-  border-bottom: 1px solid var(--color-gray-100, #f1f5f9);
-}
-
-.peer-review__dimension:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.peer-review__dimension-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.25rem;
-}
-
-.peer-review__dimension-name {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--color-gray-800, #1e293b);
-}
-
-.peer-review__dimension-value {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--color-primary-600, #4f46e5);
-}
-
-.peer-review__dimension-desc {
-  font-size: 0.75rem;
-  color: var(--color-gray-400, #94a3b8);
-  margin-bottom: 0.5rem;
-}
-
-.peer-review__slider {
-  width: 100%;
-  height: 6px;
-  appearance: none;
-  background: var(--color-gray-100, #f1f5f9);
-  border-radius: 3px;
-  outline: none;
-  cursor: pointer;
-}
-
-.peer-review__slider::-webkit-slider-thumb {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--color-primary-500, #6366f1);
-  cursor: pointer;
-}
-
-.peer-review__comments {
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.peer-review__comment-input {
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-md, 0.5rem);
-  font-size: 0.875rem;
-  color: var(--color-gray-800, #1e293b);
-  resize: vertical;
-  font-family: inherit;
-}
-
-.peer-review__comment-input:focus {
-  outline: none;
-  border-color: var(--color-primary-300, #a5b4fc);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-}
-
-.peer-review__total {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  padding: var(--spacing-md, 1rem);
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-}
-
-.peer-review__total-label {
-  font-size: 1rem;
-  color: var(--color-gray-600, #475569);
-}
-
-.peer-review__total-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--color-primary-600, #4f46e5);
-}
-
-.peer-review__total-max {
-  font-size: 1rem;
-  color: var(--color-gray-400, #94a3b8);
-}
-
-.peer-review__footer {
-  padding-top: var(--spacing-md, 1rem);
-}
-
-.peer-review__submit-btn {
-  width: 100%;
-  padding: 0.875rem;
-  font-size: 1rem;
-  font-weight: 700;
-  color: white;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  border: none;
-  border-radius: var(--radius-lg, 0.75rem);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.peer-review__submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px -4px rgba(99, 102, 241, 0.4);
-}
-
-.peer-review__submit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 4px; }
 </style>

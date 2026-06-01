@@ -1,503 +1,197 @@
 <template>
-  <div class="teacher-start-portal">
-    <!-- Header -->
-    <header class="teacher-start-portal__header">
-      <div class="teacher-start-portal__header-left">
-        <span class="teacher-start-portal__node-badge">START · 教师中控</span>
-        <h1 class="teacher-start-portal__title">{{ taskTitle }}</h1>
-      </div>
-      <div class="teacher-start-portal__header-stats">
-        <div class="teacher-start-portal__stat-card">
-          <span class="teacher-start-portal__stat-label">班级就位</span>
-          <span class="teacher-start-portal__stat-value">
-            <span class="teacher-start-portal__stat-ready">{{ readyCount }}</span>
-            <span class="teacher-start-portal__stat-sep">/</span>
-            <span class="teacher-start-portal__stat-total">{{ totalCount }}</span>
-          </span>
+  <div style="height: 100%;">
+    
+    <div class="glass-card w-full h-full p-6 flex flex-col md:flex-row gap-8 z-10">
+      
+      <div class="flex-1 flex flex-col h-full pr-4">
+        <div class="mb-2 text-xs font-bold text-indigo-400 tracking-widest uppercase">Node: START</div>
+        <h1 class="text-3xl font-bold mb-4 text-gradient-primary">开始实训</h1>
+        <p class="text-gray-600 dark:text-gray-300 mb-4 text-sm leading-relaxed">
+          {{ nodeConfig.desc || '实训流程的说明' }}
+        </p>
+
+        <div class="w-full flex-1 bg-white/40 dark:bg-[#1e293b]/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 flex flex-col items-center justify-center relative">
+          <span class="text-sm text-gray-400 font-medium tracking-widest">实训全局引导图 / 架构拓扑预览</span>
         </div>
       </div>
-    </header>
 
-    <!-- Main Content -->
-    <div class="teacher-start-portal__body">
-      <!-- Left: AI Welcome + Student Grid -->
-      <div class="teacher-start-portal__left">
-        <!-- AI Welcome -->
-        <section class="teacher-start-portal__ai-welcome">
-          <div class="teacher-start-portal__ai-icon">⚡</div>
-          <div class="teacher-start-portal__ai-content">
-            <h3 class="teacher-start-portal__ai-title">AI 助教播报</h3>
-            <p class="teacher-start-portal__ai-text">{{ aiWelcomeMessage }}</p>
+      <div class="w-full md:w-80 flex flex-col border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700/50 pt-6 md:pt-0 md:pl-6 h-full">
+        
+        <div class="flex items-center justify-between mb-4 shrink-0">
+          <h3 class="text-sm font-bold text-gray-800 dark:text-gray-100 flex-single-line">学生就位状态</h3>
+          <div class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/50">
+            {{ readyCount }} / {{ studentList.length }}
           </div>
-        </section>
+        </div>
 
-        <!-- Student Entry Status Grid -->
-        <section class="teacher-start-portal__students">
-          <div class="teacher-start-portal__students-header">
-            <h3 class="teacher-start-portal__section-title">班级就位情况</h3>
-            <div class="teacher-start-portal__legend">
-              <span class="teacher-start-portal__legend-item teacher-start-portal__legend-item--ready">
-                已就绪 ({{ readyCount }})
-              </span>
-              <span class="teacher-start-portal__legend-item teacher-start-portal__legend-item--pending">
-                未就绪 ({{ totalCount - readyCount }})
-              </span>
-            </div>
-          </div>
-          <div class="teacher-start-portal__student-grid">
-            <div
-              v-for="student in students"
-              :key="student.id"
-              class="teacher-start-portal__student-card"
-              :class="{ 'teacher-start-portal__student-card--ready': student.ready }"
+        <div class="mb-3 shrink-0 relative">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="搜索学生姓名..."
+            class="w-full pl-8 pr-3 py-2 bg-white/60 dark:bg-[#1e293b]/50 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400 transition-colors shadow-sm"
+          >
+          <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" style="width: 14px; height: 14px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+
+        <div class="flex-1 overflow-y-auto pr-1 space-y-2 mb-2 custom-scrollbar">
+          <template v-if="paginatedStudents.length > 0">
+            <div 
+              v-for="student in paginatedStudents" 
+              :key="student.id" 
+              class="flex items-center justify-between p-2.5 bg-white/60 dark:bg-slate-800/60 rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-colors"
             >
-              <div class="teacher-start-portal__student-avatar" :class="{ 'teacher-start-portal__student-avatar--ready': student.ready }">
-                {{ student.name.charAt(0) }}
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ student.name }}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="relative flex h-2 w-2">
+                  <span v-if="student.isReady" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2" :class="student.isReady ? 'bg-green-500' : 'bg-gray-400 dark:bg-gray-600'"></span>
+                </span>
+                <span class="text-xs" :class="student.isReady ? 'text-green-600 dark:text-green-400' : 'text-gray-500'">
+                  {{ student.isReady ? '已就位' : '未就位' }}
+                </span>
               </div>
-              <span class="teacher-start-portal__student-name">{{ student.name }}</span>
-              <span class="teacher-start-portal__student-status" :class="student.ready ? 'teacher-start-portal__student-status--ready' : ''">
-                {{ student.ready ? '✓' : '…' }}
-              </span>
             </div>
+          </template>
+          <div v-else class="h-full flex flex-col items-center justify-center text-gray-400 space-y-2 pb-4">
+             <svg style="width: 24px; height: 24px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+             <span class="text-xs">暂无匹配学生</span>
           </div>
-        </section>
-      </div>
+        </div>
 
-      <!-- Right: Actions -->
-      <div class="teacher-start-portal__right">
-        <section class="teacher-start-portal__control-panel">
-          <div class="teacher-start-portal__control-icon">🎛️</div>
-          <h2 class="teacher-start-portal__control-title">实训主控中心</h2>
-          <p class="teacher-start-portal__control-desc">
-            当前有 <strong>{{ totalCount - readyCount }}</strong> 名学生未就位
-          </p>
-
-          <!-- Nudge Button -->
-          <button
-            class="teacher-start-portal__nudge-btn"
-            :disabled="readyCount === totalCount"
-            @click="handleNudge"
+        <div class="flex items-center justify-between mb-4 px-1 shrink-0">
+          <button 
+            @click="prevPage" 
+            :disabled="currentPage === 1"
+            class="text-xs text-gray-500 hover:text-indigo-600 disabled:opacity-40 disabled:hover:text-gray-500 disabled:cursor-not-allowed transition-colors"
           >
-            🔔 {{ readyCount === totalCount ? '全员已就绪' : '一键催办未就位学生' }}
+            上一页
           </button>
-
-          <!-- Start Button -->
-          <button
-            class="teacher-start-portal__start-btn"
-            @click="handleStart"
+          <span class="text-[10px] font-mono font-bold text-gray-400">{{ currentPage }} / {{ totalPages || 1 }}</span>
+          <button 
+            @click="nextPage" 
+            :disabled="currentPage >= totalPages || totalPages === 0"
+            class="text-xs text-gray-500 hover:text-indigo-600 disabled:opacity-40 disabled:hover:text-gray-500 disabled:cursor-not-allowed transition-colors"
           >
-            ⚡ 正式开启实训
+            下一页
           </button>
-        </section>
+        </div>
+
+        <div class="space-y-3 pt-4 border-t border-gray-100 dark:border-gray-800/50 shrink-0">
+          <button 
+            class="w-full py-2.5 border border-indigo-400/50 text-indigo-600 dark:text-indigo-400 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors text-sm font-bold flex items-center justify-center gap-2"
+            @click="handleUrge"
+          >
+            <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+            一键催办 ({{ studentList.length - readyCount }}人)
+          </button>
+          <button class="hero-send-btn w-full justify-center text-sm py-2.5 rounded-lg" @click="handleForceStart">
+            <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            强制开启全局流程
+          </button>
+        </div>
+
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed } from 'vue'
+<script setup>
+import { ref, computed, reactive, watch } from 'vue'
 
-interface StudentEntry {
-  id: number
-  name: string
-  ready: boolean
-}
+const nodeConfig = reactive({
+  desc: '实训流程的说明'
+})
 
-interface TeacherStartPortalConfig {
-  display?: {
-    task_title?: string
-    ai_welcome_message?: string
-  }
-  [key: string]: unknown
-}
-
-const props = defineProps<{
-  nodeInstanceId: number
-  nodeConfig: TeacherStartPortalConfig
-}>()
-
-const emit = defineEmits<{
-  complete: []
-}>()
-
-const taskTitle = computed<string>(() =>
-  props.nodeConfig.display?.task_title ?? 'Python 数组实训 - 教师中控台'
-)
-
-const aiWelcomeMessage = ref<string>(
-  props.nodeConfig.display?.ai_welcome_message ??
-  '尊敬的老师，您好。欢迎进入教师中控台。当前系统已连接，您可以实时监控全班同学的就位状态。全员准备完毕后，点击右侧按钮即可一键拉起实训环境。'
-)
-
-/** Placeholder students */
-const students = ref<StudentEntry[]>([
-  { id: 1, name: '张伟', ready: true },
-  { id: 2, name: '李娜', ready: true },
-  { id: 3, name: '王磊', ready: true },
-  { id: 4, name: '刘洋', ready: false },
-  { id: 5, name: '陈静', ready: true },
-  { id: 6, name: '杨帆', ready: false },
-  { id: 7, name: '赵云', ready: true },
-  { id: 8, name: '孙颖', ready: true },
-  { id: 9, name: '周杰', ready: false },
-  { id: 10, name: '吴敏', ready: true },
-  { id: 11, name: '郑强', ready: true },
-  { id: 12, name: '王芳', ready: false },
-  { id: 13, name: '冯涛', ready: true },
-  { id: 14, name: '陈思', ready: true },
-  { id: 15, name: '李明', ready: false },
-  { id: 16, name: '林峰', ready: true },
-  { id: 17, name: '黄丽', ready: false },
-  { id: 18, name: '许杰', ready: true },
-  { id: 19, name: '何琳', ready: true },
-  { id: 20, name: '吕晨', ready: false },
-  { id: 21, name: '施雨', ready: true },
-  { id: 22, name: '张辉', ready: true },
-  { id: 23, name: '朱婷', ready: false },
-  { id: 24, name: '秦浩', ready: true },
-  { id: 25, name: '许晴', ready: false },
-  { id: 26, name: '戚帅', ready: true },
-  { id: 27, name: '谢晨', ready: true },
-  { id: 28, name: '邹雨', ready: false },
-  { id: 29, name: '柏晨', ready: true },
-  { id: 30, name: '韦昌', ready: false },
-  { id: 31, name: '汪磊', ready: true },
-  { id: 32, name: '沈颖', ready: false }
+// 模拟学生数据
+const studentList = ref([
+  { id: 1, name: '陈同学', isReady: true },
+  { id: 2, name: '林同学', isReady: true },
+  { id: 3, name: '张同学', isReady: false },
+  { id: 4, name: '王同学', isReady: true },
+  { id: 5, name: '李同学', isReady: false },
+  { id: 6, name: '赵同学', isReady: false },
+  { id: 7, name: '孙同学', isReady: true },
+  { id: 8, name: '吴同学', isReady: true },
+  { id: 9, name: '郑同学', isReady: true },
+  { id: 10, name: '钱同学', isReady: true },
 ])
 
-const totalCount = computed<number>(() => students.value.length)
-const readyCount = computed<number>(() => students.value.filter(s => s.ready).length)
+const readyCount = computed(() => studentList.value.filter(s => s.isReady).length)
 
-function handleNudge() {
-  const unready = totalCount.value - readyCount.value
-  if (unready > 0) {
-    // In production: call POST /api/teacher/tasks/{taskId}/nudge
-    console.log(`Nudging ${unready} students`)
+// ===== 搜索与分页逻辑 =====
+const searchQuery = ref('')
+const currentPage = ref(1)
+const pageSize = ref(6) // 设定每页展示 6 条数据
+
+// 1. 过滤学生列表
+const filteredStudents = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return studentList.value
   }
+  const lowerSearch = searchQuery.value.trim().toLowerCase()
+  return studentList.value.filter(student => 
+    student.name.toLowerCase().includes(lowerSearch)
+  )
+})
+
+// 2. 计算总页数
+const totalPages = computed(() => {
+  return Math.ceil(filteredStudents.value.length / pageSize.value)
+})
+
+// 3. 计算当前页要展示的学生
+const paginatedStudents = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredStudents.value.slice(start, end)
+})
+
+// 监听搜索词变化，如果搜索则自动重置回第一页
+watch(searchQuery, () => {
+  currentPage.value = 1
+})
+
+const prevPage = () => {
+  if (currentPage.value > 1) currentPage.value--
 }
 
-function handleStart() {
-  // In production: call POST /api/teacher/training-tasks/{id}/start
-  emit('complete')
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) currentPage.value++
+}
+// =========================
+
+const handleUrge = () => {
+  const unready = studentList.value.length - readyCount.value
+  if (unready === 0) {
+    alert('所有学生已就位，无需催办。')
+    return
+  }
+  alert(`已向 ${unready} 名未就位学生发送催办提醒！`)
+}
+
+const handleForceStart = () => {
+  if (confirm('确认强制开启实训吗？未就位学生将被自动拉入流程。')) {
+    alert('执行: 强制开启全局流程')
+  }
 }
 </script>
 
 <style scoped>
-.teacher-start-portal {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-  padding: var(--spacing-lg, 1.5rem);
-  gap: var(--spacing-lg, 1.5rem);
+/* 教师端列表自定义细滚动条 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
 }
-
-.teacher-start-portal__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
 }
-
-.teacher-start-portal__header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.2);
+  border-radius: 4px;
 }
-
-.teacher-start-portal__node-badge {
-  font-size: 0.6875rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-primary-500, #6366f1);
-}
-
-.teacher-start-portal__title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-gray-800, #1e293b);
-}
-
-.teacher-start-portal__stat-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0.5rem 1.25rem;
-  background: var(--color-primary-50, #eef2ff);
-  border: 1px solid var(--color-primary-100, #e0e7ff);
-  border-radius: var(--radius-md, 0.5rem);
-}
-
-.teacher-start-portal__stat-label {
-  font-size: 0.6875rem;
-  color: var(--color-primary-600, #4f46e5);
-  font-weight: 500;
-}
-
-.teacher-start-portal__stat-value {
-  display: flex;
-  align-items: baseline;
-}
-
-.teacher-start-portal__stat-ready {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--color-primary-600, #4f46e5);
-}
-
-.teacher-start-portal__stat-sep {
-  font-size: 1rem;
-  color: var(--color-gray-400, #94a3b8);
-  margin: 0 0.125rem;
-}
-
-.teacher-start-portal__stat-total {
-  font-size: 1rem;
-  color: var(--color-gray-500, #64748b);
-}
-
-.teacher-start-portal__body {
-  display: flex;
-  flex: 1;
-  gap: var(--spacing-lg, 1.5rem);
-  min-height: 0;
-  overflow: hidden;
-}
-
-.teacher-start-portal__left {
-  flex: 1.5;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md, 1rem);
-  overflow-y: auto;
-}
-
-.teacher-start-portal__right {
-  flex: 0.8;
-  display: flex;
-  flex-direction: column;
-}
-
-.teacher-start-portal__ai-welcome {
-  display: flex;
-  gap: var(--spacing-md, 1rem);
-  padding: var(--spacing-lg, 1.5rem);
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-left: 4px solid var(--color-primary-500, #6366f1);
-  border-radius: var(--radius-lg, 0.75rem);
-}
-
-.teacher-start-portal__ai-icon {
-  font-size: 1.5rem;
-  width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-primary-500, #6366f1);
-  border-radius: var(--radius-md, 0.5rem);
-  flex-shrink: 0;
-}
-
-.teacher-start-portal__ai-content {
-  flex: 1;
-}
-
-.teacher-start-portal__ai-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-gray-800, #1e293b);
-  margin-bottom: 0.375rem;
-}
-
-.teacher-start-portal__ai-text {
-  font-size: 0.875rem;
-  color: var(--color-gray-600, #475569);
-  line-height: 1.6;
-  font-style: italic;
-}
-
-.teacher-start-portal__students {
-  flex: 1;
-  min-height: 0;
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-  display: flex;
-  flex-direction: column;
-}
-
-.teacher-start-portal__students-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-md, 1rem);
-}
-
-.teacher-start-portal__section-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-gray-800, #1e293b);
-}
-
-.teacher-start-portal__legend {
-  display: flex;
-  gap: var(--spacing-md, 1rem);
-}
-
-.teacher-start-portal__legend-item {
-  font-size: 0.75rem;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-}
-
-.teacher-start-portal__legend-item--ready::before {
-  content: '';
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: #22c55e;
-}
-
-.teacher-start-portal__legend-item--pending::before {
-  content: '';
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
-  background: var(--color-gray-300, #cbd5e1);
-}
-
-.teacher-start-portal__student-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 0.75rem;
-  flex: 1;
-  overflow-y: auto;
-}
-
-.teacher-start-portal__student-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.625rem;
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-md, 0.5rem);
-  transition: all 0.2s ease;
-}
-
-.teacher-start-portal__student-card--ready {
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.03);
-}
-
-.teacher-start-portal__student-avatar {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.875rem;
-  font-weight: 700;
-  opacity: 0.5;
-}
-
-.teacher-start-portal__student-avatar--ready {
-  opacity: 1;
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
-}
-
-.teacher-start-portal__student-name {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-gray-700, #334155);
-  text-align: center;
-}
-
-.teacher-start-portal__student-status {
-  font-size: 0.625rem;
-  color: var(--color-gray-400, #94a3b8);
-}
-
-.teacher-start-portal__student-status--ready {
-  color: #22c55e;
-  font-weight: 700;
-}
-
-.teacher-start-portal__control-panel {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-lg, 1.5rem);
-  padding: var(--spacing-xl, 2rem);
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-}
-
-.teacher-start-portal__control-icon {
-  font-size: 2.5rem;
-}
-
-.teacher-start-portal__control-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-gray-800, #1e293b);
-}
-
-.teacher-start-portal__control-desc {
-  font-size: 0.875rem;
-  color: var(--color-gray-500, #64748b);
-  text-align: center;
-}
-
-.teacher-start-portal__nudge-btn {
-  width: 100%;
-  padding: 0.875rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: #d97706;
-  background: var(--color-white, #ffffff);
-  border: 2px dashed rgba(245, 158, 11, 0.4);
-  border-radius: var(--radius-lg, 0.75rem);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.teacher-start-portal__nudge-btn:hover:not(:disabled) {
-  background: rgba(245, 158, 11, 0.05);
-}
-
-.teacher-start-portal__nudge-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  color: var(--color-gray-400, #94a3b8);
-  border-color: var(--color-gray-200, #e2e8f0);
-}
-
-.teacher-start-portal__start-btn {
-  width: 100%;
-  padding: 1.125rem;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: white;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  border: none;
-  border-radius: var(--radius-lg, 0.75rem);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.teacher-start-portal__start-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.4);
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.4);
 }
 </style>
