@@ -13,14 +13,14 @@
       <n-button type="primary" @click="handleRetry">重试</n-button>
     </div>
 
-    <!-- 实训已完成 -->
-    <div v-else-if="trainingComplete" class="complete-container">
-      <div class="complete-icon">✅</div>
-      <h2 class="complete-title">实训完成</h2>
-      <p class="complete-message">恭喜你完成了本次实训的所有内容！</p>
-      <div class="complete-actions">
-        <n-button type="primary" @click="router.push('/student/workbench')">返回工作台</n-button>
-      </div>
+    <!-- 实训已完成：展示学习报告 -->
+    <div v-else-if="trainingComplete" class="summary-container">
+      <SummaryReport
+        :task-id="taskId"
+        :node-instance-id="store.currentNodeId"
+        :node-config="summaryReportConfig"
+        @reset="handleRestart"
+      />
     </div>
 
     <!-- 节点类型未注册错误 -->
@@ -41,7 +41,7 @@
           <span class="step-hint">{{ currentNodeIndex + 1 }} / {{ currentPhaseNodeCount }}</span>
         </div>
       </header>
-      <main class="center-area">
+      <main class="center-area" :class="{ 'center-area--full': currentNodeType === 'coding_class' }">
         <n-spin :show="nodeLoading" class="node-spin">
           <component :is="currentComponent" :node-instance-id="store.currentNodeId" :node-config="nodeConfig" @complete="handleNodeComplete" />
         </n-spin>
@@ -76,7 +76,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { NButton, NSpin, useMessage } from 'naive-ui'
 import { useStudentFlowStore } from '@/stores/modules/studentFlow.store'
 import { resolveNodePage } from '@/views/training/nodePageResolver'
-import { getNodeContent } from '@/services/modules/studentTraining.service'
+import { getNodeContent, resetTraining } from '@/services/modules/studentTraining.service'
+import SummaryReport from '@/views/training/studentTraining/SummaryReport.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -127,6 +128,9 @@ const currentNodeIndex = computed(() => {
   const idx = sorted.findIndex(n => n.node_instance_id === store.currentNodeId)
   return idx >= 0 ? idx : 0
 })
+
+const currentNodeType = computed(() => store.currentNodeConfig?.node_type ?? '')
+const summaryReportConfig = computed(() => ({}))
 
 /**
  * 加载并渲染当前节点
@@ -216,6 +220,24 @@ function handleBackToPreview(): void {
   })
 }
 
+/** 重新开始实训 */
+async function handleRestart(): Promise<void> {
+  try {
+    const tid = taskId.value
+    await resetTraining(tid)
+    trainingComplete.value = false
+    currentComponent.value = null
+    nodeConfig.value = {}
+    await store.restartTraining(tid)
+    if (!store.error) {
+      await loadCurrentNode()
+    }
+  } catch (e) {
+    console.error('Restart failed:', e)
+    message.error('重置实训失败，请刷新页面重试')
+  }
+}
+
 /** 重试加载 */
 async function handleRetry(): Promise<void> {
   store.error = null
@@ -246,6 +268,11 @@ onMounted(async () => {
   }
 
   if (store.error) return
+
+  if (store.taskOverview?.participation_status === 0) {
+    await store.startTraining()
+    if (store.error) return
+  }
 
   // 检查实训是否已完成
   if (store.taskOverview?.participation_status === 2) {
@@ -330,10 +357,34 @@ onMounted(async () => {
   flex: 1;
   overflow-y: auto;
   padding: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.center-area--full {
+  padding: 0;
+}
+
+.center-area :deep(> *) {
+  width: 100%;
+  max-width: 1280px;
+}
+
+.center-area--full :deep(> *) {
+  max-width: none;
+}
+
+.summary-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .node-spin {
   min-height: 200px;
+  width: 100%;
+  display: block;
 }
 
 /* 加载状态 */

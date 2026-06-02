@@ -493,7 +493,9 @@ public class StudentSubmissionController {
     private BizTrainingParticipation getParticipation(Long taskId, Long studentId) {
         LambdaQueryWrapper<BizTrainingParticipation> qw = new LambdaQueryWrapper<>();
         qw.eq(BizTrainingParticipation::getTaskId, taskId)
-                .eq(BizTrainingParticipation::getStudentId, studentId);
+                .eq(BizTrainingParticipation::getStudentId, studentId)
+                .orderByDesc(BizTrainingParticipation::getId)
+                .last("LIMIT 1");
         return participationMapper.selectOne(qw);
     }
 

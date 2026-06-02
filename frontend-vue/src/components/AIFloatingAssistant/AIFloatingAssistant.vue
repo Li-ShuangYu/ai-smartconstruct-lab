@@ -13,7 +13,7 @@
       @mousedown="startDrag"
       @touchstart.passive="startDrag"
     >
-      <img src="@/assets/AIFC-Logo.png" alt="AI" class="ball-logo" />
+      <div class="ball-logo"></div>
     </div>
 
     <!-- 点击遮罩层（窗口打开时，点击外部关闭） -->
@@ -314,7 +314,6 @@ const closeChat = () => {
 
 const togglePin = () => {
   isPinned.value = !isPinned.value
-  localStorage.setItem(getStorageKey('pinned'), String(isPinned.value))
 }
 
 const toggleHistory = () => {
@@ -337,14 +336,12 @@ const handleSend = async () => {
 
 const handleNewSession = () => {
   store.newSession()
-  localStorage.removeItem(getStorageKey('session-id'))
   showHistory.value = false
   nextTick(() => inputRef.value?.focus())
 }
 
 const handleSwitchSession = async (sessionId: string) => {
   await store.switchSession(sessionId)
-  localStorage.setItem(getStorageKey('session-id'), sessionId)
   showHistory.value = false
   await nextTick()
   scrollToBottom()
@@ -397,15 +394,11 @@ watch(
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(145deg, #7c3aed, #6366f1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
   cursor: grab;
   box-shadow:
     0 8px 24px rgba(124, 58, 237, 0.35),
-    0 2px 8px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    0 2px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s, box-shadow 0.2s;
   user-select: none;
 }
@@ -413,17 +406,14 @@ watch(
   transform: scale(1.08);
   box-shadow:
     0 12px 32px rgba(124, 58, 237, 0.45),
-    0 4px 12px rgba(0, 0, 0, 0.15),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    0 4px 12px rgba(0, 0, 0, 0.15);
 }
 .float-ball:active { cursor: grabbing; }
 
-.ball-icon {
-  font-size: 18px;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: 1px;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.2);
+.ball-logo {
+  width: 100%;
+  height: 100%;
+  background: url(@/assets/AIFC-Logo.png) center / cover no-repeat;
 }
 
 /* ─── 对话窗口 ───────────────────────────────────────────────────────────── */

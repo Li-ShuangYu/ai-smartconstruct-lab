@@ -40,6 +40,12 @@ async function studentTrainingGuard(
 
   const phases = store.taskOverview.phases
 
+  // Ensure phases is an array before using every()
+  if (!phases || !Array.isArray(phases)) {
+    next()
+    return
+  }
+
   // 2. All phases complete → allow free access (Requirement 5.6)
   const allPhasesComplete = phases.every(p => p.is_complete)
   if (allPhasesComplete) {
@@ -129,10 +135,28 @@ const trainingRoutes = [
     meta: { title: '理论实训' }
   },
   {
+    path: '/training/student-training/theory-lab',
+    name: 'TheoryLab',
+    component: () => import('@/views/training/studentTraining/TheoryLabView.vue'),
+    meta: { title: '理论实训学习' }
+  },
+  {
+    path: '/training/student-training/theory-lab-task',
+    name: 'TheoryLabTask',
+    component: () => import('@/views/training/studentTraining/TheoryLabTask.vue'),
+    meta: { title: '理论实训课堂' }
+  },
+  {
     path: '/training/student-training/ai-teaching-ide',
     name: 'AiTeachingIDE',
     component: () => import('@/views/training/studentTraining/AiTeachingIDE.vue'),
     meta: { title: 'AI编程实训助手' }
+  },
+  {
+    path: '/training/student-training/ai-teaching-ide-task',
+    name: 'AiTeachingIDETask',
+    component: () => import('@/views/training/studentTraining/AiTeachingIDETask.vue'),
+    meta: { title: 'AI编程实训任务' }
   },
   {
     path: '/training/student-training/start-portal',

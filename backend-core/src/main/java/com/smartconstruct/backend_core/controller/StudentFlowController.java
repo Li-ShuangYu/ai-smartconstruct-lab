@@ -83,7 +83,10 @@ public class StudentFlowController {
     private BizTrainingParticipation getParticipation(Long taskId, Long studentId) {
         LambdaQueryWrapper<BizTrainingParticipation> qw = new LambdaQueryWrapper<>();
         qw.eq(BizTrainingParticipation::getTaskId, taskId)
-                .eq(BizTrainingParticipation::getStudentId, studentId);
+                .eq(BizTrainingParticipation::getStudentId, studentId)
+                .orderByDesc(BizTrainingParticipation::getId);
+        // 使用 LIMIT 1 防止同学生多条参与记录导致 TooManyResultsException
+        qw.last("LIMIT 1");
         return participationMapper.selectOne(qw);
     }
 
@@ -174,7 +177,8 @@ public class StudentFlowController {
 
         // 8. 获取当前活动状态（当前节点）
         LambdaQueryWrapper<WfStudentActivityState> stateQuery = new LambdaQueryWrapper<>();
-        stateQuery.eq(WfStudentActivityState::getParticipationId, participation.getId());
+        stateQuery.eq(WfStudentActivityState::getParticipationId, participation.getId())
+                .last("LIMIT 1");
         WfStudentActivityState activityState = studentActivityStateMapper.selectOne(stateQuery);
 
         String currentNodeInstanceId = null;
@@ -319,7 +323,8 @@ public class StudentFlowController {
 
         // 获取活动状态（当前所在节点）
         LambdaQueryWrapper<WfStudentActivityState> stateQuery = new LambdaQueryWrapper<>();
-        stateQuery.eq(WfStudentActivityState::getParticipationId, participation.getId());
+        stateQuery.eq(WfStudentActivityState::getParticipationId, participation.getId())
+                .last("LIMIT 1");
         WfStudentActivityState activityState = studentActivityStateMapper.selectOne(stateQuery);
 
         String currentNodeInstanceId = null;

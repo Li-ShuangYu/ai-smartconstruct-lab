@@ -33,52 +33,107 @@
       </header>
 
       <main class="phases-list">
-        <div
-          v-for="phase in sortedPhases"
-          :key="phase.phase_id"
-          class="phase-card"
-          :class="{
-            'phase-card--locked': !phase.is_unlocked,
-            'phase-card--complete': phase.is_complete,
-            'phase-card--active': phase.is_unlocked && !phase.is_complete
-          }"
-          @click="handlePhaseClick(phase)"
-        >
-          <div class="phase-header">
-            <div class="phase-status-icon">
-              <span v-if="phase.is_complete" class="icon-complete">✅</span>
-              <span v-else-if="!phase.is_unlocked" class="icon-locked">🔒</span>
-              <span v-else class="icon-active">▶️</span>
-            </div>
-            <div class="phase-info">
-              <h3 class="phase-name">{{ phase.phase_name }}</h3>
-              <p class="phase-stats">
-                {{ phase.completed_nodes }} / {{ phase.total_nodes }} 节点已完成
-              </p>
-            </div>
-            <div class="phase-progress-badge">
-              {{ phasePercentage(phase) }}%
+        <!-- 横向三阶段流程布局 -->
+        <div class="flow-horizontal">
+          <!-- 课前阶段 -->
+          <div class="flow-col">
+            <div class="flow-col-header">课前阶段</div>
+            <div class="flow-node-list">
+              <div v-for="node in prePhaseNodes" :key="node.node_instance_id"
+                class="flow-node"
+                :class="{ 'flow-node--done': node.status === 2 }">
+                <span class="flow-node-dot" :class="{ 'dot-done': node.status === 2 }"></span>
+                <span class="flow-node-name">{{ node.node_name }}</span>
+                <span v-if="node.status === 2" class="flow-node-check">✓</span>
+              </div>
             </div>
           </div>
 
-          <div class="phase-nodes">
-            <div
-              v-for="node in sortedNodes(phase)"
-              :key="node.node_instance_id"
-              class="node-item"
-              :class="{
-                'node-item--completed': node.status === 2,
-                'node-item--active': node.status === 1,
-                'node-item--skipped': node.status === 3
-              }"
-            >
-              <span class="node-dot" />
-              <span class="node-name">{{ node.node_name }}</span>
-              <span class="node-type-badge">{{ nodeTypeLabel(node.node_type) }}</span>
-              <span v-if="node.is_required" class="node-required">必修</span>
+          <!-- 连接线 -->
+          <div class="flow-arrow">⟶</div>
+
+          <!-- 课中阶段 -->
+          <div class="flow-col">
+            <div class="flow-col-header">课中阶段</div>
+            <div class="flow-node-list">
+              <div v-for="node in midPhaseNodes" :key="node.node_instance_id"
+                class="flow-node"
+                :class="{ 'flow-node--done': node.status === 2 }">
+                <span class="flow-node-dot" :class="{ 'dot-done': node.status === 2 }"></span>
+                <span class="flow-node-name">{{ node.node_name }}</span>
+                <span v-if="node.status === 2" class="flow-node-check">✓</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 连接线 -->
+          <div class="flow-arrow">⟶</div>
+
+          <!-- 课后阶段 -->
+          <div class="flow-col">
+            <div class="flow-col-header">课后阶段</div>
+            <div class="flow-node-list">
+              <div v-for="node in postPhaseNodes" :key="node.node_instance_id"
+                class="flow-node"
+                :class="{ 'flow-node--done': node.status === 2 }">
+                <span class="flow-node-dot" :class="{ 'dot-done': node.status === 2 }"></span>
+                <span class="flow-node-name">{{ node.node_name }}</span>
+                <span v-if="node.status === 2" class="flow-node-check">✓</span>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- 旧的阶段卡片（保留作为详情参考） -->
+        <details class="phase-details">
+          <summary class="phase-details-summary">查看阶段详情</summary>
+          <div
+            v-for="phase in sortedPhases"
+            :key="phase.phase_id"
+            class="phase-card"
+            :class="{
+              'phase-card--locked': !phase.is_unlocked,
+              'phase-card--complete': phase.is_complete,
+              'phase-card--active': phase.is_unlocked && !phase.is_complete
+            }"
+            @click="handlePhaseClick(phase)"
+          >
+            <div class="phase-header">
+              <div class="phase-status-icon">
+                <span v-if="phase.is_complete" class="icon-complete">✅</span>
+                <span v-else-if="!phase.is_unlocked" class="icon-locked">🔒</span>
+                <span v-else class="icon-active">▶️</span>
+              </div>
+              <div class="phase-info">
+                <h3 class="phase-name">{{ phase.phase_name }}</h3>
+                <p class="phase-stats">
+                  {{ phase.completed_nodes }} / {{ phase.total_nodes }} 节点已完成
+                </p>
+              </div>
+              <div class="phase-progress-badge">
+                {{ phasePercentage(phase) }}%
+              </div>
+            </div>
+
+            <div class="phase-nodes">
+              <div
+                v-for="node in sortedNodes(phase)"
+                :key="node.node_instance_id"
+                class="node-item"
+                :class="{
+                  'node-item--completed': node.status === 2,
+                  'node-item--active': node.status === 1,
+                  'node-item--skipped': node.status === 3
+                }"
+              >
+                <span class="node-dot" />
+                <span class="node-name">{{ node.node_name }}</span>
+                <span class="node-type-badge">{{ nodeTypeLabel(node.node_type) }}</span>
+                <span v-if="node.is_required" class="node-required">必修</span>
+              </div>
+            </div>
+          </div>
+        </details>
       </main>
 
       <footer class="preview-footer">
@@ -156,7 +211,6 @@ const sortedPhases = computed(() =>
   [...store.phases].sort((a, b) => a.sort_num - b.sort_num)
 )
 
-/** 节点类型标签映射 */
 const nodeTypeLabels: Record<string, string> = {
   start: '起点',
   end: '终点',
@@ -245,6 +299,24 @@ function handleContinue(): void {
   })
 }
 
+// 三阶段节点分组计算
+const prePhaseIds = ['phase_resource', 'phase_video', 'phase_mindmap_preview']
+const midPhaseIds = ['phase_theory']
+const postPhaseIds = ['phase_task', 'phase_coding', 'phase_upload', 'phase_homework']
+
+function collectNodes(phaseIds: string[]) {
+  const result: NodeInstanceProgress[] = []
+  for (const pid of phaseIds) {
+    const phase = store.phases.find(p => p.phase_id === pid)
+    if (phase) result.push(...phase.nodes.filter(n => n.node_type !== 'start' && n.node_type !== 'end'))
+  }
+  return result.sort((a, b) => a.sort_num - b.sort_num)
+}
+
+const prePhaseNodes = computed(() => collectNodes(prePhaseIds))
+const midPhaseNodes = computed(() => collectNodes(midPhaseIds))
+const postPhaseNodes = computed(() => collectNodes(postPhaseIds))
+
 /** 重试加载 */
 function handleRetry(): void {
   if (taskId.value) {
@@ -261,7 +333,7 @@ onMounted(() => {
 
 <style scoped>
 .training-preview {
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
   padding: var(--section-gap, 32px) 24px;
   min-height: calc(100vh - 64px);
@@ -340,6 +412,90 @@ onMounted(() => {
 .overall-progress {
   max-width: 400px;
   margin: 0 auto;
+}
+
+/* ── 横向流程布局 ── */
+.flow-horizontal {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 24px 0;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+.flow-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 140px;
+}
+.flow-col-header {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6366f1;
+  text-align: center;
+  padding: 8px 0;
+  border-bottom: 2px solid #e0e7ff;
+  margin-bottom: 6px;
+}
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #cbd5e1;
+  padding: 0 4px;
+  min-width: 28px;
+}
+.flow-node-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.flow-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+}
+.flow-node:hover { border-color: #c7d2fe; }
+.flow-node--done { background: #f0fdf4; border-color: #bbf7d0; }
+.flow-node-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #cbd5e1; flex-shrink: 0;
+}
+.flow-node--done .flow-node-dot { background: #22c55e; }
+.dot-done { background: #22c55e !important; }
+.flow-node-name {
+  font-size: 13px; font-weight: 500; color: #475569; flex: 1; white-space: nowrap;
+}
+.flow-node--done .flow-node-name { color: #16a34a; }
+.flow-node-check { font-size: 13px; color: #22c55e; font-weight: 700; }
+
+/* ── 阶段详情（折叠） ── */
+.phase-details {
+  margin-top: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: #ffffff;
+}
+.phase-details-summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  user-select: none;
+}
+.phase-details[open] .phase-details-summary {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 /* 阶段列表 */

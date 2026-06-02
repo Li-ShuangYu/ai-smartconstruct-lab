@@ -13,42 +13,46 @@
     </div>
 
     <n-spin :show="loading">
-      <!-- 我的课程 -->
-      <n-grid v-if="activeTab === 'my' && courses.length > 0" :x-gap="16" :y-gap="16" cols="1 s:2 m:3 l:4" responsive="screen">
-        <n-gi v-for="crs in courses" :key="crs.id">
-          <n-card :title="crs.courseName" size="small" hoverable>
-            <template #header-extra><n-tag v-if="crs.needEnrollCode === 1" type="warning" size="small">🔐 需选课码</n-tag></template>
-            <p class="course-teacher">授课教师：{{ crs.teacherName || '-' }}</p>
-            <p class="course-desc">{{ crs.description || '暂无简介' }}</p>
-            <template #footer>
-              <n-space>
-                <n-button size="small" @click="showDetail(crs)">查看详情</n-button>
-                <n-button size="small" @click="openCourseStudents(crs)">课程成员</n-button>
-              </n-space>
-            </template>
-          </n-card>
-        </n-gi>
-      </n-grid>
+      <div class="courses-container" :class="activeTab">
+        <!-- 我的课程 -->
+        <n-grid v-show="activeTab === 'my'" :x-gap="16" :y-gap="16" cols="1 s:2 m:3 l:4" responsive="screen">
+          <n-gi v-for="crs in myCourses" :key="'my-' + crs.id">
+            <n-card :title="crs.courseName" size="small" hoverable class="course-card">
+              <template #header-extra><n-tag v-if="crs.needEnrollCode === 1" type="warning" size="small">🔐 需选课码</n-tag></template>
+              <p class="course-teacher">授课教师：{{ crs.teacherName || '-' }}</p>
+              <p class="course-desc">{{ crs.description || '暂无简介' }}</p>
+              <template #footer>
+                <n-space>
+                  <n-button size="small" @click="showDetail(crs)">查看详情</n-button>
+                  <n-button size="small" @click="openCourseStudents(crs)">课程成员</n-button>
+                </n-space>
+              </template>
+            </n-card>
+          </n-gi>
+        </n-grid>
 
-      <!-- 选课大厅 -->
-      <n-grid v-if="activeTab === 'enroll' && courses.length > 0" :x-gap="16" :y-gap="16" cols="1 s:2 m:3 l:4" responsive="screen">
-        <n-gi v-for="crs in courses" :key="crs.id">
-          <n-card :title="crs.courseName" size="small" hoverable>
-            <template #header-extra><n-tag v-if="crs.needEnrollCode === 1" type="warning" size="small">🔐 需选课码</n-tag></template>
-            <p class="course-teacher">授课教师：{{ crs.teacherName || '-' }}</p>
-            <p class="course-desc">{{ crs.description || '暂无简介' }}</p>
-            <template #footer>
-              <n-button v-if="(crs as any).isEnrolled" block disabled secondary>已加入</n-button>
-              <n-button v-else block type="primary" @click="handleEnroll(crs as any)">加入课程</n-button>
-            </template>
-          </n-card>
-        </n-gi>
-      </n-grid>
-      <n-empty v-if="!loading && courses.length === 0" description="暂无课程" style="padding: 80px 0" />
+        <!-- 选课大厅 -->
+        <n-grid v-show="activeTab === 'enroll'" :x-gap="16" :y-gap="16" cols="1 s:2 m:3 l:4" responsive="screen">
+          <n-gi v-for="crs in availableCourses" :key="'avail-' + crs.id">
+            <n-card :title="crs.courseName" size="small" hoverable class="course-card">
+              <template #header-extra><n-tag v-if="crs.needEnrollCode === 1" type="warning" size="small">🔐 需选课码</n-tag></template>
+              <p class="course-teacher">授课教师：{{ crs.teacherName || '-' }}</p>
+              <p class="course-desc">{{ crs.description || '暂无简介' }}</p>
+              <template #footer>
+                <n-button v-if="(crs as any).isEnrolled" block disabled secondary>已加入</n-button>
+                <n-button v-else block type="primary" @click="handleEnroll(crs as any)">加入课程</n-button>
+              </template>
+            </n-card>
+          </n-gi>
+        </n-grid>
+        
+        <n-empty v-if="!loading && activeTab === 'my' && myCourses.length === 0" description="暂无课程" style="padding: 80px 0" />
+        <n-empty v-if="!loading && activeTab === 'enroll' && availableCourses.length === 0" description="暂无可选课程" style="padding: 80px 0" />
+      </div>
     </n-spin>
 
-    <div v-if="total > 0" class="pagination-wrap">
-      <n-pagination v-model:page="page" :page-size="pageSize" :item-count="total" :page-sizes="[8,12,16,20]" show-size-picker @update:page="loadCourses" @update:page-size="handleSizeChange" />
+    <div v-if="(activeTab === 'my' && myTotal > 0) || (activeTab === 'enroll' && availableTotal > 0)" class="pagination-wrap">
+      <n-pagination v-model:page="page" :page-size="pageSize" :item-count="activeTab === 'my' ? myTotal : availableTotal" :page-sizes="[8,12,16,20]" show-size-picker @update:page="loadCourses" @update:page-size="handleSizeChange" />
     </div>
 
     <!-- 选课码弹窗 -->
@@ -82,8 +86,9 @@ import { getAvailableCourses, enrollCourse, getMyCourses } from '@/services/modu
 import { getCourseStudents } from '@/services/modules/teacher-dashboard.service'
 
 const message = useMessage(); const loading = ref(false); const enrolling = ref(false)
-const activeTab = ref('my'); const courses = ref<any[]>([])
-const page = ref(1); const pageSize = ref(8); const total = ref(0); const keyword = ref('')
+const activeTab = ref('my'); const myCourses = ref<any[]>([]); const availableCourses = ref<any[]>([])
+const myTotal = ref(0); const availableTotal = ref(0)
+const page = ref(1); const pageSize = ref(8); const keyword = ref('')
 const enrollFormRef = ref(); let searchTimer: any
 const enrollModal = ref({ show:false, code:'', courseId:'' as string })
 const enrollRules: FormRules = { code:[{required:true,message:'请输入选课码'}] }
@@ -101,10 +106,10 @@ async function loadCourses() {
   try {
     if (activeTab.value === 'my') {
       const r = await getMyCourses(page.value, pageSize.value)
-      if (r.code === 200) { courses.value = r.data.records; total.value = r.data.total }
+      if (r.code === 200) { myCourses.value = r.data.records; myTotal.value = r.data.total }
     } else {
       const r = await getAvailableCourses(page.value, pageSize.value, keyword.value || undefined)
-      if (r.code === 200) { courses.value = r.data.records; total.value = r.data.total }
+      if (r.code === 200) { availableCourses.value = r.data.records; availableTotal.value = r.data.total }
     }
   } finally { loading.value = false }
 }

@@ -80,8 +80,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { NSpin, useMessage } from 'naive-ui'
-import { getTaskOverview } from '@/services/modules/studentTraining.service'
-import { resetTraining } from '@/services/modules/studentTraining.service'
+import { getTaskOverview, resetTraining, startTraining } from '@/services/modules/studentTraining.service'
+import { useStudentFlowStore } from '@/stores/modules/studentFlow.store'
 import type { StudentTaskOverview, PhaseProgress } from '@/services/types/studentTraining'
 
 const route = useRoute()
@@ -93,6 +93,7 @@ const overview = ref<StudentTaskOverview | null>(null)
 const resetting = ref(false)
 
 const message = useMessage()
+const flowStore = useStudentFlowStore()
 
 const taskId = computed(() => {
   const raw = route.params.taskId
@@ -148,15 +149,22 @@ async function loadSummary(): Promise<void> {
 async function handleRestart(): Promise<void> {
   resetting.value = true
   try {
-    const res = await resetTraining(taskId.value)
-    if (res.code === 200) {
-      message.success('实训已重置，正在重新进入...')
+    const resetRes = await resetTraining(taskId.value)
+    if (resetRes.code !== 200) {
+      message.error(resetRes.message || '重置失败')
+      return
+    }
+
+    flowStore.reset()
+    const startRes = await startTraining(taskId.value)
+    if (startRes.code === 200) {
+      message.success('实训已重新开始，正在进入...')
       router.push(`/student/training/${taskId.value}/execute`)
     } else {
-      message.error(res.message || '重置失败')
+      message.error(startRes.message || '开始实训失败')
     }
   } catch {
-    message.error('重置请求失败，请重试')
+    message.error('重新开始请求失败，请重试')
   } finally {
     resetting.value = false
   }

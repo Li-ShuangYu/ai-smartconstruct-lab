@@ -1,5 +1,6 @@
 import http from '@/services/api'
 import type { ApiResult } from '@/services/types/auth.types'
+import type { CodeTask, CodeRunRequest, CodeRunResponse, TheoryTask } from '@/services/types/training.types'
 
 /**
  * 实训状态接口
@@ -90,3 +91,34 @@ export interface InClassState {
  */
 export const getInClassState = (taskId: number) =>
   http.get<ApiResult<InClassState>>(`/api/student/training/in-class/${taskId}/current-state`).then(r => r.data)
+
+// ─── 编码实训任务接口 ───────────────────────────────────────────────────────────
+
+/**
+ * 获取编码实训任务数据
+ *
+ * @param taskId 任务ID
+ * @returns 编码实训任务详情
+ */
+export const getCodeTask = (taskId: string) =>
+  http.get<ApiResult<CodeTask>>(`/api/training/code-task/${taskId}`).then(r => r.data)
+
+/**
+ * 执行代码
+ *
+ * @param data 代码执行请求参数
+ * @returns 代码执行结果
+ */
+export const runCode = (data: CodeRunRequest) =>
+  http.post<ApiResult<CodeRunResponse>>('/api/code/run', data).then(r => r.data)
+
+// ─── 理论实训任务接口 ───────────────────────────────────────────────────────────
+
+/**
+ * 获取理论实训任务数据
+ *
+ * @param taskId 任务ID
+ * @returns 理论实训任务详情
+ */
+export const getTheoryTask = (taskId: string) =>
+  http.get<ApiResult<TheoryTask>>(`/api/training/theory-task/${taskId}`).then(r => r.data)

@@ -36,16 +36,63 @@
         能力雷达图
       </h2>
       <div class="summary-report__radar">
-        <div class="summary-report__radar-placeholder">
-          <svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-              d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-              d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+        <div class="summary-report__radar-chart">
+          <svg viewBox="-10 -10 220 220" class="summary-report__radar-svg">
+            <g v-for="(point, i) in axisPoints" :key="'axis-' + i">
+              <line
+                :x1="center"
+                :y1="center"
+                :x2="point.x"
+                :y2="point.y"
+                stroke="#e2e8f0"
+                stroke-width="1"
+              />
+            </g>
+            <polygon
+              v-for="level in gridLevels"
+              :key="'grid-' + level"
+              :points="getGridPolygon(level)"
+              fill="none"
+              stroke="#f1f5f9"
+              stroke-width="1"
+            />
+            <polygon
+              :points="dataPolygon"
+              fill="rgba(99, 102, 241, 0.2)"
+              stroke="#6366f1"
+              stroke-width="2"
+            />
+            <circle
+              v-for="(point, i) in dataPoints"
+              :key="'point-' + i"
+              :cx="point.x"
+              :cy="point.y"
+              r="4"
+              fill="#4f46e5"
+            />
+            <text
+              v-for="(label, i) in dimLabels"
+              :key="'label-' + i"
+              :x="labelPoints[i]?.x ?? 0"
+              :y="labelPoints[i]?.y ?? 0"
+              text-anchor="middle"
+              dominant-baseline="middle"
+              class="summary-report__radar-label"
+            >
+              {{ label }}
+            </text>
+            <text
+              v-for="(score, i) in dimScores"
+              :key="'value-' + i"
+              :x="dataPoints[i]?.x ?? 0"
+              :y="(dataPoints[i]?.y ?? 0) + 14"
+              text-anchor="middle"
+              class="summary-report__radar-value"
+            >
+              {{ score }}
+            </text>
           </svg>
-          <p>雷达图渲染区域</p>
         </div>
-        <!-- Dimension scores list -->
         <div class="summary-report__dimensions">
           <div
             v-for="dim in abilityDimensions"
@@ -139,13 +186,15 @@
 
     <!-- Complete Button -->
     <div class="summary-report__actions">
-      <button class="summary-report__complete-btn" @click="handleCompleteAction">实训完成，进入下一阶段</button>
+      <button class="summary-report__complete-btn" @click="handleCompleteAction">返回工作台</button>
+      <button class="summary-report__reset-btn" @click="handleReset">重新实训</button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 
 interface AbilityDimension {
   name: string
@@ -175,13 +224,71 @@ interface SummaryConfig {
 }
 
 const props = defineProps<{
-  nodeInstanceId: number
-  nodeConfig: SummaryConfig
+  taskId?: string | number
+  nodeInstanceId?: string | number | null
+  nodeConfig?: SummaryConfig
 }>()
 
 const emit = defineEmits<{
   complete: []
+  reset: []
 }>()
+
+const router = useRouter()
+
+const center = 100
+const radius = 85
+
+function getAxisPoint(index: number, total: number, r: number = radius) {
+  const angle = (Math.PI * 2 * index) / total - Math.PI / 2
+  return {
+    x: center + r * Math.cos(angle),
+    y: center + r * Math.sin(angle)
+  }
+}
+
+const axisPoints = computed(() => {
+  const total = abilityDimensions.value.length || 6
+  return abilityDimensions.value.map((_, i) => getAxisPoint(i, total))
+})
+
+const labelPoints = computed(() => {
+  const total = abilityDimensions.value.length || 6
+  return abilityDimensions.value.map((_, i) => getAxisPoint(i, total, radius + 18))
+})
+
+const gridLevels = computed(() => [25, 50, 75, 100])
+
+const levelPoints = computed(() => {
+  const total = abilityDimensions.value.length || 6
+  return [25, 50, 75, 100].map(level => {
+    const r = (level / 100) * radius
+    return abilityDimensions.value.map((_, i) => getAxisPoint(i, total, r))
+  })
+})
+
+function getGridPolygon(level: number): string {
+  const total = abilityDimensions.value.length || 6
+  const r = (level / 100) * radius
+  const points = abilityDimensions.value.map((_, i) => getAxisPoint(i, total, r))
+  return points.map(p => `${p.x},${p.y}`).join(' ')
+}
+
+const dimScores = computed(() => abilityDimensions.value.map(d => d.score))
+
+const dataPoints = computed(() => {
+  const total = abilityDimensions.value.length || 6
+  return abilityDimensions.value.map((dim) => {
+    const r = ((dim.score ?? 0) / 100) * radius
+    return getAxisPoint(abilityDimensions.value.indexOf(dim), total, r)
+  })
+})
+
+const dataPolygon = computed(() => {
+  return dataPoints.value.map(p => `${p.x},${p.y}`).join(' ')
+})
+
+const dimLabels = computed(() => abilityDimensions.value.map(d => d.name.substring(0, 4)))
 
 /** AI report text */
 const aiReport = computed<string>(() =>
@@ -192,12 +299,12 @@ const aiReport = computed<string>(() =>
 /** Ability dimensions for radar chart */
 const abilityDimensions = computed<AbilityDimension[]>(() =>
   props.nodeConfig?.ability_dimensions ?? [
-    { name: '编码能力', score: 85 },
-    { name: '逻辑思维', score: 78 },
-    { name: '知识掌握', score: 92 },
-    { name: '协作能力', score: 70 },
-    { name: '创新思维', score: 65 },
-    { name: '文档能力', score: 80 }
+    { name: '编码能力', score: 88 },
+    { name: '逻辑思维', score: 82 },
+    { name: '知识掌握', score: 95 },
+    { name: '协作能力', score: 76 },
+    { name: '创新思维', score: 70 },
+    { name: '文档能力', score: 85 }
   ]
 )
 
@@ -240,7 +347,11 @@ function handleSurveySubmit() {
 }
 
 function handleCompleteAction() {
-  emit('complete')
+  router.push('/student/workbench')
+}
+
+function handleReset() {
+  emit('reset')
 }
 </script>
 
@@ -249,14 +360,22 @@ function handleCompleteAction() {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg, 1.5rem);
-  padding: var(--spacing-lg, 1.5rem);
+  padding: clamp(1rem, 2vw, 2rem);
   height: 100%;
   overflow-y: auto;
+  box-sizing: border-box;
+  background:
+    linear-gradient(180deg, var(--color-primary-50, #eef2ff) 0%, rgba(248, 250, 252, 0) 260px),
+    var(--color-background, #f8fafc);
 }
 
 .summary-report__header {
   text-align: center;
-  padding: var(--spacing-lg, 1.5rem) 0;
+  padding: clamp(1.25rem, 3vw, 2.25rem) var(--spacing-md, 1rem);
+  background: var(--color-white, #ffffff);
+  border: 1px solid var(--color-primary-100, #e0e7ff);
+  border-radius: var(--radius-lg, 0.75rem);
+  box-shadow: 0 12px 32px -24px rgba(79, 70, 229, 0.45);
 }
 
 .summary-report__badge-icon {
@@ -269,17 +388,21 @@ function handleCompleteAction() {
   background: linear-gradient(135deg, #fef3c7, #fde68a);
   color: var(--color-amber-600, #d97706);
   margin-bottom: 0.75rem;
+  box-shadow: 0 10px 24px -14px rgba(217, 119, 6, 0.55);
 }
 
 .summary-report__title {
-  font-size: 1.5rem;
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
   font-weight: 800;
   color: var(--color-gray-800, #1e293b);
-  margin-bottom: 0.5rem;
+  margin: 0 0 0.5rem;
 }
 
 .summary-report__subtitle {
-  font-size: 0.875rem;
+  max-width: 560px;
+  margin: 0 auto;
+  font-size: 0.95rem;
+  line-height: 1.7;
   color: var(--color-gray-500, #64748b);
 }
 
@@ -289,6 +412,7 @@ function handleCompleteAction() {
   border: 1px solid var(--color-gray-100, #f1f5f9);
   border-radius: var(--radius-lg, 0.75rem);
   padding: var(--spacing-md, 1rem) var(--spacing-lg, 1.5rem);
+  box-shadow: 0 10px 28px -24px rgba(15, 23, 42, 0.35);
 }
 
 .summary-report__section-title {
@@ -299,6 +423,19 @@ function handleCompleteAction() {
   font-weight: 700;
   color: var(--color-gray-800, #1e293b);
   margin-bottom: var(--spacing-md, 1rem);
+  min-width: 0;
+}
+
+.summary-report__section-title svg,
+.summary-report__badge-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+.summary-report__badge-icon svg {
+  width: 2rem;
+  height: 2rem;
 }
 
 /* AI Report */
@@ -320,26 +457,37 @@ function handleCompleteAction() {
   display: flex;
   gap: var(--spacing-lg, 1.5rem);
   align-items: flex-start;
+  min-width: 0;
 }
 
-.summary-report__radar-placeholder {
-  width: 200px;
-  height: 200px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background: var(--color-gray-50, #f8fafc);
-  border: 1px dashed var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-md, 0.5rem);
-  color: var(--color-gray-400, #94a3b8);
-  font-size: 0.75rem;
+.summary-report__radar-chart {
+  width: 220px;
+  height: 220px;
   flex-shrink: 0;
+  position: relative;
+}
+
+.summary-report__radar-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.summary-report__radar-label {
+  font-size: 0.6875rem;
+  fill: var(--color-gray-600, #475569);
+  font-weight: 500;
+}
+
+.summary-report__radar-value {
+  font-size: 0.625rem;
+  fill: var(--color-primary-600, #4f46e5);
+  font-weight: 600;
 }
 
 .summary-report__dimensions {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
@@ -502,12 +650,19 @@ function handleCompleteAction() {
 }
 
 .summary-report__actions {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
   padding: 16px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .summary-report__complete-btn {
-  padding: 12px 48px;
+  min-width: min(220px, 100%);
+  max-width: 100%;
+  padding: 12px 32px;
   font-size: 15px;
   font-weight: 600;
   color: white;
@@ -518,5 +673,45 @@ function handleCompleteAction() {
 }
 .summary-report__complete-btn:hover {
   box-shadow: 0 4px 12px -2px rgba(16, 185, 129, 0.4);
+}
+
+.summary-report__reset-btn {
+  min-width: min(220px, 100%);
+  max-width: 100%;
+  padding: 12px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #6366f1;
+  background: #ffffff;
+  border: 2px solid #6366f1;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.summary-report__reset-btn:hover {
+  background: #eef2ff;
+  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.4);
+}
+
+@media (max-width: 760px) {
+  .summary-report__radar {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .summary-report__dimensions {
+    width: 100%;
+  }
+
+  .summary-report__survey-item {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .summary-report__complete-btn,
+  .summary-report__reset-btn {
+    width: 100%;
+  }
 }
 </style>

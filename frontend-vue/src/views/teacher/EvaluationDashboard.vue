@@ -5,40 +5,45 @@
         <h1 class="panel-main-title">实训评价记录</h1>
         <p class="subtitle">全量实训考核结果与多维数据统计</p>
       </div>
-   <div class="filter-area">
-            <input type="text" v-model="searchQuery" placeholder="搜索项目名称..." class="search-input" />
-          </div>
+      <div class="filter-area">
+        <input type="text" v-model="searchQuery" placeholder="搜索项目名称..." class="search-input" />
+      </div>
     </header>
 
     <main class="evaluation-content">
       <section class="project-section">
- 
-
         <div class="project-grid">
           <div v-for="item in filteredProjects" :key="item.id" class="project-card">
             <div class="card-top">
-              <span class="project-tag">{{ item.category }}</span>
-              <span class="project-date">{{ item.date }}</span>
+              <span class="project-tag">{{ item.templateName || '实训项目' }}</span>
+              <span class="project-date">{{ formatDate(item.createdAt) }}</span>
             </div>
-            <h4 class="project-name">{{ item.name }}</h4>
+            <h4 class="project-name">{{ item.taskName }}</h4>
             <div class="project-metrics">
               <div class="metric">
-                <span class="m-label">平均分</span>
-                <span class="m-value">{{ item.avgScore }}</span>
+                <span class="m-label">状态</span>
+                <span class="m-value status">{{ statusLabel(item.status) }}</span>
               </div>
               <div class="metric">
-                <span class="m-label">完成率</span>
-                <span class="m-value">{{ item.completion }}%</span>
+                <span class="m-label">范围</span>
+                <span class="m-value">{{ scopeLabel(item.dispatchScope) }}</span>
               </div>
             </div>
             <div class="skill-tags">
-              <span v-for="skill in item.skills" :key="skill" class="skill-tag">{{ skill }}</span>
+              <span v-if="item.dispatchTargetName" class="skill-tag">{{ item.dispatchTargetName }}</span>
+              <span v-if="item.hasGroup === 1" class="skill-tag">分组实训</span>
+              <span v-if="item.isInClass === 1" class="skill-tag">课堂模式</span>
             </div>
             <button class="view-detail-btn" @click="handleDetail(item)">查看详细报告</button>
           </div>
         </div>
 
-        <div v-if="filteredProjects.length === 0" class="empty-state">
+        <div v-if="loading" class="loading-state">
+          <div class="loading-spinner"></div>
+          <span>加载中...</span>
+        </div>
+
+        <div v-else-if="filteredProjects.length === 0" class="empty-state">
           未找到相关实训项目记录
         </div>
       </section>
@@ -47,33 +52,71 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getTrainingTasks } from '@/services/modules/teacher-dashboard.service'
+import type { TrainingTaskItem } from '@/services/types/dashboard.types'
 
 const router = useRouter()
 const searchQuery = ref('')
-
-// 模拟实训项目数据
-const evaluatedProjects = ref([
-  { id: 1, name: '无人机通信抗重放攻击实训', category: '通信安全', date: '2026-04-10', avgScore: 92.4, completion: 100, skills: ['SM4', '时间戳验证', '防重放'] },
-  { id: 2, name: '国密算法 SM3 杂凑分析演练', category: '密码基础', date: '2026-04-12', avgScore: 85.1, completion: 98, skills: ['SM3', '碰撞性分析'] },
-  { id: 3, name: 'PQC 后量子签名算法实操', category: '前沿技术', date: '2026-04-15', avgScore: 78.6, completion: 85, skills: ['Dilithium', '抗量子计算'] },
-  { id: 4, name: '端对端加密即时通讯设计', category: '系统集成', date: '2026-04-18', avgScore: 89.2, completion: 92, skills: ['密钥交换', '协议设计'] },
-  { id: 5, name: 'SM2 公钥密码身份认证方案', category: '身份鉴别', date: '2026-04-20', avgScore: 91.5, completion: 100, skills: ['SM2', '数字签名'] },
-  { id: 6, name: '随机数发生器安全性检测', category: '算法验证', date: '2026-04-22', avgScore: 88.0, completion: 95, skills: ['NIST测试', '熵源分析'] }
-])
+const loading = ref(false)
+const evaluatedProjects = ref<TrainingTaskItem[]>([])
 
 // 搜索过滤逻辑
 const filteredProjects = computed(() => {
   return evaluatedProjects.value.filter(p => 
-    p.name.includes(searchQuery.value) || p.category.includes(searchQuery.value)
+    p.taskName.includes(searchQuery.value) || 
+    (p.templateName && p.templateName.includes(searchQuery.value))
   )
-  
 })
 
-const handleDetail = (item: any) => {
-  router.push(`/teacher/class-competency/${item.id}`)
+function statusLabel(status: number): string {
+  const map: Record<number, string> = {
+    0: '未开始',
+    1: '进行中',
+    2: '已结束'
+  }
+  return map[status] || '未知'
 }
+
+function scopeLabel(scope?: number): string {
+  const map: Record<number, string> = {
+    1: '班级',
+    2: '课程'
+  }
+  return map[scope || 0] || '未知'
+}
+
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
+const handleDetail = (item: TrainingTaskItem) => {
+  router.push({
+    path: '/training/teacher-training/summary-report',
+    query: { taskId: String(item.id) }
+  })
+}
+
+async function loadProjects() {
+  loading.value = true
+  try {
+    const result = await getTrainingTasks(1, 50)
+    if (result.code === 200 && result.data) {
+      evaluatedProjects.value = result.data.records || []
+    }
+  } catch (error) {
+    console.error('加载实训项目失败:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadProjects()
+})
 </script>
 
 <style scoped>
@@ -266,5 +309,29 @@ const handleDetail = (item: any) => {
   padding: 80px 0;
   color: #94A3B8;
   font-weight: 500;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 80px 0;
+  color: #94A3B8;
+  font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #E2E8F0;
+  border-top-color: #4F46E5;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

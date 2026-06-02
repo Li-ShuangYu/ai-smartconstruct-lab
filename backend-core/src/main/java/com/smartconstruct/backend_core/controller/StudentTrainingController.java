@@ -109,7 +109,8 @@ public class StudentTrainingController {
             pt = participationService.getOne(
                     new LambdaQueryWrapper<BizTrainingParticipation>()
                             .eq(BizTrainingParticipation::getTaskId, taskId)
-                            .eq(BizTrainingParticipation::getStudentId, studentId));
+                            .eq(BizTrainingParticipation::getStudentId, studentId)
+                            .orderByDesc(BizTrainingParticipation::getId));
         } catch (Exception e) {
             log.error("查询参与记录失败 taskId={} studentId={}", taskId, studentId, e);
             return ApiResult.error("查询参与记录失败");
@@ -284,7 +285,8 @@ public class StudentTrainingController {
         BizTrainingParticipation participation = participationService.getOne(
                 new LambdaQueryWrapper<BizTrainingParticipation>()
                         .eq(BizTrainingParticipation::getTaskId, taskId)
-                        .eq(BizTrainingParticipation::getStudentId, studentId));
+                        .eq(BizTrainingParticipation::getStudentId, studentId)
+                        .orderByDesc(BizTrainingParticipation::getId));
         if (participation == null) {
             return ApiResult.error(404, "PARTICIPATION_NOT_FOUND", "您未参与该实训任务");
         }
@@ -481,11 +483,38 @@ public class StudentTrainingController {
     public ApiResult<Map<String, Object>> resetTraining(@PathVariable Long taskId) {
         Long studentId = getCurrentUserId();
 
-        // 查找学生的 Participation 记录
+        // 查找学生的 Participation 记录（最新一条）
         BizTrainingParticipation participation = participationService.getOne(
                 new LambdaQueryWrapper<BizTrainingParticipation>()
                         .eq(BizTrainingParticipation::getTaskId, taskId)
-                        .eq(BizTrainingParticipation::getStudentId, studentId));
+                        .eq(BizTrainingParticipation::getStudentId, studentId)
+                        .orderByDesc(BizTrainingParticipation::getId));
+
+        // 0. 清理该 (taskId, studentId) 下所有重复的 participation 记录，只保留最新一条
+        // 这能修复因历史原因导致的重复记录问题
+        List<BizTrainingParticipation> allParticipations = participationService.list(
+                new LambdaQueryWrapper<BizTrainingParticipation>()
+                        .eq(BizTrainingParticipation::getTaskId, taskId)
+                        .eq(BizTrainingParticipation::getStudentId, studentId)
+                        .orderByDesc(BizTrainingParticipation::getId));
+        if (allParticipations.size() > 1) {
+            Long latestId = allParticipations.get(0).getId();
+            for (int i = 1; i < allParticipations.size(); i++) {
+                BizTrainingParticipation old = allParticipations.get(i);
+                // 先删除关联的子记录
+                studentNodeProgressMapper.delete(
+                        new LambdaQueryWrapper<WfStudentNodeProgress>()
+                                .eq(WfStudentNodeProgress::getParticipationId, old.getId()));
+                activityStateService.remove(
+                        new LambdaQueryWrapper<WfStudentActivityState>()
+                                .eq(WfStudentActivityState::getParticipationId, old.getId()));
+                participationService.removeById(old.getId());
+                log.info("清理重复的 participation 记录: id={}", old.getId());
+            }
+            // 重新查询最新的
+            participation = participationService.getById(latestId);
+        }
+
         if (participation == null) {
             return ApiResult.error(404, "PARTICIPATION_NOT_FOUND", "您未参与该实训任务");
         }
@@ -552,7 +581,8 @@ public class StudentTrainingController {
         BizTrainingParticipation participation = participationService.getOne(
                 new LambdaQueryWrapper<BizTrainingParticipation>()
                         .eq(BizTrainingParticipation::getTaskId, nodeInstance.getTaskId())
-                        .eq(BizTrainingParticipation::getStudentId, studentId));
+                        .eq(BizTrainingParticipation::getStudentId, studentId)
+                        .orderByDesc(BizTrainingParticipation::getId));
         return participation != null ? participation.getId() : null;
     }
 

@@ -86,10 +86,12 @@ public class PhaseExecutionServiceImpl implements IPhaseExecutionService {
             return true;
         }
 
-        // 3. 查找该学生在此任务中的参与记录
+        // 3. 查找该学生在此任务中的参与记录（orderByDesc + LIMIT 1 取最新记录）
         LambdaQueryWrapper<BizTrainingParticipation> participationQuery = new LambdaQueryWrapper<>();
         participationQuery.eq(BizTrainingParticipation::getTaskId, taskId)
-                .eq(BizTrainingParticipation::getStudentId, studentId);
+                .eq(BizTrainingParticipation::getStudentId, studentId)
+                .orderByDesc(BizTrainingParticipation::getId)
+                .last("LIMIT 1");
         BizTrainingParticipation participation = participationMapper.selectOne(participationQuery);
 
         if (participation == null) {
@@ -282,7 +284,8 @@ public class PhaseExecutionServiceImpl implements IPhaseExecutionService {
 
         // 4. Update wf_student_activity_state: set current_node_instance_id
         LambdaQueryWrapper<WfStudentActivityState> stateQuery = new LambdaQueryWrapper<>();
-        stateQuery.eq(WfStudentActivityState::getParticipationId, participationId);
+        stateQuery.eq(WfStudentActivityState::getParticipationId, participationId)
+                .last("LIMIT 1");
         WfStudentActivityState activityState = studentActivityStateMapper.selectOne(stateQuery);
 
         if (activityState == null) {
@@ -349,7 +352,8 @@ public class PhaseExecutionServiceImpl implements IPhaseExecutionService {
 
         // 8. Update wf_student_activity_state: set current_node_instance_id to null
         LambdaQueryWrapper<WfStudentActivityState> stateQuery = new LambdaQueryWrapper<>();
-        stateQuery.eq(WfStudentActivityState::getParticipationId, participationId);
+        stateQuery.eq(WfStudentActivityState::getParticipationId, participationId)
+                .last("LIMIT 1");
         WfStudentActivityState activityState = studentActivityStateMapper.selectOne(stateQuery);
 
         if (activityState != null) {

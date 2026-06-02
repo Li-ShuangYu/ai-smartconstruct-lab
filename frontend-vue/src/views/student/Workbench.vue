@@ -13,7 +13,7 @@
           <div v-for="tab in tabs" :key="tab.key" class="nav-item" :class="{ active: activeTab === tab.key }" @click="switchTab(tab.key)">{{ tab.label }}</div>
         </div>
         <div class="nav-right-stats">
-          <span>进行中 <b>{{ stats.ongoing }}</b></span>
+          <span>进行中 <b>{{ stats.ongoing + 2 }}</b></span>
           <span class="divider">|</span>
           <span>已完成 <b>{{ stats.ended }}</b></span>
         </div>
@@ -63,6 +63,45 @@
               </div>
             </footer>
           </div>
+
+          <div class="glass-card self-study-card" @click="goToSelfCoding">
+            <div class="card-top">
+              <span class="course-tag">自主实训</span>
+              <span class="status-badge ongoing">进行中</span>
+            </div>
+            <h3 class="card-title">自主编程实训任务</h3>
+            <div class="card-desc">Python 算法与编程练习</div>
+            <div class="progress-section">
+              <div class="progress-bar">
+                <div class="progress-bar__fill" style="width: 0%"></div>
+              </div>
+              <span class="progress-text">0%</span>
+            </div>
+            <footer class="card-actions">
+              <span class="deadline">📚 随时学习</span>
+              <button class="mini-btn mini-btn--success">开始学习</button>
+            </footer>
+          </div>
+
+          <div class="glass-card self-study-card" @click="goToSelfTheory">
+            <div class="card-top">
+              <span class="course-tag">自主实训</span>
+              <span class="status-badge ongoing">进行中</span>
+            </div>
+            <h3 class="card-title">自主理论实训任务</h3>
+            <div class="card-desc">计算机基础理论知识</div>
+            <div class="progress-section">
+              <div class="progress-bar">
+                <div class="progress-bar__fill" style="width: 0%"></div>
+              </div>
+              <span class="progress-text">0%</span>
+            </div>
+            <footer class="card-actions">
+              <span class="deadline">📚 随时学习</span>
+              <button class="mini-btn mini-btn--success">开始学习</button>
+            </footer>
+          </div>
+
           <div v-if="!loading && tasks.length === 0" class="empty-state">暂无实训任务</div>
         </main>
       </n-spin>
@@ -89,12 +128,14 @@ import { NPagination, NSpin, useMessage } from 'naive-ui'
 import { getStudentTrainingTasks } from '@/services/modules/student-dashboard.service'
 import { getProfile } from '@/services/modules/student-dashboard.service'
 import { startTraining, getTaskOverview, resetTraining } from '@/services/modules/studentTraining.service'
+import { useStudentFlowStore } from '@/stores/modules/studentFlow.store'
 import type { StudentTrainingTask, StudentProfile } from '@/services/types/dashboard.types'
 
 const loading = ref(false)
 const actionLoading = ref<number | null>(null)
 const router = useRouter()
 const message = useMessage()
+const flowStore = useStudentFlowStore()
 const profile = ref<StudentProfile>({ userId: 0, username: '' })
 const tasks = ref<StudentTrainingTask[]>([])
 const activeTab = ref('all')
@@ -131,13 +172,13 @@ function statusClass(s: number): string {
 function actionBtnClass(s: number): string {
   if (s === 0) return 'mini-btn--primary'
   if (s === 1) return 'mini-btn--success'
-  return 'mini-btn--default'
+  return 'mini-btn--primary'
 }
 
 function actionLabel(item: StudentTrainingTask): string {
   if (item.status === 0) return '开始实训'
   if (item.status === 1) return '继续实训'
-  return '查看总结'
+  return '重新开始'
 }
 
 function formatTime(t?: string): string {
@@ -222,8 +263,7 @@ async function handleAction(item: StudentTrainingTask): Promise<void> {
     // 进行中：恢复到上次中断位置（路由守卫会处理位置恢复）
     router.push(`/student/training/${item.id}/execute`)
   } else {
-    // 已完成：查看总结页面
-    router.push(`/student/training/${item.id}/summary`)
+    await handleRestart(item)
   }
 }
 
@@ -231,15 +271,22 @@ async function handleAction(item: StudentTrainingTask): Promise<void> {
 async function handleRestart(item: StudentTrainingTask): Promise<void> {
   actionLoading.value = item.id
   try {
-    const res = await resetTraining(item.id)
-    if (res.code === 200) {
-      message.success('实训已重置，正在重新进入...')
+    const resetRes = await resetTraining(item.id)
+    if (resetRes.code !== 200) {
+      message.error(resetRes.message || '重置失败')
+      return
+    }
+
+    flowStore.reset()
+    const startRes = await startTraining(item.id)
+    if (startRes.code === 200) {
+      message.success('实训已重新开始，正在进入...')
       router.push(`/student/training/${item.id}/execute`)
     } else {
-      message.error(res.message || '重置失败')
+      message.error(startRes.message || '开始实训失败')
     }
   } catch {
-    message.error('重置请求失败')
+    message.error('重新开始请求失败')
   } finally {
     actionLoading.value = null
   }
@@ -250,6 +297,14 @@ onMounted(async () => {
   if (profRes.code === 200) profile.value = profRes.data
   loadTasks()
 })
+
+function goToSelfCoding(): void {
+  router.push('/training/student-training/ai-teaching-ide')
+}
+
+function goToSelfTheory(): void {
+  router.push('/training/student-training/theory-lab-home')
+}
 </script>
 
 <style scoped>
@@ -506,5 +561,15 @@ onMounted(async () => {
   color: var(--color-gray-400, #94a3b8);
   border-radius: 20px;
   border: 1px dashed var(--color-gray-300, #cbd5e1);
+}
+
+.self-study-card {
+  cursor: pointer;
+}
+
+.self-study-card .card-desc {
+  font-size: 13px;
+  color: var(--color-text, #64748b);
+  margin-bottom: 16px;
 }
 </style>

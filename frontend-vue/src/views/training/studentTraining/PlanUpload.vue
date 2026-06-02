@@ -1,157 +1,109 @@
 <template>
   <div class="plan-upload">
-    <!-- Loading State -->
-    <div v-if="store.loading" class="plan-upload__loading">
-      <div class="plan-upload__loading-spinner"></div>
-      <p class="plan-upload__loading-text">加载 AI 分析数据中...</p>
-    </div>
-
-    <!-- Error State -->
-    <div v-else-if="store.error && !store.hasAnalysis" class="plan-upload__error">
-      <p class="plan-upload__error-text">{{ store.error }}</p>
-      <button class="plan-upload__retry-btn" @click="loadData">重试</button>
-    </div>
-
-    <!-- Main Content -->
-    <template v-else>
-      <!-- Upload Section -->
-      <section class="plan-upload__upload">
-        <h2 class="plan-upload__title">方案文档上传</h2>
-        <div
-          class="plan-upload__dropzone"
-          :class="{ 'plan-upload__dropzone--active': isDragging }"
-          @dragover.prevent="isDragging = true"
-          @dragleave="isDragging = false"
-          @drop.prevent="handleDrop"
-        >
-          <div class="plan-upload__dropzone-icon">📋</div>
-          <p class="plan-upload__dropzone-text">拖拽方案文件到此处，或点击上传</p>
-          <p class="plan-upload__dropzone-hint">支持 .doc, .docx, .pdf, .pptx 格式</p>
-          <input
-            type="file"
-            class="plan-upload__file-input"
-            accept=".doc,.docx,.pdf,.pptx"
-            @change="handleFileSelect"
-          />
+    <section class="plan-upload__panel plan-upload__panel--form">
+      <div class="plan-upload__header">
+        <div>
+          <p class="plan-upload__eyebrow">方案上传</p>
+          <h2 class="plan-upload__title">{{ pageTitle }}</h2>
         </div>
-        <div v-if="uploadedFile" class="plan-upload__file-info">
-          <span class="plan-upload__file-name">{{ uploadedFile.name }}</span>
-          <span class="plan-upload__file-size">{{ formatFileSize(uploadedFile.size) }}</span>
-          <button class="plan-upload__file-remove" @click="removeFile">✕</button>
-        </div>
-      </section>
-
-      <!-- AI Feasibility Radar Chart -->
-      <section v-if="store.hasAnalysis" class="plan-upload__radar">
-        <h3 class="plan-upload__section-title">
-          <span class="plan-upload__ai-badge">AI</span>
-          可行性分析雷达图
-        </h3>
-        <div class="plan-upload__radar-chart">
-          <!-- Simplified radar visualization using CSS -->
-          <div class="plan-upload__radar-grid">
-            <div
-              v-for="dimension in store.dimensions"
-              :key="dimension.name"
-              class="plan-upload__radar-axis"
-            >
-              <div class="plan-upload__radar-bar">
-                <div
-                  class="plan-upload__radar-fill"
-                  :style="{ height: `${dimension.score}%` }"
-                ></div>
-              </div>
-              <span class="plan-upload__radar-label">{{ dimension.name }}</span>
-              <span class="plan-upload__radar-score">{{ dimension.score }}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Empty State: No AI Analysis Yet -->
-      <section v-else class="plan-upload__empty">
-        <div class="plan-upload__empty-icon">🔍</div>
-        <p class="plan-upload__empty-title">暂无 AI 可行性分析</p>
-        <p class="plan-upload__empty-hint">上传方案文档后，AI 将自动进行可行性分析</p>
-      </section>
-
-      <!-- Dimension Scores Detail (only when analysis available) -->
-      <section v-if="store.hasAnalysis" class="plan-upload__scores">
-        <h3 class="plan-upload__section-title">维度评分详情</h3>
-        <div class="plan-upload__score-list">
-          <div
-            v-for="dimension in store.dimensions"
-            :key="dimension.name"
-            class="plan-upload__score-item"
-          >
-            <div class="plan-upload__score-header">
-              <span class="plan-upload__score-name">{{ dimension.name }}</span>
-              <span class="plan-upload__score-value">{{ dimension.score }}/100</span>
-            </div>
-            <div class="plan-upload__score-bar">
-              <div
-                class="plan-upload__score-fill"
-                :style="{ width: `${dimension.score}%` }"
-                :class="getScoreClass(dimension.score)"
-              ></div>
-            </div>
-            <p class="plan-upload__score-feedback">{{ dimension.feedback }}</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Submission Status (after successful submit) -->
-      <section v-if="store.submitResult" class="plan-upload__status">
-        <h3 class="plan-upload__section-title">提交状态</h3>
-        <div class="plan-upload__status-card">
-          <div class="plan-upload__status-row">
-            <span class="plan-upload__status-label">提交状态</span>
-            <span class="plan-upload__status-value plan-upload__status-value--success">已提交</span>
-          </div>
-          <div class="plan-upload__status-row">
-            <span class="plan-upload__status-label">AI 评审</span>
-            <span class="plan-upload__status-value plan-upload__status-value--pending">
-              {{ store.submitResult.aiReviewStatus === 'pending' ? '等待评审中...' : store.submitResult.aiReviewStatus }}
-            </span>
-          </div>
-        </div>
-      </section>
-
-      <!-- Error message during submission -->
-      <div v-if="store.error && !store.loading" class="plan-upload__submit-error">
-        <p class="plan-upload__error-text">{{ store.error }}</p>
+        <button class="plan-upload__next-btn" @click="handleNextNode">进入下一节点</button>
       </div>
 
-      <!-- Submit -->
-      <section class="plan-upload__footer">
+      <div
+        class="plan-upload__dropzone"
+        :class="{ 'plan-upload__dropzone--active': isDragging }"
+        @dragover.prevent="isDragging = true"
+        @dragleave="isDragging = false"
+        @drop.prevent="handleDrop"
+      >
+        <input
+          type="file"
+          class="plan-upload__file-input"
+          accept=".doc,.docx,.pdf,.pptx"
+          @change="handleFileSelect"
+        />
+        <div class="plan-upload__dropzone-icon">DOC</div>
+        <p class="plan-upload__dropzone-text">拖拽方案文件到这里，或点击选择文件</p>
+        <p class="plan-upload__dropzone-hint">支持 .doc / .docx / .pdf / .pptx</p>
+      </div>
+
+      <div v-if="uploadedFile" class="plan-upload__file-info">
+        <div class="plan-upload__file-meta">
+          <span class="plan-upload__file-name">{{ uploadedFile.name }}</span>
+          <span class="plan-upload__file-size">{{ formatFileSize(uploadedFile.size) }}</span>
+        </div>
+        <button class="plan-upload__file-remove" @click="removeFile">移除</button>
+      </div>
+
+      <div class="plan-upload__actions">
         <button
           class="plan-upload__submit-btn"
-          :disabled="!uploadedFile || store.submitting"
+          :disabled="!uploadedFile || submitting"
           @click="handleSubmit"
         >
-          {{ store.submitting ? '提交中...' : '提交方案' }}
+          {{ submitting ? '提交中...' : hasSubmitted ? '重新提交方案' : '提交方案并生成 AI 评审' }}
         </button>
-      </section>
-    </template>
+      </div>
+
+      <div class="plan-upload__note">
+        <span class="plan-upload__note-label">演示模式</span>
+        上传后会自动生成一段 AI 智能评审内容；不上传也可以直接进入下一节点。
+      </div>
+    </section>
+
+    <section class="plan-upload__panel plan-upload__panel--review">
+      <div class="plan-upload__review-head">
+        <div>
+          <p class="plan-upload__eyebrow">AI 智能评审</p>
+          <h3 class="plan-upload__section-title">可行性分析结果</h3>
+        </div>
+        <span class="plan-upload__status" :class="reviewStatusClass">{{ reviewStatusText }}</span>
+      </div>
+
+      <div v-if="reviewLoading" class="plan-upload__review-loading">
+        <div class="plan-upload__loading-spinner"></div>
+        <span>{{ loadingText }}</span>
+      </div>
+
+      <template v-else-if="reviewStarted">
+        <div class="plan-upload__score-grid">
+          <div v-for="dimension in mockDimensions" :key="dimension.name" class="plan-upload__score-item">
+            <div class="plan-upload__score-header">
+              <span>{{ dimension.name }}</span>
+              <strong>{{ dimension.score }}</strong>
+            </div>
+            <div class="plan-upload__score-bar">
+              <div class="plan-upload__score-fill" :style="{ width: `${dimension.score}%` }"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="plan-upload__stream-card">
+          <h4 class="plan-upload__stream-title">评审意见</h4>
+          <p class="plan-upload__stream-text">{{ streamedReview }}<span v-if="streaming" class="plan-upload__cursor"></span></p>
+        </div>
+      </template>
+
+      <div v-else class="plan-upload__empty">
+        <h4 class="plan-upload__empty-title">等待方案上传</h4>
+        <p class="plan-upload__empty-text">提交方案后，这里会模拟 AI 加载并流式输出评审内容。</p>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import { usePlanUploadStore } from '@/stores/modules/planUpload.store'
+import { computed, onUnmounted, ref } from 'vue'
 
 interface PlanUploadConfig {
   display?: {
     title?: string
   }
-  ai_processing?: {
-    enable_ai_feasibility?: boolean
-  }
   [key: string]: unknown
 }
 
 const props = defineProps<{
-  nodeInstanceId: number
+  nodeInstanceId: number | string
   nodeConfig: PlanUploadConfig
 }>()
 
@@ -159,40 +111,57 @@ const emit = defineEmits<{
   complete: []
 }>()
 
-const store = usePlanUploadStore()
-
-const isDragging = ref<boolean>(false)
+const isDragging = ref(false)
 const uploadedFile = ref<File | null>(null)
+const submitting = ref(false)
+const hasSubmitted = ref(false)
+const reviewStarted = ref(false)
+const reviewLoading = ref(false)
+const streaming = ref(false)
+const streamedReview = ref('')
+const loadingText = ref('AI 正在读取方案结构...')
 
-/** Load AI analysis data and submission state on mount */
-onMounted(() => {
-  loadData()
+let loadingTimer: number | undefined
+let streamTimer: number | undefined
+
+const pageTitle = computed(() => props.nodeConfig.display?.title || '方案文档上传')
+
+const mockDimensions = [
+  { name: '需求匹配度', score: 88 },
+  { name: '技术可行性', score: 84 },
+  { name: '实施完整性', score: 79 },
+  { name: '风险控制', score: 76 },
+  { name: '表达清晰度', score: 91 }
+]
+
+const mockReview = [
+  '该方案整体结构清晰，能围绕实训目标展开，需求描述、技术路线和交付物之间的对应关系较明确。',
+  '技术实现部分具备可操作性，建议进一步补充关键模块的输入输出边界，以及异常场景下的处理策略。',
+  '进度安排基本合理，但风险控制还可以更具体，例如增加数据准备失败、接口不可用、模型响应超时等场景的备用方案。',
+  '综合判断：方案可进入下一阶段实施。建议在编码实训前，把核心函数、测试样例和验收标准再压实一轮。'
+].join('\n\n')
+
+const reviewStatusText = computed(() => {
+  if (reviewLoading || streaming.value) return '评审中'
+  if (reviewStarted.value) return '已完成'
+  return '待提交'
 })
 
-/** Clean up store on unmount */
-onUnmounted(() => {
-  store.reset()
-})
-
-function loadData() {
-  store.loadNodeState(props.nodeInstanceId)
-}
+const reviewStatusClass = computed(() => ({
+  'plan-upload__status--loading': reviewLoading.value || streaming.value,
+  'plan-upload__status--done': reviewStarted.value && !reviewLoading.value && !streaming.value
+}))
 
 function handleDrop(event: DragEvent) {
   isDragging.value = false
-  const files = event.dataTransfer?.files
-  if (files && files.length > 0) {
-    const file = files[0]
-    if (file) uploadedFile.value = file
-  }
+  const file = event.dataTransfer?.files?.[0]
+  if (file) uploadedFile.value = file
 }
 
 function handleFileSelect(event: Event) {
   const target = event.target as HTMLInputElement
-  if (target.files && target.files.length > 0) {
-    const file = target.files[0]
-    if (file) uploadedFile.value = file
-  }
+  const file = target.files?.[0]
+  if (file) uploadedFile.value = file
 }
 
 function removeFile() {
@@ -205,76 +174,165 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-function getScoreClass(score: number): string {
-  if (score >= 80) return 'plan-upload__score-fill--high'
-  if (score >= 60) return 'plan-upload__score-fill--medium'
-  return 'plan-upload__score-fill--low'
+async function handleSubmit() {
+  if (!uploadedFile.value || submitting.value) return
+
+  submitting.value = true
+  hasSubmitted.value = true
+  reviewStarted.value = true
+  reviewLoading.value = true
+  streaming.value = false
+  streamedReview.value = ''
+  loadingText.value = 'AI 正在读取方案结构...'
+  clearTimers()
+
+  window.setTimeout(() => {
+    loadingText.value = 'AI 正在生成可行性评审...'
+  }, 700)
+
+  loadingTimer = window.setTimeout(() => {
+    reviewLoading.value = false
+    startMockStream()
+  }, 1400)
 }
 
-async function handleSubmit() {
-  if (!uploadedFile.value) return
+function startMockStream() {
+  streaming.value = true
+  let index = 0
+  streamTimer = window.setInterval(() => {
+    streamedReview.value = mockReview.slice(0, index)
+    index += 2
+    if (index > mockReview.length) {
+      streamedReview.value = mockReview
+      streaming.value = false
+      submitting.value = false
+      clearTimers()
+    }
+  }, 24)
+}
 
-  const success = await store.uploadAndSubmit(uploadedFile.value)
-  if (success) {
-    emit('complete')
+function handleNextNode() {
+  emit('complete')
+}
+
+function clearTimers() {
+  if (loadingTimer) {
+    window.clearTimeout(loadingTimer)
+    loadingTimer = undefined
+  }
+  if (streamTimer) {
+    window.clearInterval(streamTimer)
+    streamTimer = undefined
   }
 }
+
+onUnmounted(() => {
+  clearTimers()
+})
 </script>
 
 <style scoped>
 .plan-upload {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: var(--spacing-lg, 24px);
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: var(--spacing-lg, 24px);
+  overflow: hidden;
+  box-sizing: border-box;
+  background: var(--color-background, #f8fafc);
+}
+
+.plan-upload__panel {
+  min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg, 1.5rem);
-  padding: var(--spacing-lg, 1.5rem);
-  height: 100%;
-  overflow-y: auto;
-}
-
-.plan-upload__title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-gray-800, #1e293b);
-  margin-bottom: var(--spacing-md, 1rem);
-}
-
-.plan-upload__upload {
+  gap: var(--spacing-md, 16px);
+  padding: var(--spacing-lg, 24px);
+  overflow: hidden;
   background: var(--color-white, #ffffff);
   border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
+  border-radius: var(--radius-md, 8px);
+}
+
+.plan-upload__header,
+.plan-upload__review-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-md, 16px);
+  flex-shrink: 0;
+}
+
+.plan-upload__eyebrow {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary-600, #4f46e5);
+}
+
+.plan-upload__title,
+.plan-upload__section-title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.3;
+  color: var(--color-heading, #1e293b);
+}
+
+.plan-upload__next-btn,
+.plan-upload__submit-btn {
+  border: none;
+  border-radius: var(--radius-md, 8px);
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.plan-upload__next-btn {
+  flex-shrink: 0;
+  padding: 10px 16px;
+  color: var(--color-white, #ffffff);
+  background: var(--color-success, #22c55e);
+}
+
+.plan-upload__submit-btn {
+  width: 100%;
+  padding: 13px 16px;
+  color: var(--color-white, #ffffff);
+  background: var(--color-primary-600, #4f46e5);
+}
+
+.plan-upload__next-btn:hover,
+.plan-upload__submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.plan-upload__submit-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .plan-upload__dropzone {
-  border: 2px dashed var(--color-gray-300, #cbd5e1);
-  border-radius: var(--radius-md, 0.5rem);
-  padding: 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 210px;
+  padding: var(--spacing-lg, 24px);
+  text-align: center;
+  border: 2px dashed var(--color-gray-300, #cbd5e1);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-gray-50, #f8fafc);
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .plan-upload__dropzone--active {
-  border-color: var(--color-primary-400, #818cf8);
+  border-color: var(--color-primary-500, #6366f1);
   background: var(--color-primary-50, #eef2ff);
-}
-
-.plan-upload__dropzone-icon {
-  font-size: 2.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.plan-upload__dropzone-text {
-  font-size: 0.9375rem;
-  color: var(--color-gray-600, #475569);
-  font-weight: 500;
-}
-
-.plan-upload__dropzone-hint {
-  font-size: 0.75rem;
-  color: var(--color-gray-400, #94a3b8);
-  margin-top: 0.25rem;
 }
 
 .plan-upload__file-input {
@@ -284,343 +342,223 @@ async function handleSubmit() {
   cursor: pointer;
 }
 
+.plan-upload__dropzone-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: var(--spacing-md, 16px);
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-primary-700, #4338ca);
+  background: var(--color-primary-100, #e0e7ff);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.plan-upload__dropzone-text {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-gray-700, #334155);
+}
+
+.plan-upload__dropzone-hint,
+.plan-upload__note,
+.plan-upload__empty-text {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--color-gray-500, #64748b);
+}
+
 .plan-upload__file-info {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  margin-top: var(--spacing-sm, 0.75rem);
-  padding: 0.5rem 0.75rem;
+  justify-content: space-between;
+  gap: var(--spacing-md, 16px);
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 8px);
   background: var(--color-gray-50, #f8fafc);
-  border-radius: var(--radius-sm, 0.25rem);
+}
+
+.plan-upload__file-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .plan-upload__file-name {
-  font-size: 0.875rem;
-  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--color-gray-700, #334155);
-  flex: 1;
 }
 
 .plan-upload__file-size {
-  font-size: 0.75rem;
+  font-size: 12px;
   color: var(--color-gray-400, #94a3b8);
 }
 
 .plan-upload__file-remove {
-  background: none;
-  border: none;
-  color: var(--color-gray-400, #94a3b8);
-  cursor: pointer;
-}
-
-.plan-upload__section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-gray-800, #1e293b);
-  margin-bottom: var(--spacing-md, 1rem);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.plan-upload__ai-badge {
-  font-size: 0.625rem;
-  font-weight: 700;
-  padding: 0.125rem 0.375rem;
-  border-radius: var(--radius-sm, 0.25rem);
-  background: linear-gradient(135deg, var(--color-primary-500, #6366f1), var(--color-primary-600, #4f46e5));
-  color: var(--color-white, #ffffff);
-}
-
-.plan-upload__radar {
-  background: var(--color-white, #ffffff);
+  flex-shrink: 0;
   border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.plan-upload__radar-chart {
-  padding: var(--spacing-md, 1rem);
-}
-
-.plan-upload__radar-grid {
-  display: flex;
-  justify-content: space-around;
-  align-items: flex-end;
-  height: 160px;
-  padding: 0 var(--spacing-md, 1rem);
-}
-
-.plan-upload__radar-axis {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.plan-upload__radar-bar {
-  width: 2rem;
-  height: 120px;
-  background: var(--color-gray-100, #f1f5f9);
-  border-radius: var(--radius-sm, 0.25rem);
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-end;
-}
-
-.plan-upload__radar-fill {
-  width: 100%;
-  background: linear-gradient(180deg, var(--color-primary-500, #6366f1), var(--color-primary-600, #4f46e5));
-  border-radius: var(--radius-sm, 0.25rem);
-  transition: height 0.5s ease;
-}
-
-.plan-upload__radar-label {
-  font-size: 0.6875rem;
+  border-radius: var(--radius-sm, 6px);
+  padding: 6px 10px;
+  background: var(--color-white, #ffffff);
   color: var(--color-gray-600, #475569);
-  text-align: center;
-  white-space: nowrap;
-}
-
-.plan-upload__radar-score {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--color-primary-600, #4f46e5);
-}
-
-.plan-upload__scores {
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.plan-upload__score-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md, 1rem);
-}
-
-.plan-upload__score-item {
-  padding-bottom: var(--spacing-sm, 0.75rem);
-  border-bottom: 1px solid var(--color-gray-100, #f1f5f9);
-}
-
-.plan-upload__score-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.plan-upload__score-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.375rem;
-}
-
-.plan-upload__score-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-gray-700, #334155);
-}
-
-.plan-upload__score-value {
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--color-primary-600, #4f46e5);
-}
-
-.plan-upload__score-bar {
-  height: 6px;
-  background: var(--color-gray-100, #f1f5f9);
-  border-radius: 3px;
-  overflow: hidden;
-  margin-bottom: 0.5rem;
-}
-
-.plan-upload__score-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.plan-upload__score-fill--high {
-  background: var(--color-success, #22c55e);
-}
-
-.plan-upload__score-fill--medium {
-  background: var(--color-warning, #f59e0b);
-}
-
-.plan-upload__score-fill--low {
-  background: var(--color-error, #ef4444);
-}
-
-.plan-upload__score-feedback {
-  font-size: 0.8125rem;
-  color: var(--color-gray-500, #64748b);
-  line-height: 1.5;
-}
-
-.plan-upload__footer {
-  padding-top: var(--spacing-md, 1rem);
-}
-
-.plan-upload__submit-btn {
-  width: 100%;
-  padding: 0.875rem;
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--color-white, #ffffff);
-  background: linear-gradient(135deg, var(--color-primary-500, #6366f1) 0%, var(--color-primary-600, #4f46e5) 100%);
-  border: none;
-  border-radius: var(--radius-lg, 0.75rem);
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.plan-upload__submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px -4px rgba(99, 102, 241, 0.4);
+.plan-upload__actions {
+  margin-top: auto;
 }
 
-.plan-upload__submit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.plan-upload__note {
+  padding: 12px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-primary-50, #eef2ff);
 }
 
-/* Loading State */
-.plan-upload__loading {
+.plan-upload__note-label {
+  font-weight: 800;
+  color: var(--color-primary-700, #4338ca);
+}
+
+.plan-upload__status {
+  flex-shrink: 0;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm, 6px);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--color-gray-600, #475569);
+  background: var(--color-gray-100, #f1f5f9);
+}
+
+.plan-upload__status--loading {
+  color: var(--color-warning, #f59e0b);
+  background: var(--color-warning-50, #fffbeb);
+}
+
+.plan-upload__status--done {
+  color: var(--color-success-700, #15803d);
+  background: var(--color-success-50, #f0fdf4);
+}
+
+.plan-upload__review-loading,
+.plan-upload__empty {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem;
-  gap: var(--spacing-md, 1rem);
+  text-align: center;
+  gap: var(--spacing-md, 16px);
+  border: 1px dashed var(--color-gray-300, #cbd5e1);
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-gray-50, #f8fafc);
+  color: var(--color-gray-600, #475569);
 }
 
 .plan-upload__loading-spinner {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 34px;
+  height: 34px;
   border: 3px solid var(--color-gray-200, #e2e8f0);
-  border-top-color: var(--color-primary-500, #6366f1);
+  border-top-color: var(--color-primary-600, #4f46e5);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+.plan-upload__score-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-md, 16px);
+  flex-shrink: 0;
+}
+
+.plan-upload__score-item {
+  padding: 14px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-gray-50, #f8fafc);
+}
+
+.plan-upload__score-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--color-gray-700, #334155);
+}
+
+.plan-upload__score-bar {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--color-gray-200, #e2e8f0);
+}
+
+.plan-upload__score-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--color-primary-600, #4f46e5);
+  transition: width 0.3s ease;
+}
+
+.plan-upload__stream-card {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-gray-50, #f8fafc);
+}
+
+.plan-upload__stream-title,
+.plan-upload__empty-title {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: var(--color-heading, #1e293b);
+}
+
+.plan-upload__stream-text {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.7;
+  font-size: 14px;
+  color: var(--color-gray-700, #334155);
+}
+
+.plan-upload__cursor {
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -2px;
+  background: var(--color-primary-600, #4f46e5);
+  animation: blink 1s infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-.plan-upload__loading-text {
-  font-size: 0.875rem;
-  color: var(--color-gray-500, #64748b);
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 
-/* Error State */
-.plan-upload__error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  gap: var(--spacing-md, 1rem);
-}
+@media (max-width: 900px) {
+  .plan-upload {
+    grid-template-columns: 1fr;
+    overflow: auto;
+  }
 
-.plan-upload__error-text {
-  font-size: 0.875rem;
-  color: var(--color-error, #ef4444);
-  text-align: center;
-}
-
-.plan-upload__retry-btn {
-  padding: 0.5rem 1.25rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-primary-600, #4f46e5);
-  background: var(--color-primary-50, #eef2ff);
-  border: 1px solid var(--color-primary-200, #c7d2fe);
-  border-radius: var(--radius-md, 0.5rem);
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.plan-upload__retry-btn:hover {
-  background: var(--color-primary-100, #e0e7ff);
-}
-
-/* Empty State */
-.plan-upload__empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2.5rem;
-  background: var(--color-white, #ffffff);
-  border: 1px dashed var(--color-gray-300, #cbd5e1);
-  border-radius: var(--radius-lg, 0.75rem);
-  gap: 0.5rem;
-}
-
-.plan-upload__empty-icon {
-  font-size: 2rem;
-  opacity: 0.6;
-}
-
-.plan-upload__empty-title {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--color-gray-600, #475569);
-}
-
-.plan-upload__empty-hint {
-  font-size: 0.8125rem;
-  color: var(--color-gray-400, #94a3b8);
-}
-
-/* Submission Status */
-.plan-upload__status {
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.plan-upload__status-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.plan-upload__status-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.plan-upload__status-label {
-  font-size: 0.875rem;
-  color: var(--color-gray-600, #475569);
-}
-
-.plan-upload__status-value {
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-.plan-upload__status-value--success {
-  color: var(--color-success, #22c55e);
-}
-
-.plan-upload__status-value--pending {
-  color: var(--color-warning, #f59e0b);
-}
-
-/* Submit Error */
-.plan-upload__submit-error {
-  padding: 0.75rem;
-  background: var(--color-error-50, #fef2f2);
-  border: 1px solid var(--color-error-200, #fecaca);
-  border-radius: var(--radius-md, 0.5rem);
+  .plan-upload__panel {
+    overflow: visible;
+  }
 }
 </style>

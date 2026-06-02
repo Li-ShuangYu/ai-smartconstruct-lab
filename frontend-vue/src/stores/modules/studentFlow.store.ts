@@ -173,6 +173,31 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     }
   }
 
+  /**
+   * 重新开始实训。
+   * resetTraining 之后本地 store 里可能还保留旧的 completed overview，
+   * 所以这里跳过旧状态判断，直接调用 start 接口并用响应刷新当前位置。
+   */
+  async function restartTraining(id: string | number) {
+    loading.value = true
+    error.value = null
+    taskId.value = String(id)
+    taskOverview.value = null
+    currentPhaseId.value = null
+    currentNodeId.value = null
+    currentNodeProgress.value = null
+
+    try {
+      const result = await startTrainingApi(id)
+      taskOverview.value = result.data
+      _restorePosition()
+    } catch (e: unknown) {
+      error.value = e instanceof Error ? e.message : '重新开始实训失败'
+    } finally {
+      loading.value = false
+    }
+  }
+
   /** 进入节点 */
   async function enterNode(nodeInstanceId: string | number) {
     loading.value = true
@@ -403,6 +428,7 @@ export const useStudentFlowStore = defineStore('studentFlow', () => {
     // Actions
     loadTaskOverview,
     startTraining,
+    restartTraining,
     enterNode,
     completeNode,
     navigateToNextNode,
