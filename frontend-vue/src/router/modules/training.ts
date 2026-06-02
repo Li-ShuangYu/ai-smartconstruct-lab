@@ -123,6 +123,18 @@ const trainingRoutes = [
 
   // ===== 独立顶层路由（无侧边栏）=====
   {
+    path: '/training/student-training/theory-lab-home',
+    name: 'TheoryLabHome',
+    component: () => import('@/views/training/studentTraining/TheoryLabHome.vue'),
+    meta: { title: '理论实训' }
+  },
+  {
+    path: '/training/student-training/ai-teaching-ide',
+    name: 'AiTeachingIDE',
+    component: () => import('@/views/training/studentTraining/AiTeachingIDE.vue'),
+    meta: { title: 'AI编程实训助手' }
+  },
+  {
     path: '/training/student-training/start-portal',
     name: 'StartPortal',
     component: () => import('@/views/training/studentTraining/StartPortal.vue'),

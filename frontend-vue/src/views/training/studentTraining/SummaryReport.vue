@@ -213,7 +213,7 @@ const achievementBadges = computed<AchievementBadge[]>(() =>
 
 /** Whether to show satisfaction survey */
 const showSurvey = computed<boolean>(() =>
-  props.nodeConfig.enable_satisfaction_survey !== false
+  props.nodeConfig?.enable_satisfaction_survey !== false
 )
 
 /** Survey items */

@@ -4,6 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from routers import health
 from routers import orchestration
 from routers import chat
+from routers import ide
 
 app = FastAPI(
     title="AI Engine",
@@ -40,6 +41,7 @@ async def validation_exception_handler(
 app.include_router(health.router, prefix="/api", tags=["health"])
 app.include_router(orchestration.router, tags=["orchestration"])
 app.include_router(chat.router, tags=["chat"])
+app.include_router(ide.router, tags=["ide"])
 
 
 @app.get("/")

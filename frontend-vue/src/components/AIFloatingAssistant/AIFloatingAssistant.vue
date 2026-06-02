@@ -13,27 +13,47 @@
       @mousedown="startDrag"
       @touchstart.passive="startDrag"
     >
-      <svg class="ball-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 5.5-2.84a.5.5 0 0 1 .5.5v3.08A9 9 0 0 1 12 21a9 9 0 0 1-8-15.01V2.92a.5.5 0 0 1 .5-.5c.47 0 3.72.84 5.5 2.84.65-.17 1.33-.26 2-.26z" />
-        <path d="M8 14v.5" /><path d="M16 14v.5" />
-        <path d="M11.25 16.25h1.5L12 17l-.75-.75z" />
-      </svg>
-      <span class="ball-badge"></span>
+      <img src="@/assets/AIFC-Logo.png" alt="AI" class="ball-logo" />
     </div>
+
+    <!-- 点击遮罩层（窗口打开时，点击外部关闭） -->
+    <div v-if="isOpen" class="chat-overlay" @click="closeChat"></div>
 
     <!-- 对话窗口 -->
     <transition name="pop">
-      <div v-show="isOpen" class="chat-window">
-
-        <!-- 标题栏 -->
-        <div class="chat-header">
+      <div
+        v-show="isOpen"
+        class="chat-window"
+        :class="{ 'is-pinned': isPinned }"
+        :style="{
+          left: windowPosition.x + 'px',
+          top: windowPosition.y + 'px',
+          right: 'auto',
+          bottom: 'auto',
+          transition: isWindowDragging ? 'none' : 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+        }"
+        @click.stop
+      >
+        <!-- 标题栏（可拖拽） -->
+        <div class="chat-header" @mousedown="startWindowDrag" @touchstart.passive="startWindowDrag">
           <div class="header-left">
             <button class="icon-btn" title="历史对话" @click="toggleHistory">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16m-7 6h7"/></svg>
             </button>
-            <span class="header-title">喵喵 AI 助教</span>
+            <div class="header-title-wrap">
+              <img src="@/assets/AIZG-Logo.png" alt="logo" class="header-logo" />
+              <span class="header-title">AI智能助教</span>
+            </div>
           </div>
           <div class="header-right">
+            <button
+              class="icon-btn"
+              :class="{ 'icon-btn--active': isPinned }"
+              title="置顶"
+              @click="togglePin"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v8m0 0l3-3m-3 3l-3-3M5 12h14m-7 10v-5l-3-3H9l-3 3v5a2 2 0 002 2h8a2 2 0 002-2z"/></svg>
+            </button>
             <button class="icon-btn" title="新建对话" @click="handleNewSession">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
             </button>
@@ -81,26 +101,24 @@
             <!-- 欢迎语（无消息时显示） -->
             <div v-if="store.messages.length === 0" class="welcome-msg">
               <div class="msg-bubble assistant-bubble">
-                同学你好！我是你的专属 AI 助教，遇到任何实训问题都可以问我哦 🐱
+                同学你好！我是你的专属 AI 智能助教，遇到任何实训问题都可以问我哦
               </div>
             </div>
 
             <!-- 消息列表 -->
             <template v-for="msg in store.messages" :key="msg.id">
-              <!-- 用户消息 -->
               <div v-if="msg.role === 'user'" class="msg-row user-row">
                 <div class="msg-bubble user-bubble">{{ msg.content }}</div>
               </div>
-              <!-- AI 消息 -->
               <div v-else class="msg-row assistant-row">
-                <span class="msg-label">喵喵 AI</span>
+                <span class="msg-label">AI 智能助教</span>
                 <div class="msg-bubble assistant-bubble">{{ msg.content }}</div>
               </div>
             </template>
 
             <!-- AI 思考中 -->
             <div v-if="store.loading" class="msg-row assistant-row">
-              <span class="msg-label">喵喵 AI</span>
+              <span class="msg-label">AI 智能助教</span>
               <div class="msg-bubble assistant-bubble thinking">
                 <span></span><span></span><span></span>
               </div>
@@ -148,6 +166,7 @@ const showHistory = ref(false)
 const inputText = ref('')
 const inputRef = ref<HTMLTextAreaElement | null>(null)
 const messageContainer = ref<HTMLDivElement | null>(null)
+const isPinned = ref(false)
 
 // ─── 悬浮球拖拽 ───────────────────────────────────────────────────────────────
 const floatBall = ref<HTMLDivElement | null>(null)
@@ -157,22 +176,34 @@ let hasMoved = false
 let startMousePos = { x: 0, y: 0 }
 let startElPos = { x: 0, y: 0 }
 
+// ─── 浮窗拖拽 ────────────────────────────────────────────────────────────────
+const windowPosition = ref({ x: 0, y: 0 })
+const isWindowDragging = ref(false)
+let windowHasMoved = false
+let windowStartMousePos = { x: 0, y: 0 }
+let windowStartElPos = { x: 0, y: 0 }
+
 onMounted(() => {
   position.value = {
     x: window.innerWidth - 80,
     y: window.innerHeight * 0.7
   }
+  windowPosition.value = {
+    x: window.innerWidth - 404,
+    y: window.innerHeight - 624
+  }
+
+  store.loadSessions().then(() => {
+    store.newSession()
+  })
 })
 
 const getClientPos = (e: MouseEvent | TouchEvent): { x: number; y: number } => {
-  if ('touches' in e) {
-    const touch0 = e.touches.item(0)
-    if (touch0) {
-      return { x: touch0.clientX, y: touch0.clientY }
-    }
+  if ('touches' in e && e.touches.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return { x: e.touches[0]!.clientX, y: e.touches[0]!.clientY }
   }
-  const mouseEvent = e as MouseEvent
-  return { x: mouseEvent.clientX, y: mouseEvent.clientY }
+  return { x: (e as MouseEvent).clientX, y: (e as MouseEvent).clientY }
 }
 
 const startDrag = (e: MouseEvent | TouchEvent) => {
@@ -199,8 +230,8 @@ const onDrag = (e: MouseEvent | TouchEvent) => {
 
   if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) hasMoved = true
 
-  const newX = Math.max(0, Math.min(startElPos.x + deltaX, window.innerWidth - 56))
-  const newY = Math.max(0, Math.min(startElPos.y + deltaY, window.innerHeight - 56))
+  const newX = Math.max(0, Math.min(startElPos.x + deltaX, window.innerWidth - 64))
+  const newY = Math.max(0, Math.min(startElPos.y + deltaY, window.innerHeight - 64))
   position.value = { x: newX, y: newY }
 }
 
@@ -218,7 +249,44 @@ const endDrag = () => {
 
   // 吸边
   const centerX = window.innerWidth / 2
-  position.value.x = position.value.x < centerX ? 10 : window.innerWidth - 66
+  position.value.x = position.value.x < centerX ? 10 : window.innerWidth - 74
+}
+
+const startWindowDrag = (e: MouseEvent | TouchEvent) => {
+  e.preventDefault()
+  isWindowDragging.value = true
+  windowHasMoved = false
+
+  const { x: clientX, y: clientY } = getClientPos(e)
+  windowStartMousePos = { x: clientX, y: clientY }
+  windowStartElPos = { ...windowPosition.value }
+
+  window.addEventListener('mousemove', onWindowDrag)
+  window.addEventListener('touchmove', onWindowDrag, { passive: false })
+  window.addEventListener('mouseup', endWindowDrag)
+  window.addEventListener('touchend', endWindowDrag)
+}
+
+const onWindowDrag = (e: MouseEvent | TouchEvent) => {
+  if (!isWindowDragging.value) return
+  const { x: clientX, y: clientY } = getClientPos(e)
+
+  const deltaX = clientX - windowStartMousePos.x
+  const deltaY = clientY - windowStartMousePos.y
+
+  if (Math.abs(deltaX) > 3 || Math.abs(deltaY) > 3) windowHasMoved = true
+
+  const newX = Math.max(0, Math.min(windowStartElPos.x + deltaX, window.innerWidth - 380))
+  const newY = Math.max(0, Math.min(windowStartElPos.y + deltaY, window.innerHeight - 600))
+  windowPosition.value = { x: newX, y: newY }
+}
+
+const endWindowDrag = () => {
+  isWindowDragging.value = false
+  window.removeEventListener('mousemove', onWindowDrag)
+  window.removeEventListener('touchmove', onWindowDrag)
+  window.removeEventListener('mouseup', endWindowDrag)
+  window.removeEventListener('touchend', endWindowDrag)
 }
 
 onUnmounted(() => {
@@ -226,6 +294,10 @@ onUnmounted(() => {
   window.removeEventListener('touchmove', onDrag)
   window.removeEventListener('mouseup', endDrag)
   window.removeEventListener('touchend', endDrag)
+  window.removeEventListener('mousemove', onWindowDrag)
+  window.removeEventListener('touchmove', onWindowDrag)
+  window.removeEventListener('mouseup', endWindowDrag)
+  window.removeEventListener('touchend', endWindowDrag)
 })
 
 // ─── 窗口控制 ─────────────────────────────────────────────────────────────────
@@ -238,6 +310,11 @@ const openChat = () => {
 const closeChat = () => {
   isOpen.value = false
   showHistory.value = false
+}
+
+const togglePin = () => {
+  isPinned.value = !isPinned.value
+  localStorage.setItem(getStorageKey('pinned'), String(isPinned.value))
 }
 
 const toggleHistory = () => {
@@ -260,12 +337,14 @@ const handleSend = async () => {
 
 const handleNewSession = () => {
   store.newSession()
+  localStorage.removeItem(getStorageKey('session-id'))
   showHistory.value = false
   nextTick(() => inputRef.value?.focus())
 }
 
 const handleSwitchSession = async (sessionId: string) => {
   await store.switchSession(sessionId)
+  localStorage.setItem(getStorageKey('session-id'), sessionId)
   showHistory.value = false
   await nextTick()
   scrollToBottom()
@@ -293,7 +372,6 @@ const resetTextareaHeight = () => {
   if (inputRef.value) inputRef.value.style.height = 'auto'
 }
 
-// 新消息时自动滚底
 watch(
   () => store.messages.length,
   async () => {
@@ -304,42 +382,48 @@ watch(
 </script>
 
 <style scoped>
+/* ─── 遮罩层（点击外部关闭） ─────────────────────────────────────────────── */
+.chat-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9997;
+  background: transparent;
+}
+
 /* ─── 悬浮球 ─────────────────────────────────────────────────────────────── */
 .float-ball {
   position: fixed;
   z-index: 9999;
-  width: 56px;
-  height: 56px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #9333ea);
-  color: #fff;
+  background: linear-gradient(145deg, #7c3aed, #6366f1);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: grab;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18);
-  transition: transform 0.2s;
+  box-shadow:
+    0 8px 24px rgba(124, 58, 237, 0.35),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: transform 0.2s, box-shadow 0.2s;
+  user-select: none;
 }
-.float-ball:hover { transform: scale(1.1); }
+.float-ball:hover {
+  transform: scale(1.08);
+  box-shadow:
+    0 12px 32px rgba(124, 58, 237, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
 .float-ball:active { cursor: grabbing; }
 
-.ball-icon { width: 28px; height: 28px; }
-
-.ball-badge {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 12px;
-  height: 12px;
-  background: #ef4444;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+.ball-icon {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: 1px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 /* ─── 对话窗口 ───────────────────────────────────────────────────────────── */
@@ -350,25 +434,38 @@ watch(
   width: 380px;
   height: 600px;
   z-index: 9998;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 20px;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.14),
+    0 4px 16px rgba(124, 58, 237, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
+.chat-window.is-pinned {
+  z-index: 99999;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.2),
+    0 4px 16px rgba(124, 58, 237, 0.12),
+    0 0 0 2px rgba(124, 58, 237, 0.3);
+}
+
 /* ─── 标题栏 ─────────────────────────────────────────────────────────────── */
 .chat-header {
-  height: 52px;
-  background: linear-gradient(90deg, #6366f1, #9333ea);
+  height: 56px;
+  background: linear-gradient(100deg, #7c3aed 0%, #6366f1 60%, #818cf8 100%);
   padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+  cursor: move;
+  user-select: none;
 }
 
 .header-left,
@@ -378,16 +475,30 @@ watch(
   gap: 6px;
 }
 
+.header-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.header-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
 .header-title {
   font-size: 14px;
   font-weight: 700;
   color: #fff;
   letter-spacing: 0.5px;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 
 .icon-btn {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border: none;
   background: transparent;
   color: rgba(255, 255, 255, 0.8);
@@ -403,6 +514,10 @@ watch(
   background: rgba(255, 255, 255, 0.2);
   color: #fff;
 }
+.icon-btn--active {
+  background: rgba(255, 255, 255, 0.3);
+  color: #fbbf24;
+}
 .icon-btn svg { width: 18px; height: 18px; }
 
 /* ─── 主体 ───────────────────────────────────────────────────────────────── */
@@ -410,7 +525,7 @@ watch(
   flex: 1;
   position: relative;
   overflow: hidden;
-  background: #f8fafc;
+  background: #f5f3ff;
 }
 
 /* ─── 历史侧边栏 ─────────────────────────────────────────────────────────── */
@@ -420,23 +535,23 @@ watch(
   top: 0;
   height: 100%;
   width: 65%;
-  background: rgba(255, 255, 255, 0.97);
-  border-right: 1px solid #e2e8f0;
-  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.98);
+  border-right: 1px solid #ede9fe;
+  box-shadow: 4px 0 20px rgba(124, 58, 237, 0.1);
   z-index: 10;
   display: flex;
   flex-direction: column;
   transform: translateX(-100%);
-  transition: transform 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .history-panel.open { transform: translateX(0); }
 
 .history-header {
-  padding: 10px 12px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: 12px 14px;
+  border-bottom: 1px solid #f3f0ff;
   font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
+  font-weight: 700;
+  color: #7c3aed;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -445,21 +560,22 @@ watch(
 
 .icon-btn-sm {
   font-size: 11px;
-  color: #6366f1;
-  background: none;
+  color: #7c3aed;
+  background: #f3f0ff;
   border: none;
   cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
   transition: background 0.15s;
+  font-weight: 600;
 }
 .icon-btn-sm:hover { background: #ede9fe; }
 
 .history-loading,
 .history-empty {
-  padding: 16px 12px;
+  padding: 20px 12px;
   font-size: 12px;
-  color: #94a3b8;
+  color: #a78bfa;
   text-align: center;
 }
 
@@ -483,8 +599,12 @@ watch(
   transition: background 0.15s;
   gap: 6px;
 }
-.history-item:hover { background: #f1f5f9; }
-.history-item.active { background: #ede9fe; }
+.history-item:hover { background: #f5f3ff; }
+.history-item.active {
+  background: #ede9fe;
+  border-left: 3px solid #7c3aed;
+  padding-left: 7px;
+}
 
 .history-item-title {
   font-size: 12px;
@@ -496,8 +616,8 @@ watch(
 }
 
 .history-delete {
-  font-size: 14px;
-  color: #94a3b8;
+  font-size: 15px;
+  color: #c4b5fd;
   background: none;
   border: none;
   cursor: pointer;
@@ -526,9 +646,10 @@ watch(
 
 .msg-label {
   font-size: 10px;
-  color: #94a3b8;
+  color: #a78bfa;
   margin-left: 4px;
   margin-bottom: 2px;
+  font-weight: 600;
 }
 
 .msg-bubble {
@@ -536,37 +657,37 @@ watch(
   padding: 10px 14px;
   border-radius: 16px;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.65;
   word-break: break-word;
   white-space: pre-wrap;
 }
 
 .user-bubble {
-  background: linear-gradient(135deg, #6366f1, #9333ea);
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
   color: #fff;
   border-bottom-right-radius: 4px;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 2px 10px rgba(124, 58, 237, 0.35);
 }
 
 .assistant-bubble {
   background: #fff;
   color: #374151;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #ede9fe;
   border-top-left-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 6px rgba(124, 58, 237, 0.08);
 }
 
 /* 思考动画 */
 .thinking {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   padding: 12px 16px;
 }
 .thinking span {
-  width: 6px;
-  height: 6px;
-  background: #94a3b8;
+  width: 7px;
+  height: 7px;
+  background: #c4b5fd;
   border-radius: 50%;
   animation: bounce 1.2s infinite;
 }
@@ -574,15 +695,15 @@ watch(
 .thinking span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes bounce {
-  0%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-6px); }
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
+  40% { transform: translateY(-6px); opacity: 1; }
 }
 
 /* ─── 输入区域 ───────────────────────────────────────────────────────────── */
 .chat-input-area {
   padding: 10px 12px;
   background: #fff;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid #f3f0ff;
   flex-shrink: 0;
 }
 
@@ -590,13 +711,16 @@ watch(
   display: flex;
   align-items: flex-end;
   gap: 8px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
+  background: #faf8ff;
+  border: 1.5px solid #ede9fe;
+  border-radius: 14px;
   padding: 6px 6px 6px 12px;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
-.input-wrapper:focus-within { border-color: #6366f1; }
+.input-wrapper:focus-within {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
 
 .chat-textarea {
   flex: 1;
@@ -611,32 +735,37 @@ watch(
   line-height: 1.5;
   font-family: inherit;
 }
-.chat-textarea::placeholder { color: #94a3b8; }
+.chat-textarea::placeholder { color: #c4b5fd; }
 .chat-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .send-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border: none;
-  border-radius: 8px;
-  background: #6366f1;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
   color: #fff;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  transition: background 0.15s, transform 0.1s;
+  transition: opacity 0.15s, transform 0.1s;
+  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.35);
 }
-.send-btn:hover:not(:disabled) { background: #4f46e5; }
+.send-btn:hover:not(:disabled) { opacity: 0.9; }
 .send-btn:active:not(:disabled) { transform: scale(0.92); }
-.send-btn:disabled { background: #c7d2fe; cursor: not-allowed; }
+.send-btn:disabled {
+  background: #e9d5ff;
+  box-shadow: none;
+  cursor: not-allowed;
+}
 .send-btn svg { width: 16px; height: 16px; }
 
 /* ─── 滚动条 ─────────────────────────────────────────────────────────────── */
 .custom-scrollbar::-webkit-scrollbar { width: 4px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #ddd6fe; border-radius: 10px; }
 
 /* ─── 弹出动画 ───────────────────────────────────────────────────────────── */
 .pop-enter-active,
@@ -647,6 +776,6 @@ watch(
 .pop-enter-from,
 .pop-leave-to {
   opacity: 0;
-  transform: scale(0.8) translateY(20px);
+  transform: scale(0.82) translateY(16px);
 }
 </style>

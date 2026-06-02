@@ -60,6 +60,8 @@ const router = useRouter()
 
 // 学生端实训路由列表
 const studentRoutes = [
+  { path: '/training/student-training/theory-lab-home', meta: { title: '理论实训' } },
+  { path: '/training/student-training/ai-teaching-ide', meta: { title: 'AI编程实训助手' } },
   { path: '/training/student-training/start-portal', meta: { title: '实训入口' } },
   { path: '/training/student-training/resource-viewer', meta: { title: '资源查看器' } },
   { path: '/training/student-training/video-player', meta: { title: '视频播放' } },

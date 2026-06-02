@@ -1,506 +1,138 @@
-<template>
-  <div class="requirement-cloud">
-    <!-- Upload Section -->
-    <section class="requirement-cloud__upload">
-      <h2 class="requirement-cloud__title">需求文档上传</h2>
-      <div
-        class="requirement-cloud__dropzone"
-        :class="{ 'requirement-cloud__dropzone--active': isDragging }"
-        @dragover.prevent="isDragging = true"
-        @dragleave="isDragging = false"
-        @drop.prevent="handleDrop"
-      >
-        <div class="requirement-cloud__dropzone-icon">📄</div>
-        <p class="requirement-cloud__dropzone-text">拖拽文件到此处，或点击上传</p>
-        <p class="requirement-cloud__dropzone-hint">支持 .doc, .docx, .pdf, .txt 格式</p>
-        <input
-          type="file"
-          class="requirement-cloud__file-input"
-          accept=".doc,.docx,.pdf,.txt"
-          @change="handleFileSelect"
-        />
-      </div>
-      <div v-if="uploadedFile" class="requirement-cloud__file-info">
-        <span class="requirement-cloud__file-name">{{ uploadedFile.name }}</span>
-        <span class="requirement-cloud__file-size">{{ formatFileSize(uploadedFile.size) }}</span>
-        <button class="requirement-cloud__file-remove" @click="removeFile">✕</button>
-      </div>
-    </section>
+﻿<template>
+  <div class="page-wrapper flex items-center justify-center w-full h-full min-h-[calc(100vh-100px)]">
+    
+    <div class="glass-card w-full max-w-6xl p-6 md:p-8 flex flex-col lg:flex-row gap-8 z-10 h-[700px]">
+      
+      <div class="flex-[1.2] flex flex-col h-full relative border-r border-gray-200/50 pr-0 lg:pr-8">
+        <div class="mb-2 text-xs font-bold text-indigo-400 tracking-widest uppercase">Node: REQ_UPLOAD</div>
+        <h1 class="text-3xl font-bold mb-3 text-gray-800">需求场景上传</h1>
+        <p class="text-gray-500 text-sm mb-6 leading-relaxed bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/50">
+          <span class="font-bold text-indigo-600 block mb-1">场景描述：</span>
+          {{ nodeConfig.scenario }}
+        </p>
 
-    <!-- AI Review Feedback -->
-    <section v-if="aiReviewResult" class="requirement-cloud__review">
-      <h3 class="requirement-cloud__section-title">
-        <span class="requirement-cloud__ai-badge">AI</span>
-        需求评审反馈
-      </h3>
-      <div class="requirement-cloud__review-content">
-        <div class="requirement-cloud__review-score">
-          <span class="requirement-cloud__score-value">{{ aiReviewResult.score }}</span>
-          <span class="requirement-cloud__score-label">综合评分</span>
-        </div>
-        <div class="requirement-cloud__review-details">
-          <div
-            v-for="item in aiReviewResult.dimensions"
-            :key="item.name"
-            class="requirement-cloud__dimension"
-          >
-            <span class="requirement-cloud__dimension-name">{{ item.name }}</span>
-            <div class="requirement-cloud__dimension-bar">
-              <div
-                class="requirement-cloud__dimension-fill"
-                :style="{ width: `${item.score}%` }"
-              ></div>
-            </div>
-            <span class="requirement-cloud__dimension-score">{{ item.score }}%</span>
+        <div class="flex-1 flex flex-col">
+          <label class="font-bold text-gray-700 text-sm mb-2 flex items-center gap-2">
+            <svg class="text-indigo-500" style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+            请输入您的需求文本
+          </label>
+          <textarea 
+            v-model="inputText" 
+            :disabled="isSubmitted"
+            placeholder="请结合上述场景，详细描述您认为系统必须具备的功能或安全需求..." 
+            class="flex-1 w-full bg-white/70 border border-gray-200 rounded-xl p-4 text-gray-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100/50 transition-all resize-none custom-scrollbar mb-4 shadow-inner disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed"
+          ></textarea>
+          
+          <div class="text-right text-xs text-gray-400 mb-4">
+            已输入: <span :class="inputText.length > 0 ? 'text-indigo-500 font-bold' : ''">{{ inputText.length }}</span> 字符
+          </div>
+
+          <div v-if="!isSubmitted">
+            <button 
+              class="hero-send-btn w-full justify-center py-3.5 rounded-xl shadow-lg transition-all duration-300"
+              :class="!inputText.trim() ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:shadow-indigo-500/40'"
+              @click="submitRequirement"
+              :disabled="!inputText.trim()"
+            >
+              <svg style="width: 18px; height: 18px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+              提交需求并生成词云
+            </button>
+          </div>
+          <div v-else class="animate-fade-in space-y-3">
+             <div class="flex items-center gap-2 text-sm text-green-600 bg-green-50 p-3 rounded-xl border border-green-100 shadow-sm">
+                <svg style="width: 18px; height: 18px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span>需求已提交！满足前置条件。</span>
+             </div>
+             <button class="w-full py-3.5 bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
+               进入下一实训环节
+               <svg style="width: 16px; height: 16px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+             </button>
           </div>
         </div>
-        <p class="requirement-cloud__review-comment">{{ aiReviewResult.comment }}</p>
       </div>
-    </section>
 
-    <!-- Word Cloud -->
-    <section class="requirement-cloud__wordcloud">
-      <h3 class="requirement-cloud__section-title">关键词云</h3>
-      <div class="requirement-cloud__cloud-container">
-        <span
-          v-for="word in wordCloudData"
-          :key="word.text"
-          class="requirement-cloud__word"
-          :style="{ fontSize: `${word.size}px`, opacity: word.weight }"
-        >
-          {{ word.text }}
-        </span>
-      </div>
-    </section>
+      <div class="flex-[1.8] flex flex-col h-full bg-white/40 border border-gray-100 rounded-2xl p-6 shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <svg class="text-purple-500" style="width: 20px; height: 20px; flex-shrink: 0;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
+            全班实时需求词云
+          </h2>
+          <span class="text-xs text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 flex items-center gap-1.5 animate-pulse">
+            <span class="w-2 h-2 rounded-full bg-indigo-500"></span> Live Sync
+          </span>
+        </div>
 
-    <!-- History -->
-    <section class="requirement-cloud__history">
-      <h3 class="requirement-cloud__section-title">提交历史</h3>
-      <div class="requirement-cloud__history-list">
-        <div
-          v-for="record in historyRecords"
-          :key="record.id"
-          class="requirement-cloud__history-item"
-        >
-          <span class="requirement-cloud__history-time">{{ record.submittedAt }}</span>
-          <span class="requirement-cloud__history-file">{{ record.fileName }}</span>
-          <span class="requirement-cloud__history-score">{{ record.score }}分</span>
+        <div class="flex-1 flex flex-wrap content-center justify-center gap-x-6 gap-y-4 p-4 relative">
+           <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-50/50 via-transparent to-transparent pointer-events-none"></div>
+           
+           <span v-for="(word, index) in mockWordCloud" :key="index"
+                 class="transition-all duration-700 hover:scale-125 cursor-default"
+                 :class="[
+                   isSubmitted && word.isNew ? 'animate-pop-in' : '',
+                   word.colorClass
+                 ]"
+                 :style="{ fontSize: word.size + 'px', fontWeight: word.weight }">
+             {{ word.text }}
+           </span>
         </div>
       </div>
-    </section>
 
-    <!-- Submit Button -->
-    <section class="requirement-cloud__footer">
-      <button
-        class="requirement-cloud__submit-btn"
-        :disabled="!uploadedFile"
-        @click="handleSubmit"
-      >
-        提交需求文档
-      </button>
-    </section>
+    </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed } from 'vue'
+<script setup>
+import { ref } from 'vue'
 
-interface ReviewDimension {
-  name: string
-  score: number
-}
+const nodeConfig = ref({
+  scenario: '在开发面向政企客户的安全办公协同系统时，需设计一套符合国密标准的加密传输方案。请描述你在该场景下认为核心的安全需求或技术痛点。'
+})
 
-interface AiReviewResult {
-  score: number
-  dimensions: ReviewDimension[]
-  comment: string
-}
+const inputText = ref('')
+const isSubmitted = ref(false)
 
-interface WordCloudItem {
-  text: string
-  size: number
-  weight: number
-}
-
-interface HistoryRecord {
-  id: string
-  submittedAt: string
-  fileName: string
-  score: number
-}
-
-interface RequirementCloudConfig {
-  display?: {
-    title?: string
-  }
-  ai_processing?: {
-    enable_ai_pre_review?: boolean
-  }
-  [key: string]: unknown
-}
-
-const props = defineProps<{
-  nodeInstanceId: number
-  nodeConfig: RequirementCloudConfig
-}>()
-
-const emit = defineEmits<{
-  complete: []
-}>()
-
-const isDragging = ref<boolean>(false)
-const uploadedFile = ref<File | null>(null)
-
-/** Placeholder AI review result */
-const aiReviewResult = computed<AiReviewResult | null>(() => ({
-  score: 82,
-  dimensions: [
-    { name: '完整性', score: 85 },
-    { name: '清晰度', score: 78 },
-    { name: '可行性', score: 90 },
-    { name: '规范性', score: 75 }
-  ],
-  comment: '需求文档整体结构清晰，功能描述较为完整。建议补充非功能性需求描述，并细化用户角色权限矩阵。'
-}))
-
-/** Placeholder word cloud data */
-const wordCloudData = computed<WordCloudItem[]>(() => [
-  { text: '用户管理', size: 24, weight: 1 },
-  { text: '数据分析', size: 20, weight: 0.9 },
-  { text: '权限控制', size: 18, weight: 0.85 },
-  { text: '接口设计', size: 22, weight: 0.95 },
-  { text: '性能优化', size: 16, weight: 0.75 },
-  { text: '安全认证', size: 19, weight: 0.88 },
-  { text: '日志审计', size: 14, weight: 0.65 },
-  { text: '消息通知', size: 17, weight: 0.8 },
-  { text: '文件存储', size: 15, weight: 0.7 },
-  { text: '报表导出', size: 16, weight: 0.72 }
+// 模拟初始词云数据
+const mockWordCloud = ref([
+  { text: 'SM4加密', size: 42, weight: 900, colorClass: 'text-indigo-600' },
+  { text: '性能瓶颈', size: 24, weight: 600, colorClass: 'text-purple-500' },
+  { text: '密钥协商', size: 36, weight: 800, colorClass: 'text-blue-500' },
+  { text: '硬件加速', size: 18, weight: 500, colorClass: 'text-gray-500' },
+  { text: '国密改造', size: 28, weight: 700, colorClass: 'text-indigo-400' },
+  { text: '合规性', size: 32, weight: 800, colorClass: 'text-pink-500' },
+  { text: 'SM3摘要', size: 20, weight: 600, colorClass: 'text-gray-600' },
+  { text: '安全通道', size: 26, weight: 700, colorClass: 'text-purple-400' },
 ])
 
-/** Placeholder history records */
-const historyRecords = computed<HistoryRecord[]>(() => [
-  { id: 'h1', submittedAt: '2025-03-10 14:30', fileName: '需求分析v2.docx', score: 82 },
-  { id: 'h2', submittedAt: '2025-03-08 09:15', fileName: '需求分析v1.docx', score: 68 }
-])
-
-function handleDrop(event: DragEvent) {
-  isDragging.value = false
-  const files = event.dataTransfer?.files
-  if (files && files.length > 0) {
-    const file = files[0]
-    if (file) uploadedFile.value = file
-  }
-}
-
-function handleFileSelect(event: Event) {
-  const target = event.target as HTMLInputElement
-  if (target.files && target.files.length > 0) {
-    const file = target.files[0]
-    if (file) uploadedFile.value = file
-  }
-}
-
-function removeFile() {
-  uploadedFile.value = null
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function handleSubmit() {
-  if (!uploadedFile.value) return
-  emit('complete')
+const submitRequirement = () => {
+  if (!inputText.value.trim()) return
+  isSubmitted.value = true
+  
+  // 模拟：提交后，将用户的关键词动态插入到全班词云中
+  setTimeout(() => {
+    mockWordCloud.value.push({
+      text: '我的最新需求',
+      size: 48,
+      weight: 900,
+      colorClass: 'text-indigo-600 drop-shadow-md',
+      isNew: true // 用于触发动画
+    })
+  }, 500)
 }
 </script>
 
 <style scoped>
-.requirement-cloud {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg, 1.5rem);
-  padding: var(--spacing-lg, 1.5rem);
-  height: 100%;
-  overflow-y: auto;
+.custom-scrollbar::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 4px; }
+
+.animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.requirement-cloud__title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--color-gray-800, #1e293b);
-  margin-bottom: var(--spacing-md, 1rem);
-}
-
-.requirement-cloud__upload {
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.requirement-cloud__dropzone {
-  border: 2px dashed var(--color-gray-300, #cbd5e1);
-  border-radius: var(--radius-md, 0.5rem);
-  padding: 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-.requirement-cloud__dropzone--active {
-  border-color: var(--color-primary-400, #818cf8);
-  background: var(--color-primary-50, #eef2ff);
-}
-
-.requirement-cloud__dropzone-icon {
-  font-size: 2.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.requirement-cloud__dropzone-text {
-  font-size: 0.9375rem;
-  color: var(--color-gray-600, #475569);
-  font-weight: 500;
-}
-
-.requirement-cloud__dropzone-hint {
-  font-size: 0.75rem;
-  color: var(--color-gray-400, #94a3b8);
-  margin-top: 0.25rem;
-}
-
-.requirement-cloud__file-input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-.requirement-cloud__file-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-top: var(--spacing-sm, 0.75rem);
-  padding: 0.5rem 0.75rem;
-  background: var(--color-gray-50, #f8fafc);
-  border-radius: var(--radius-sm, 0.25rem);
-}
-
-.requirement-cloud__file-name {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--color-gray-700, #334155);
-  flex: 1;
-}
-
-.requirement-cloud__file-size {
-  font-size: 0.75rem;
-  color: var(--color-gray-400, #94a3b8);
-}
-
-.requirement-cloud__file-remove {
-  background: none;
-  border: none;
-  color: var(--color-gray-400, #94a3b8);
-  cursor: pointer;
-  font-size: 0.875rem;
-}
-
-.requirement-cloud__section-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-gray-800, #1e293b);
-  margin-bottom: var(--spacing-md, 1rem);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.requirement-cloud__ai-badge {
-  font-size: 0.625rem;
-  font-weight: 700;
-  padding: 0.125rem 0.375rem;
-  border-radius: var(--radius-sm, 0.25rem);
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  color: white;
-}
-
-.requirement-cloud__review {
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.requirement-cloud__review-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md, 1rem);
-}
-
-.requirement-cloud__review-score {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-
-.requirement-cloud__score-value {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--color-primary-600, #4f46e5);
-}
-
-.requirement-cloud__score-label {
-  font-size: 0.875rem;
-  color: var(--color-gray-500, #64748b);
-}
-
-.requirement-cloud__review-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.requirement-cloud__dimension {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.requirement-cloud__dimension-name {
-  font-size: 0.8125rem;
-  color: var(--color-gray-600, #475569);
-  width: 4rem;
-  flex-shrink: 0;
-}
-
-.requirement-cloud__dimension-bar {
-  flex: 1;
-  height: 6px;
-  background: var(--color-gray-100, #f1f5f9);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.requirement-cloud__dimension-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #6366f1, #8b5cf6);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.requirement-cloud__dimension-score {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-gray-600, #475569);
-  width: 2.5rem;
-  text-align: right;
-}
-
-.requirement-cloud__review-comment {
-  font-size: 0.875rem;
-  color: var(--color-gray-600, #475569);
-  line-height: 1.6;
-  padding: 0.75rem;
-  background: var(--color-gray-50, #f8fafc);
-  border-radius: var(--radius-md, 0.5rem);
-  border-left: 3px solid var(--color-primary-300, #a5b4fc);
-}
-
-.requirement-cloud__wordcloud {
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.requirement-cloud__cloud-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  justify-content: center;
-  align-items: center;
-  min-height: 120px;
-  padding: var(--spacing-md, 1rem);
-}
-
-.requirement-cloud__word {
-  color: var(--color-primary-600, #4f46e5);
-  font-weight: 600;
-  cursor: default;
-  transition: transform 0.15s ease;
-}
-
-.requirement-cloud__word:hover {
-  transform: scale(1.1);
-}
-
-.requirement-cloud__history {
-  background: var(--color-white, #ffffff);
-  border: 1px solid var(--color-gray-200, #e2e8f0);
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-lg, 1.5rem);
-}
-
-.requirement-cloud__history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.requirement-cloud__history-item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md, 1rem);
-  padding: 0.5rem 0.75rem;
-  background: var(--color-gray-50, #f8fafc);
-  border-radius: var(--radius-sm, 0.25rem);
-}
-
-.requirement-cloud__history-time {
-  font-size: 0.75rem;
-  color: var(--color-gray-400, #94a3b8);
-}
-
-.requirement-cloud__history-file {
-  font-size: 0.875rem;
-  color: var(--color-gray-700, #334155);
-  flex: 1;
-}
-
-.requirement-cloud__history-score {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-primary-600, #4f46e5);
-}
-
-.requirement-cloud__footer {
-  padding-top: var(--spacing-md, 1rem);
-}
-
-.requirement-cloud__submit-btn {
-  width: 100%;
-  padding: 0.875rem;
-  font-size: 1rem;
-  font-weight: 700;
-  color: white;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  border: none;
-  border-radius: var(--radius-lg, 0.75rem);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.requirement-cloud__submit-btn:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px -4px rgba(99, 102, 241, 0.4);
-}
-
-.requirement-cloud__submit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.animate-pop-in { animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.5); }
+  100% { opacity: 1; transform: scale(1); }
 }
 </style>
