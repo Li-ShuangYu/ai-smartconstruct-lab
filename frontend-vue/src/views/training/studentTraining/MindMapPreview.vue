@@ -1,4 +1,4 @@
-﻿﻿﻿﻿<template>
+﻿﻿﻿﻿﻿﻿<template>
   <div style="height: calc(100vh - 64px); min-height: 500px;">
     <div class="glass-card w-full h-full p-3 flex flex-col z-10 relative overflow-hidden">
       
